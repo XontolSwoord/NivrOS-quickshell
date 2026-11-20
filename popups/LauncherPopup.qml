@@ -15,76 +15,35 @@ Item {
     required property var hostWin
     readonly property bool anyVisible: (launcherCard.opacity > 0.01)
 
+        
+
         Process {
             id: allAppsScanProc
             running: true
-            command: ["python3", "-c", `
-import os, glob, configparser
-
-dirs = ['/usr/share/applications', os.path.expanduser('~/.local/share/applications'), '/var/lib/flatpak/exports/share/applications', os.path.expanduser('~/.local/share/flatpak/exports/share/applications')]
-seen = set()
-apps = []
-for d in dirs:
-    if not os.path.isdir(d): continue
-    for p in sorted(glob.glob(os.path.join(d, '*.desktop'))):
-        cp = configparser.ConfigParser(interpolation=None)
-        try:
-            cp.read(p, encoding='utf-8')
-        except Exception:
-            continue
-        if 'Desktop Entry' not in cp: continue
-        de = cp['Desktop Entry']
-        if de.get('NoDisplay', 'false').lower() == 'true' or de.get('Hidden', 'false').lower() == 'true':
-            continue
-        if de.get('Type', 'Application') != 'Application':
-            continue
-        name = de.get('Name', '').strip()
-        exec_cmd = de.get('Exec', '').strip()
-        icon = de.get('Icon', '').strip()
-        if not name or not exec_cmd or name in seen:
-            continue
-        seen.add(name)
-        for code in ['%f', '%F', '%u', '%U', '%d', '%D', '%n', '%N', '%i', '%c', '%k', '%v', '%m']:
-            exec_cmd = exec_cmd.replace(code, '')
-        exec_cmd = exec_cmd.strip()
-        apps.append((name, icon, exec_cmd))
-
-apps.sort(key=lambda x: x[0].lower())
-for n, ic, ex in apps:
-    print(f"{n.replace('|',' ')}|{ic.replace('|','')}|{ex.replace('|',' ')}")
-`]
+            command: ["python3", "-c", "import os, glob, json, configparser; dirs=[os.path.expanduser('~/.local/share/applications'),'/usr/share/applications','/usr/local/share/applications','/var/lib/flatpak/exports/share/applications',os.path.expanduser('~/.local/share/flatpak/exports/share/applications')]; cache_fp='/tmp/qs_apps_cache.json'; fp_sig=[]; for d in dirs:\n  if os.path.isdir(d):\n    st=os.stat(d); fp_sig.append((d,st.st_mtime_ns,len(os.listdir(d))))\nsig_str=json.dumps(fp_sig); if os.path.exists(cache_fp):\n  try:\n    c=json.load(open(cache_fp,encoding='utf-8'))\n    if c.get('sig')==sig_str and isinstance(c.get('apps'),list):\n      print(json.dumps(c['apps'])); raise SystemExit(0)\n  except SystemExit:\n    raise\n  except Exception:\n    pass\nseen=set(); apps=[]; palette=['#0A84FF','#30D158','#FF9F0A','#5E5CE6','#FF375F','#64D2FF','#BF5AF2']; for d in dirs:\n  if not os.path.isdir(d): continue\n  for p in sorted(glob.glob(os.path.join(d,'*.desktop'))):\n    cp=configparser.ConfigParser(interpolation=None)\n    try: cp.read(p,encoding='utf-8')\n    except Exception: continue\n    if 'Desktop Entry' not in cp: continue\n    de=cp['Desktop Entry']\n    if de.get('NoDisplay','false').lower()=='true' or de.get('Hidden','false').lower()=='true': continue\n    if de.get('Type','Application')!='Application': continue\n    name=de.get('Name','').strip(); raw_exec=de.get('Exec','').strip()\n    if not name or not raw_exec: continue\n    k=name.lower()\n    if k in seen: continue\n    seen.add(k)\n    clean_cmd=' '.join(t for t in raw_exec.split() if not t.startswith('%'))\n    generic=de.get('GenericName','').strip(); kw=de.get('Keywords','').strip(); ic=de.get('Icon','').strip()\n    idx=len(apps)\n    apps.append({'name':name,'generic':generic,'keywords':kw,'cmd':clean_cmd,'icon':ic,'bg':palette[idx%len(palette)],'glyph':name[:2].upper()})\napps.sort(key=lambda x:x['name'].lower()); try:\n  with open(cache_fp,'w',encoding='utf-8') as f: json.dump({'sig':sig_str,'apps':apps},f)\nexcept Exception:\n  pass\nprint(json.dumps(apps))"]
             stdout: StdioCollector {
                 onStreamFinished: {
-                    let lines = text.trim().split("\n").filter(l => l.length > 0);
-                    let arr = [];
-                    let palette = ["#0A84FF", "#30D158", "#FF9F0A", "#5E5CE6", "#FF375F", "#64D2FF", "#BF5AF2"];
-                    for (let i = 0; i < lines.length; i++) {
-                        let p = lines[i].split("|");
-                        if (p.length >= 3) {
-                            arr.push({
-                                name: p[0],
-                                icon: p[1],
-                                cmd: p[2],
-                                bg: palette[i % palette.length],
-                                glyph: p[0].slice(0, 2).toUpperCase()
-                            });
+                    try {
+                        let parsed = JSON.parse(text.trim());
+                        if (Array.isArray(parsed) && modRoot.shellRoot) {
+                            let hasFinder = parsed.some(item => String(item.name || '').toLowerCase() === 'finder');
+                            if (!hasFinder) {
+                                parsed.unshift({
+                                    name: 'Finder',
+                                    generic: 'File Manager',
+                                    keywords: 'files folder thunar nautilus explorer',
+                                    cmd: 'command -v thunar >/dev/null 2>&1 && thunar || (command -v nautilus >/dev/null 2>&1 && nautilus || xdg-open "$HOME")',
+                                    icon: 'system-file-manager',
+                                    bg: '#1E88E5',
+                                    glyph: 'FI'
+                                });
+                            }
+                            modRoot.shellRoot.allSystemApps = parsed;
                         }
-                    }
-                    // Pastikan entri Finder selalu tersedia di daftar aplikasi
-                    let hasFinder = arr.some(item => String(item.name || "").toLowerCase() === "finder");
-                    if (!hasFinder) {
-                        arr.unshift({
-                            name: "Finder",
-                            cmd: "command -v thunar >/dev/null 2>&1 && thunar || (command -v nautilus >/dev/null 2>&1 && nautilus || xdg-open \"$HOME\")",
-                            icon: "system-file-manager"
-                        });
-                    }
-                    modRoot.shellRoot.allSystemApps = arr;
+                    } catch (e) {}
                 }
             }
         }
-        
-
         Rectangle {
             id: launcherCard
             z: 15
@@ -131,7 +90,7 @@ for n, ic, ex in apps:
             property var filteredApps: {
                 let q = shellRoot.launcherSearchText.trim().toLowerCase();
                 if (q === "") return shellRoot.allSystemApps;
-                return shellRoot.allSystemApps.filter(a => a.name.toLowerCase().includes(q) || a.cmd.toLowerCase().includes(q));
+                return shellRoot.allSystemApps.filter(a => String(a.name || '').toLowerCase().includes(q) || String(a.generic || '').toLowerCase().includes(q) || String(a.keywords || '').toLowerCase().includes(q) || String(a.cmd || '').toLowerCase().includes(q));
             }
 
             onIsOpenChanged: {
