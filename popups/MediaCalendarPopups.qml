@@ -84,12 +84,12 @@ Item {
             scale: isOpen ? 1.0 : 0.90
             transform: Translate {
                 y: musicFullCard.isOpen ? 0 : -12
-                Behavior on y { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                Behavior on y { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
             }
             transformOrigin: Item.Top
 
-            Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
-            Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+            Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
+            Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
             Column {
                 x: 16
@@ -104,9 +104,9 @@ Item {
                     opacity: musicFullCard.stage >= 1 ? 1.0 : 0.0
                     transform: Translate {
                         y: musicFullCard.stage >= 1 ? 0 : 10
-                        Behavior on y { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                        Behavior on y { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
                     }
-                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                    Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
                     Rectangle {
                         width: 64; height: 64; radius: 14
@@ -170,9 +170,9 @@ Item {
                     opacity: musicFullCard.stage >= 2 ? 1.0 : 0.0
                     transform: Translate {
                         y: musicFullCard.stage >= 2 ? 0 : 10
-                        Behavior on y { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                        Behavior on y { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
                     }
-                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                    Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
                     Rectangle {
                         width: 292
@@ -189,7 +189,7 @@ Item {
                             height: 5
                             radius: 2.5
                             color: "#A1C6FF"
-                            Behavior on width { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                            Behavior on width { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
                         }
                     }
 
@@ -215,9 +215,9 @@ Item {
                     opacity: musicFullCard.stage >= 3 ? 1.0 : 0.0
                     transform: Translate {
                         y: musicFullCard.stage >= 3 ? 0 : 10
-                        Behavior on y { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                        Behavior on y { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
                     }
-                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                    Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
                     Rectangle {
                         width: 38; height: 38; radius: 19
@@ -234,7 +234,7 @@ Item {
                         width: 44; height: 44; radius: 22
                         color: "#A1C6FF"
                         scale: mpPlayM.pressed ? 0.90 : (mpPlayM.containsMouse ? 1.06 : 1.0)
-                        Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                        Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
                         Text {
                             anchors.centerIn: parent
                             text: (overlay.mediaPlayer && overlay.mediaPlayer.isPlaying) ? "❚❚" : "▶"
@@ -351,12 +351,12 @@ Item {
             scale: isOpen ? 1.0 : 0.90
             transform: Translate {
                 y: calCard.isOpen ? 0 : -12
-                Behavior on y { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                Behavior on y { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
             }
             transformOrigin: Item.TopRight
 
-            Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
-            Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+            Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
+            Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
             ColumnLayout {
                 id: calCol
@@ -372,9 +372,9 @@ Item {
                     opacity: calCard.stage >= 1 ? 1.0 : 0.0
                     transform: Translate {
                         y: calCard.stage >= 1 ? 0 : 8
-                        Behavior on y { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                        Behavior on y { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
                     }
-                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                    Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
                     Text { text: calCard.monthTitle(); color: "#F5F5F7"; font.pixelSize: 14; font.bold: true }
                     Item { Layout.fillWidth: true }
@@ -431,9 +431,9 @@ Item {
                     opacity: calCard.stage >= 2 ? 1.0 : 0.0
                     transform: Translate {
                         y: calCard.stage >= 2 ? 0 : 8
-                        Behavior on y { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                        Behavior on y { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
                     }
-                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                    Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
                     Repeater {
                         model: ["S", "M", "T", "W", "T", "F", "S"]
@@ -475,9 +475,9 @@ Item {
                     opacity: calCard.stage >= 3 ? 1.0 : 0.0
                     transform: Translate {
                         y: calCard.stage >= 3 ? 0 : 8
-                        Behavior on y { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                        Behavior on y { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
                     }
-                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                    Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
                     RowLayout {
                         anchors.fill: parent

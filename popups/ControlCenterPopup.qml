@@ -85,12 +85,12 @@ Item {
             scale: isOpen ? 1.0 : 0.90
             transform: Translate {
                 y: ccCard.isOpen ? 0 : -12
-                Behavior on y { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                Behavior on y { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
             }
             transformOrigin: Item.TopRight
 
-            Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
-            Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+            Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
+            Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
             Column {
                 x: 12
@@ -107,9 +107,9 @@ Item {
                     opacity: ccCard.stage >= 1 ? 1.0 : 0.0
                     transform: Translate {
                         y: ccCard.stage >= 1 ? 0 : 12
-                        Behavior on y { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                        Behavior on y { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
                     }
-                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                    Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
                     Rectangle {
                         width: 152
@@ -324,7 +324,7 @@ Item {
                                 border.color: "#1AFFFFFF"
                                 scale: ssTileM.pressed ? 0.94 : 1.0
                                 Behavior on color { ColorAnimation { duration: 160 } }
-                                Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                                Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
                                 Canvas {
                                     x: 25; y: 14
@@ -361,7 +361,7 @@ Item {
                                 border.color: "#1AFFFFFF"
                                 scale: wpTileM.pressed ? 0.94 : 1.0
                                 Behavior on color { ColorAnimation { duration: 160 } }
-                                Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                                Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
                                 Canvas {
                                     x: 25; y: 14
@@ -400,9 +400,9 @@ Item {
                     opacity: ccCard.stage >= 2 ? 1.0 : 0.0
                     transform: Translate {
                         y: ccCard.stage >= 2 ? 0 : 12
-                        Behavior on y { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                        Behavior on y { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
                     }
-                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                    Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
                     Text { x: 14; y: 10; text: "Display"; color: "#F5F5F7"; font.pixelSize: 11; font.bold: true }
                     Text { anchors.right: parent.right; anchors.rightMargin: 14; y: 10; text: shellRoot.brightnessLevel + "%"; color: "#AEAEB2"; font.pixelSize: 11 }
@@ -455,9 +455,9 @@ Item {
                     opacity: ccCard.stage >= 3 ? 1.0 : 0.0
                     transform: Translate {
                         y: ccCard.stage >= 3 ? 0 : 12
-                        Behavior on y { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                        Behavior on y { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
                     }
-                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                    Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
                     Text { x: 14; y: 10; text: "Sound"; color: "#F5F5F7"; font.pixelSize: 11; font.bold: true }
 
@@ -528,9 +528,9 @@ Item {
                     opacity: ccCard.stage >= 4 ? 1.0 : 0.0
                     transform: Translate {
                         y: ccCard.stage >= 4 ? 0 : 12
-                        Behavior on y { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                        Behavior on y { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
                     }
-                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                    Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
                     Rectangle {
                         x: 12; y: 12
@@ -626,9 +626,9 @@ Item {
                     opacity: ccCard.stage >= 5 ? 1.0 : 0.0
                     transform: Translate {
                         y: ccCard.stage >= 5 ? 0 : 12
-                        Behavior on y { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                        Behavior on y { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
                     }
-                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                    Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
                     Rectangle {
                         width: 94

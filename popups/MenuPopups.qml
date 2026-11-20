@@ -72,12 +72,12 @@ Item {
             scale: isOpen ? 1.0 : 0.90
             transform: Translate {
                 y: appleCard.isOpen ? 0 : -8
-                Behavior on y { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                Behavior on y { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
             }
             transformOrigin: Item.TopLeft
 
-            Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
-            Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+            Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
+            Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
             Column {
                 id: appleCol
@@ -105,7 +105,7 @@ Item {
                             y: appleCard.stage >= (index + 1) ? 0 : 6
                             Behavior on y { NumberAnimation { duration: 310; easing.type: Easing.OutQuint } }
                         }
-                        Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                        Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
                         Rectangle {
                             width: appleCol.width
@@ -211,12 +211,12 @@ Item {
             scale: isOpen ? 1.0 : 0.90
             transform: Translate {
                 y: winCard.isOpen ? 0 : -8
-                Behavior on y { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                Behavior on y { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
             }
             transformOrigin: Item.TopLeft
 
-            Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
-            Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+            Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
+            Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
             Column {
                 id: winMenuCol
@@ -244,7 +244,7 @@ Item {
                             y: winCard.stage >= (index + 1) ? 0 : 6
                             Behavior on y { NumberAnimation { duration: 310; easing.type: Easing.OutQuint } }
                         }
-                        Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                        Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
                         Behavior on color { ColorAnimation { duration: 130 } }
 
                         Text {
@@ -329,12 +329,12 @@ Item {
             scale: isOpen ? 1.0 : 0.90
             transform: Translate {
                 y: deskCard.isOpen ? 0 : -8
-                Behavior on y { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                Behavior on y { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
             }
             transformOrigin: Item.TopLeft
 
-            Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
-            Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+            Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
+            Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
             Column {
                 id: deskMenuCol
@@ -362,7 +362,7 @@ Item {
                             y: deskCard.stage >= (index + 1) ? 0 : 6
                             Behavior on y { NumberAnimation { duration: 310; easing.type: Easing.OutQuint } }
                         }
-                        Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                        Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
                         Behavior on color { ColorAnimation { duration: 130 } }
 
                         Text {

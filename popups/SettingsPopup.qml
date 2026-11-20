@@ -120,11 +120,11 @@ Item {
             scale: isOpen ? 1.0 : 0.90
             transform: Translate {
                 y: settingsCard.isOpen ? 0 : 16
-                Behavior on y { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                Behavior on y { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
             }
 
-            Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
-            Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+            Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
+            Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
             RowLayout {
                 anchors.fill: parent
@@ -326,7 +326,7 @@ Item {
                                         GradientStop { position: 1.0; color: active ? "#AD0866E6" : "#0DFFFFFF" }
                                     }
 
-                                    Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                                    Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
                                     RowLayout {
                                         anchors.fill: parent
@@ -423,7 +423,7 @@ Item {
                         spacing: 12
                         visible: shellRoot.settingsTab === "appearance"
                         opacity: visible ? 1.0 : 0.0
-                        Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                        Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
                         RowLayout {
                             Layout.fillWidth: true
@@ -442,7 +442,7 @@ Item {
                                     GradientStop { position: 0.0; color: "#D92B8EFF" }
                                     GradientStop { position: 1.0; color: "#AD0866E6" }
                                 }
-                                Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                                Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
                                 Text {
                                     id: nextWpPillTxt
@@ -542,7 +542,7 @@ Item {
                                     color: "#AA1C1E28"
                                     border.width: 1
                                     border.color: "#55FFFFFF"
-                                    Behavior on anchors.bottomMargin { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                                    Behavior on anchors.bottomMargin { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
                                     Row {
                                         anchors.centerIn: parent
@@ -721,7 +721,7 @@ Item {
                                         GradientStop { position: 0.0; color: active ? "#D92B8EFF" : "#26FFFFFF" }
                                         GradientStop { position: 1.0; color: active ? "#AD0866E6" : "#12FFFFFF" }
                                     }
-                                    Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                                    Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
                                     RowLayout {
                                         anchors.fill: parent
@@ -1241,7 +1241,7 @@ Item {
                                     border.color: shellRoot.currentWallpaper === modelData ? "#64D2FF" : "#3CFFFFFF"
                                     clip: true
                                     scale: wpThumbM.pressed ? 0.94 : (wpThumbM.containsMouse ? 1.03 : 1.0)
-                                    Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                                    Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
                                     Image {
                                         anchors.fill: parent
@@ -1290,7 +1290,7 @@ Item {
                         spacing: 14
                         visible: shellRoot.settingsTab === "display_sound"
                         opacity: visible ? 1.0 : 0.0
-                        Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                        Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
                         Text { text: "Display & Sound"; color: "#FFFFFF"; font.pixelSize: 17; font.bold: true }
 
@@ -1312,7 +1312,7 @@ Item {
                                     GradientStop { position: 0.0; color: shellRoot.dndEnabled ? "#D92B8EFF" : "#2EFFFFFF" }
                                     GradientStop { position: 1.0; color: shellRoot.dndEnabled ? "#AD0866E6" : "#14FFFFFF" }
                                 }
-                                Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                                Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
                                 RowLayout {
                                     anchors.fill: parent
@@ -1454,7 +1454,7 @@ Item {
                                             GradientStop { position: 0.0; color: modelData.active ? "#E02E94FF" : "#30FFFFFF" }
                                             GradientStop { position: 1.0; color: modelData.active ? "#AD0866E6" : "#14FFFFFF" }
                                         }
-                                        Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                                        Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
                                         Text {
                                             anchors.centerIn: parent
@@ -1518,7 +1518,7 @@ Item {
                         spacing: 12
                         visible: shellRoot.settingsTab === "wifi"
                         opacity: visible ? 1.0 : 0.0
-                        Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                        Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
                         RowLayout {
                             Layout.fillWidth: true
@@ -1715,7 +1715,7 @@ Item {
                         spacing: 12
                         visible: shellRoot.settingsTab === "bluetooth"
                         opacity: visible ? 1.0 : 0.0
-                        Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                        Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
                         RowLayout {
                             Layout.fillWidth: true
@@ -1854,7 +1854,7 @@ Item {
                         spacing: 14
                         visible: shellRoot.settingsTab === "power"
                         opacity: visible ? 1.0 : 0.0
-                        Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                        Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
                         Text { text: "Power & System"; color: "#FFFFFF"; font.pixelSize: 17; font.bold: true }
 
@@ -1968,7 +1968,7 @@ Item {
                                             GradientStop { position: 0.0; color: pwrOrbM.containsMouse ? "#45FFFFFF" : "#2CFFFFFF" }
                                             GradientStop { position: 1.0; color: "#14FFFFFF" }
                                         }
-                                        Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                                        Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
                                         Text {
                                             anchors.centerIn: parent

@@ -49,9 +49,9 @@ import "../core"
             opacity: (topBar.shellRoot ? topBar.shellRoot.bootStage : 6) >= 1 ? 1.0 : 0.0
             transform: Translate {
                 y: (topBar.shellRoot ? topBar.shellRoot.bootStage : 6) >= 1 ? 0 : -28
-                Behavior on y { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                Behavior on y { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
             }
-            Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+            Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
             Rectangle {
                 anchors.bottom: parent.bottom
@@ -75,7 +75,7 @@ import "../core"
                     color: ((topBar.shellRoot ? topBar.shellRoot.activePopup : "") === "apple" || logoM.containsMouse) ? "#2EFFFFFF" : "transparent"
                     scale: logoM.pressed ? 0.92 : (logoM.containsMouse ? 1.05 : 1.0)
                     Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
-                    Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                    Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
                     Canvas {
                         anchors.centerIn: parent
@@ -131,7 +131,7 @@ import "../core"
                     color: ((topBar.shellRoot ? topBar.shellRoot.activePopup : "") === "window" || winMenuM.containsMouse) ? "#2EFFFFFF" : "transparent"
                     scale: winMenuM.pressed ? 0.94 : (winMenuM.containsMouse ? 1.03 : 1.0)
                     Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
-                    Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                    Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
                     Text {
                         id: winMenuTxt
@@ -157,7 +157,7 @@ import "../core"
                     color: ((topBar.shellRoot ? topBar.shellRoot.activePopup : "") === "desktop" || deskMenuM.containsMouse) ? "#2EFFFFFF" : "transparent"
                     scale: deskMenuM.pressed ? 0.94 : (deskMenuM.containsMouse ? 1.03 : 1.0)
                     Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
-                    Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                    Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
                     Text {
                         id: deskMenuTxt
@@ -213,8 +213,8 @@ import "../core"
 
                 Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
                 Behavior on border.color { ColorAnimation { duration: 180 } }
-                Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
-                Behavior on width { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
+                Behavior on width { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
                 Row {
                     id: nowPlayingRow
@@ -354,7 +354,7 @@ import "../core"
                     color: ((topBar.shellRoot ? topBar.shellRoot.activePopup : "") === "wifi" || wifiTopM.containsMouse) ? "#2EFFFFFF" : "transparent"
                     scale: wifiTopM.pressed ? 0.92 : (wifiTopM.containsMouse ? 1.05 : 1.0)
                     Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
-                    Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                    Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
                     Canvas {
                         id: topWifiCanvas
@@ -400,7 +400,7 @@ import "../core"
                     color: spotM.containsMouse ? "#2EFFFFFF" : "transparent"
                     scale: spotM.pressed ? 0.92 : (spotM.containsMouse ? 1.05 : 1.0)
                     Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
-                    Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                    Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
                     Canvas {
                         anchors.centerIn: parent
@@ -438,7 +438,7 @@ import "../core"
                     color: ((topBar.shellRoot ? topBar.shellRoot.activePopup : "") === "cc" || ccTopM.containsMouse) ? "#34FFFFFF" : "transparent"
                     scale: ccTopM.pressed ? 0.92 : (ccTopM.containsMouse ? 1.05 : 1.0)
                     Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
-                    Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                    Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
                     Canvas {
                         anchors.centerIn: parent
@@ -481,7 +481,7 @@ import "../core"
                     color: ((topBar.shellRoot ? topBar.shellRoot.activePopup : "") === "calendar" || clockTopM.containsMouse) ? "#2EFFFFFF" : "transparent"
                     scale: clockTopM.pressed ? 0.94 : (clockTopM.containsMouse ? 1.03 : 1.0)
                     Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
-                    Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                    Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
                     Text {
                         id: clockTxt

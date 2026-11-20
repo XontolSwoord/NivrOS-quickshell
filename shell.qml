@@ -1068,7 +1068,7 @@ ShellRoot {
             }
             Timer {
                 id: menuPopupsHoldTimer
-                interval: 560
+                interval: 620
                 repeat: false
                 onTriggered: {
                     if (!(root.activePopup === "apple" || root.activePopup === "window" || root.activePopup === "desktop")) {
@@ -1103,7 +1103,7 @@ ShellRoot {
             }
             Timer {
                 id: ccPopupHoldTimer
-                interval: 560
+                interval: 620
                 repeat: false
                 onTriggered: {
                     if (!(root.activePopup === "cc")) {
@@ -1139,7 +1139,7 @@ ShellRoot {
             }
             Timer {
                 id: networkPopupsHoldTimer
-                interval: 560
+                interval: 620
                 repeat: false
                 onTriggered: {
                     if (!(root.activePopup === "wifi" || root.activePopup === "bt")) {
@@ -1174,7 +1174,7 @@ ShellRoot {
             }
             Timer {
                 id: mediaCalPopupsHoldTimer
-                interval: 560
+                interval: 620
                 repeat: false
                 onTriggered: {
                     if (!(root.activePopup === "music" || root.activePopup === "calendar")) {
@@ -1210,7 +1210,7 @@ ShellRoot {
             }
             Timer {
                 id: launcherPopupHoldTimer
-                interval: 560
+                interval: 620
                 repeat: false
                 onTriggered: {
                     if (!(root.activePopup === "launchpad" || root.activePopup === "spotlight")) {
@@ -1245,7 +1245,7 @@ ShellRoot {
             }
             Timer {
                 id: aboutPopupHoldTimer
-                interval: 560
+                interval: 620
                 repeat: false
                 onTriggered: {
                     if (!(root.activePopup === "about")) {
@@ -1280,7 +1280,7 @@ ShellRoot {
             }
             Timer {
                 id: settingsHoldTimer
-                interval: 560
+                interval: 620
                 repeat: false
                 onTriggered: {
                     if (root.activePopup !== "settings") {

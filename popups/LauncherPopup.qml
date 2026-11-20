@@ -137,13 +137,13 @@ for n, ic, ex in apps:
             scale: isOpen ? 1.0 : 0.90
             transform: Translate {
                 y: launcherCard.isOpen ? 0 : 18
-                Behavior on y { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                Behavior on y { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
             }
 
-            Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
-            Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
-            Behavior on width { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
-            Behavior on height { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+            Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
+            Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
+            Behavior on width { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
+            Behavior on height { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
             ColumnLayout {
                 anchors.fill: parent
@@ -236,7 +236,7 @@ for n, ic, ex in apps:
                             color: gridItemM.containsMouse ? "#26FFFFFF" : "transparent"
                             scale: gridItemM.pressed ? 0.92 : (gridItemM.containsMouse ? 1.05 : 1.0)
                             Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
-                            Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                            Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
                             Column {
                                 anchors.centerIn: parent

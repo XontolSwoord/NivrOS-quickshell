@@ -23,7 +23,7 @@ Item {
             transformOrigin: Item.TopLeft
             visible: hostWin.isWidgetOn("media")
             opacity: shellRoot.bootStage >= 2 ? 1.0 : 0.0
-            Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+            Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
             Canvas {
                 anchors.fill: parent

@@ -142,11 +142,11 @@ Item {
             scale: isOpen ? 1.0 : 0.90
             transform: Translate {
                 y: aboutCard.isOpen ? 0 : 14
-                Behavior on y { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                Behavior on y { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
             }
 
-            Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
-            Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+            Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
+            Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
             ColumnLayout {
                 anchors.fill: parent
@@ -287,9 +287,9 @@ Item {
                         opacity: aboutCard.stage >= 1 ? 1.0 : 0.0
                         transform: Translate {
                             y: aboutCard.stage >= 1 ? 0 : 12
-                            Behavior on y { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                            Behavior on y { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
                         }
-                        Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                        Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
                         Rectangle {
                             id: romHeroBanner
@@ -301,7 +301,7 @@ Item {
                             border.color: "#44FFFFFF"
                             clip: true
                             scale: bannerM.pressed ? 0.97 : 1.0
-                            Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                            Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
                             Image {
                                 id: bannerWallpaperImg
@@ -503,7 +503,7 @@ Item {
                             color: "#D1D1D6"
                             font.pixelSize: 11
                             opacity: aboutCard.stage >= 1 ? 1.0 : 0.0
-                            Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                            Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
                         }
 
                         // Container Kartu Utama Transparan
@@ -528,7 +528,7 @@ Item {
                                     color: row1M.containsMouse ? "#26FFFFFF" : "transparent"
                                     opacity: aboutCard.stage >= 2 ? 1.0 : 0.0
                                     Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
-                                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                                    Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
                                     RowLayout {
                                         anchors.fill: parent
@@ -568,7 +568,7 @@ Item {
                                     color: row2M.containsMouse ? "#26FFFFFF" : "transparent"
                                     opacity: aboutCard.stage >= 3 ? 1.0 : 0.0
                                     Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
-                                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                                    Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
                                     RowLayout {
                                         anchors.fill: parent
@@ -608,7 +608,7 @@ Item {
                                     color: row3M.containsMouse ? "#26FFFFFF" : "transparent"
                                     opacity: aboutCard.stage >= 4 ? 1.0 : 0.0
                                     Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
-                                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                                    Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
                                     RowLayout {
                                         anchors.fill: parent
@@ -648,7 +648,7 @@ Item {
                                     color: row4M.containsMouse ? "#26FFFFFF" : "transparent"
                                     opacity: aboutCard.stage >= 5 ? 1.0 : 0.0
                                     Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
-                                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                                    Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
                                     RowLayout {
                                         anchors.fill: parent
@@ -688,7 +688,7 @@ Item {
                                     color: row5M.containsMouse ? "#26FFFFFF" : "transparent"
                                     opacity: aboutCard.stage >= 6 ? 1.0 : 0.0
                                     Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
-                                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                                    Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
                                     RowLayout {
                                         anchors.fill: parent
@@ -718,7 +718,7 @@ Item {
                                                     height: 5
                                                     radius: 2.5
                                                     color: "#94E2D5"
-                                                    Behavior on width { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                                                    Behavior on width { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
                                                 }
                                             }
                                         }

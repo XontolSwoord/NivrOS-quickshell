@@ -213,16 +213,16 @@ PanelWindow {
 
             Behavior on slideY {
                 SpringAnimation {
-                    mass: 1.2
-                    spring: 4.4
-                    damping: 0.88
+                    mass: 1.1
+                    spring: 5.0
+                    damping: 0.46
                     epsilon: 0.001
                 }
             }
             Behavior on opacity {
                 NumberAnimation {
-                    duration: 280
-                    easing.type: Easing.OutQuint
+                    duration: 210
+                    easing.type: Easing.OutCubic
                 }
             }
 
@@ -320,8 +320,9 @@ PanelWindow {
 
                         Behavior on smoothMag {
                             SpringAnimation {
-                                spring: 7.2
-                                damping: 0.68
+                                mass: 0.85
+                                spring: 6.2
+                                damping: 0.45
                                 epsilon: 0.001
                             }
                         }
@@ -365,7 +366,7 @@ PanelWindow {
                             visible: opacity > 0.01
 
                             Behavior on opacity { NumberAnimation { duration: 110; easing.type: Easing.InOutCubic } }
-                            Behavior on scale { SpringAnimation { spring: 6.8; damping: 0.72 } }
+                            Behavior on scale { SpringAnimation { mass: 0.85; spring: 6.2; damping: 0.45; epsilon: 0.001 } }
                             Behavior on anchors.bottomMargin { NumberAnimation { duration: 110; easing.type: Easing.OutCubic } }
 
                             Text {
