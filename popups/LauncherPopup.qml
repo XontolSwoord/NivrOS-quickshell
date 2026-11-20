@@ -17,6 +17,7 @@ Item {
 
         Process {
             id: allAppsScanProc
+            running: true
             command: ["python3", "-c", `
 import os, glob, configparser
 
@@ -69,10 +70,21 @@ for n, ic, ex in apps:
                             });
                         }
                     }
-                    shellRoot.allSystemApps = arr;
+                    // Pastikan entri Finder selalu tersedia di daftar aplikasi
+                    let hasFinder = arr.some(item => String(item.name || "").toLowerCase() === "finder");
+                    if (!hasFinder) {
+                        arr.unshift({
+                            name: "Finder",
+                            cmd: "command -v thunar >/dev/null 2>&1 && thunar || (command -v nautilus >/dev/null 2>&1 && nautilus || xdg-open \"$HOME\")",
+                            icon: "system-file-manager"
+                        });
+                    }
+                    modRoot.shellRoot.allSystemApps = arr;
                 }
             }
         }
+        
+
         Rectangle {
             id: launcherCard
             z: 15
@@ -126,7 +138,9 @@ for n, ic, ex in apps:
                 if (isOpen) {
                     launcherSearchInput.text = "";
                     launcherSearchInput.forceActiveFocus();
-                    if (typeof appsScanProc !== "undefined") {
+                    if (modRoot.shellRoot && modRoot.shellRoot.triggerAppsScan) {
+                        modRoot.shellRoot.triggerAppsScan();
+                    } else if (typeof appsScanProc !== "undefined") {
                         appsScanProc.running = false;
                         appsScanProc.running = true;
                     }
@@ -287,10 +301,12 @@ for n, ic, ex in apps:
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onPressed: {
+                                onClicked: {
                                     let targetCmd = modelData.cmd;
+                                    if (targetCmd && targetCmd !== "") {
+                                        shellRoot.runCmd(targetCmd);
+                                    }
                                     shellRoot.closePopups();
-                                    if (targetCmd && targetCmd !== "") shellRoot.runCmd(targetCmd);
                                 }
                             }
                         }

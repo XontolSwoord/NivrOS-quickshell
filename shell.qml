@@ -450,6 +450,23 @@ ShellRoot {
         }
     }
 
+
+    function triggerAppsScan(): void {
+        if (typeof allAppsScanProc !== "undefined") { allAppsScanProc.running = false; allAppsScanProc.running = true; }
+        if (typeof appsScanProc !== "undefined") {
+            appsScanProc.running = false;
+            appsScanProc.running = true;
+        }
+    }
+
+    Timer {
+        id: appsSyncTimer
+        interval: 60000
+        repeat: true
+        running: true
+        onTriggered: root.triggerAppsScan()
+    }
+
     function closePopups() {
         queuedPopup = "";
         launcherSearchText = "";
