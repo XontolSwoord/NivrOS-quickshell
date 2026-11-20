@@ -1302,22 +1302,23 @@ Item {
 
                                     Text { text: "Auto Cycle:"; color: "#D1D1D6"; font.pixelSize: 11 }
 
-                                    Repeater {
-                                        model: [
-                                            { label: "Off", sec: 0 },
-                                            { label: "30m", sec: 1800 },
-                                            { label: "1h", sec: 3600 }
-                                        ]
-                                        Rectangle {
-                                            width: 56; height: 26; radius: 8
-                                            color: shellRoot.autoCycleIntervalSec === modelData.sec ? "#32ADE6" : "#282C3D"
-                                            scale: acM.pressed ? 0.92 : (acM.containsMouse ? 1.04 : 1.0)
-                                            Behavior on color { ColorAnimation { duration: 130 } }
-                                            Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
-                                            Text { anchors.centerIn: parent; text: modelData.label; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
-                                            MouseArea { id: acM; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.autoCycleIntervalSec = modelData.sec }
+                                        Repeater {
+                                            model: [
+                                                { label: "Off", mins: 0 },
+                                                { label: "15m", mins: 15 },
+                                                { label: "30m", mins: 30 },
+                                                { label: "1h", mins: 60 }
+                                            ]
+                                            Rectangle {
+                                                width: 48; height: 26; radius: 8
+                                                color: shellRoot.autoCycleMinutes === modelData.mins ? "#32ADE6" : "#282C3D"
+                                                scale: acM.pressed ? 0.92 : (acM.containsMouse ? 1.04 : 1.0)
+                                                Behavior on color { ColorAnimation { duration: 130 } }
+                                                Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
+                                                Text { anchors.centerIn: parent; text: modelData.label; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
+                                                MouseArea { id: acM; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.autoCycleMinutes = modelData.mins }
+                                            }
                                         }
-                                    }
 
                                     Item { Layout.fillWidth: true }
 
@@ -1329,6 +1330,66 @@ Item {
                                         Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
                                         Text { anchors.centerIn: parent; text: "↩ Reset Default"; color: "#FF6961"; font.pixelSize: 11; font.bold: true }
                                         MouseArea { id: resetWpM; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.resetWallpaperToDefault() }
+                                    }
+                                }
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 8
+
+                                    Text {
+                                        text: "Custom Menit:"
+                                        color: "#D1D1D6"
+                                        font.pixelSize: 11
+                                    }
+
+                                    Rectangle {
+                                        width: 28; height: 26; radius: 8
+                                        color: "#282C3D"
+                                        scale: minDecM.pressed ? 0.9 : (minDecM.containsMouse ? 1.05 : 1.0)
+                                        Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
+                                        Text { anchors.centerIn: parent; text: "-"; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true }
+                                        MouseArea {
+                                            id: minDecM; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                            onClicked: shellRoot.autoCycleMinutes = Math.max(0, shellRoot.autoCycleMinutes - 1)
+                                        }
+                                    }
+
+                                    TextField {
+                                        id: customMinutesInput
+                                        Layout.preferredWidth: 68
+                                        height: 26
+                                        text: String(shellRoot.autoCycleMinutes)
+                                        color: "#FFFFFF"
+                                        font.pixelSize: 11
+                                        horizontalAlignment: TextInput.AlignHCenter
+                                        validator: IntValidator { bottom: 0; top: 1440 }
+                                        background: Rectangle { radius: 8; color: "#12141E"; border.width: 1; border.color: "#38FFFFFF" }
+                                        onEditingFinished: {
+                                            let parsed = parseInt(text, 10);
+                                            shellRoot.autoCycleMinutes = isNaN(parsed) ? 0 : Math.max(0, Math.min(1440, parsed));
+                                            text = String(shellRoot.autoCycleMinutes);
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        width: 28; height: 26; radius: 8
+                                        color: "#282C3D"
+                                        scale: minIncM.pressed ? 0.9 : (minIncM.containsMouse ? 1.05 : 1.0)
+                                        Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
+                                        Text { anchors.centerIn: parent; text: "+"; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true }
+                                        MouseArea {
+                                            id: minIncM; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                            onClicked: shellRoot.autoCycleMinutes = Math.min(1440, shellRoot.autoCycleMinutes + 1)
+                                        }
+                                    }
+
+                                    Text {
+                                        text: shellRoot.autoCycleMinutes > 0
+                                            ? "Aktif tiap " + shellRoot.autoCycleMinutes + " mnt (" + (shellRoot.wallpaperCycleMode === "gacha" ? "Gacha" : "Next") + ")"
+                                            : "Nonaktif (Manual)"
+                                        color: shellRoot.autoCycleMinutes > 0 ? "#30D158" : "#A1A1AA"
+                                        font.pixelSize: 11
+                                        elide: Text.ElideRight
                                     }
                                 }
                             }

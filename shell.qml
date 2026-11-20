@@ -117,7 +117,8 @@ ShellRoot {
     property bool pauseWhenUnseen: true
     readonly property bool liveWallpaperPaused: !liveWallpaperEnabled || (pauseWhenUnseen && hasWindowOnActiveWs && activePopup === "")
     property var favoriteWallpapers: []
-    property int autoCycleIntervalSec: 0 // 0 = Off, 1800 = 30m, 3600 = 1h
+    property int autoCycleMinutes: 0 // 0 = Off, > 0 = interval dalam menit
+    property int autoCycleIntervalSec: autoCycleMinutes * 60
     property string focusedAppName: "Finder"
     property var runningWindows: []
     property bool hasWindowOnActiveWs: false
@@ -997,10 +998,23 @@ ShellRoot {
 
     Timer {
         id: wpAutoCycleTimer
-        interval: root.autoCycleIntervalSec > 0 ? root.autoCycleIntervalSec * 1000 : 3600000
-        running: root.autoCycleIntervalSec > 0 && (!root.pauseWhenUnseen || root.hasWindowOnActiveWs || root.activePopup !== "")
+        interval: root.autoCycleMinutes > 0 ? root.autoCycleMinutes * 60 * 1000 : 60000
+        running: root.autoCycleMinutes > 0 && (!root.pauseWhenUnseen || !root.hasWindowOnActiveWs || root.activePopup !== "")
         repeat: true
         onTriggered: root.cycleWallpaper()
+    }
+
+    Connections {
+        target: root
+        function onAutoCycleMinutesChanged() {
+            if (root.autoCycleMinutes > 0) {
+                wpAutoCycleTimer.stop();
+                wpAutoCycleTimer.interval = root.autoCycleMinutes * 60 * 1000;
+                if (wpAutoCycleTimer.running) wpAutoCycleTimer.restart();
+            } else {
+                wpAutoCycleTimer.stop();
+            }
+        }
     }
 
 
