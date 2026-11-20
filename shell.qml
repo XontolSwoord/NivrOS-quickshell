@@ -2,6 +2,7 @@
 //@ pragma Env QT_QPA_PLATFORMTHEME=gtk3
 //@ pragma Env QT_ICON_THEME=WhiteSur-dark
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
 import QtQuick.Controls
 import Quickshell
@@ -383,6 +384,7 @@ ShellRoot {
     property string launcherSearchText: ""
     property string queuedPopup: ""
     property bool musicPreviewVisible: false
+    property bool niriOverviewActive: false
 
     Timer {
         id: popupSwitchTimer
@@ -884,6 +886,42 @@ ShellRoot {
             source: root.currentWallpaper
             transitionType: "shaderRandom"
             transitionBaseDuration: 950
+        }
+    }
+
+    // 1B. BACKDROP KHUSUS NIRI OVERVIEW (WALLPAPER FROSTED GLASS BLUR)
+    PanelWindow {
+        id: overviewBackdropWin
+        WlrLayershell.layer: WlrLayer.Background
+        WlrLayershell.namespace: "iris-overview-backdrop"
+        exclusionMode: ExclusionMode.Ignore
+
+        anchors { top: true; bottom: true; left: true; right: true }
+        color: "#0D1017"
+
+        Image {
+            id: overviewWpImg
+            anchors.fill: parent
+            source: root.currentWallpaper
+            fillMode: Image.PreserveAspectCrop
+            asynchronous: true
+            cache: true
+            smooth: true
+            scale: 1.05
+        }
+
+        MultiEffect {
+            anchors.fill: overviewWpImg
+            source: overviewWpImg
+            blurEnabled: true
+            blurMax: 64
+            blur: 0.85
+            saturation: 0.15
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            color: "#260E121B"
         }
     }
 
