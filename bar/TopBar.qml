@@ -77,26 +77,13 @@ import "../core"
                     Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
                     Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
-                    Canvas {
+                    Image {
                         anchors.centerIn: parent
-                        width: 14
-                        height: 14
-                        onPaint: {
-                            let ctx = getContext("2d");
-                            ctx.reset();
-                            ctx.fillStyle = "#F5F5F7";
-                            ctx.beginPath();
-                            ctx.arc(7, 8.6, 4.6, 0, Math.PI * 2);
-                            ctx.fill();
-                            ctx.fillStyle = "#18181E";
-                            ctx.beginPath();
-                            ctx.arc(11.4, 7.8, 2.2, 0, Math.PI * 2);
-                            ctx.fill();
-                            ctx.fillStyle = "#F5F5F7";
-                            ctx.beginPath();
-                            ctx.ellipse(7.2, 1.3, 2.4, 1.3, -0.6, 0, Math.PI * 2);
-                            ctx.fill();
-                        }
+                        width: 15
+                        height: 15
+                        source: "../assets/apple-logo.png"
+                        fillMode: Image.PreserveAspectFit
+                        smooth: true
                     }
 
                     MouseArea {
