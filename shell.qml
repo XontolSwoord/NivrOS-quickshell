@@ -1107,7 +1107,7 @@ ShellRoot {
             id: menuPopupsLoader
             anchors.fill: parent
             property bool holdAlive: false
-            active: (root.activePopup === "apple" || root.activePopup === "window" || root.activePopup === "desktop") || holdAlive
+            active: (root.activePopup === "apple" || root.activePopup === "window" || root.activePopup === "desktop") || holdAlive || (item && item.powerConfirmOpen)
             onActiveChanged: {
                 if (active && !(root.activePopup === "apple" || root.activePopup === "window" || root.activePopup === "desktop")) holdAlive = false;
             }
