@@ -415,8 +415,12 @@ ShellRoot {
                 root.scanBtDevices();
             } else if (targetPopup === "about") {
                 sysStatusProc.running = false; sysStatusProc.running = true;
-            } else if (targetPopup === "control") {
+            } else if (targetPopup === "control" || targetPopup === "cc") {
                 sysStatusProc.running = false; sysStatusProc.running = true;
+            } else if (targetPopup === "wifi") {
+                root.scanWifiNetworks();
+            } else if (targetPopup === "bt") {
+                root.scanBtDevices();
             }
         }
     }

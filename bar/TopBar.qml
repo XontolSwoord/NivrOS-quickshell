@@ -388,8 +388,7 @@ import "../core"
                         acceptedButtons: Qt.LeftButton | Qt.RightButton
                         cursorShape: Qt.PointingHandCursor
                         onClicked: (mouse) => {
-                            if (mouse.button === Qt.RightButton) (topBar.shellRoot ? topBar.shellRoot.switchPopup : ShellState.switchPopup)("wifi");
-                            else (topBar.shellRoot ? topBar.shellRoot.switchPopup : ShellState.switchPopup)("cc");
+                            (topBar.shellRoot ? topBar.shellRoot.switchPopup : ShellState.switchPopup)("wifi");
                         }
                     }
                 }
