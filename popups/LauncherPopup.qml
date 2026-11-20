@@ -20,27 +20,41 @@ Item {
         Process {
             id: allAppsScanProc
             running: true
-            command: ["python3", "-c", "import os, glob, json, configparser; dirs=[os.path.expanduser('~/.local/share/applications'),'/usr/share/applications','/usr/local/share/applications','/var/lib/flatpak/exports/share/applications',os.path.expanduser('~/.local/share/flatpak/exports/share/applications')]; cache_fp='/tmp/qs_apps_cache.json'; fp_sig=[]; for d in dirs:\n  if os.path.isdir(d):\n    st=os.stat(d); fp_sig.append((d,st.st_mtime_ns,len(os.listdir(d))))\nsig_str=json.dumps(fp_sig); if os.path.exists(cache_fp):\n  try:\n    c=json.load(open(cache_fp,encoding='utf-8'))\n    if c.get('sig')==sig_str and isinstance(c.get('apps'),list):\n      print(json.dumps(c['apps'])); raise SystemExit(0)\n  except SystemExit:\n    raise\n  except Exception:\n    pass\nseen=set(); apps=[]; palette=['#0A84FF','#30D158','#FF9F0A','#5E5CE6','#FF375F','#64D2FF','#BF5AF2']; for d in dirs:\n  if not os.path.isdir(d): continue\n  for p in sorted(glob.glob(os.path.join(d,'*.desktop'))):\n    cp=configparser.ConfigParser(interpolation=None)\n    try: cp.read(p,encoding='utf-8')\n    except Exception: continue\n    if 'Desktop Entry' not in cp: continue\n    de=cp['Desktop Entry']\n    if de.get('NoDisplay','false').lower()=='true' or de.get('Hidden','false').lower()=='true': continue\n    if de.get('Type','Application')!='Application': continue\n    name=de.get('Name','').strip(); raw_exec=de.get('Exec','').strip()\n    if not name or not raw_exec: continue\n    k=name.lower()\n    if k in seen: continue\n    seen.add(k)\n    clean_cmd=' '.join(t for t in raw_exec.split() if not t.startswith('%'))\n    generic=de.get('GenericName','').strip(); kw=de.get('Keywords','').strip(); ic=de.get('Icon','').strip()\n    idx=len(apps)\n    apps.append({'name':name,'generic':generic,'keywords':kw,'cmd':clean_cmd,'icon':ic,'bg':palette[idx%len(palette)],'glyph':name[:2].upper()})\napps.sort(key=lambda x:x['name'].lower()); try:\n  with open(cache_fp,'w',encoding='utf-8') as f: json.dump({'sig':sig_str,'apps':apps},f)\nexcept Exception:\n  pass\nprint(json.dumps(apps))"]
+            command: ["python3", "-c", "import os, glob, configparser\ndirs=['/usr/share/applications',os.path.expanduser('~/.local/share/applications'),'/usr/local/share/applications','/var/lib/flatpak/exports/share/applications',os.path.expanduser('~/.local/share/flatpak/exports/share/applications')]\nseen=set(); apps=[]\nfor d in dirs:\n  if not os.path.isdir(d): continue\n  for p in sorted(glob.glob(os.path.join(d,'*.desktop'))):\n    cp=configparser.ConfigParser(interpolation=None)\n    try: cp.read(p,encoding='utf-8')\n    except Exception: continue\n    if 'Desktop Entry' not in cp: continue\n    de=cp['Desktop Entry']\n    if de.get('NoDisplay','false').lower()=='true' or de.get('Hidden','false').lower()=='true': continue\n    if de.get('Type','Application')!='Application': continue\n    name=de.get('Name','').strip(); ex=de.get('Exec','').strip(); ic=de.get('Icon','').strip()\n    gen=de.get('GenericName','').strip(); kw=de.get('Keywords','').strip()\n    if not name or not ex: continue\n    k=name.lower()\n    if k in seen: continue\n    seen.add(k)\n    for code in ['%f','%F','%u','%U','%d','%D','%n','%N','%i','%c','%k','%v','%m']:\n      ex=ex.replace(code,'')\n    ex=' '.join(ex.split())\n    if not ex: continue\n    apps.append((name,ic,ex,gen,kw))\napps.sort(key=lambda x:x[0].lower())\nfor n,ic,ex,gen,kw in apps:\n  clean=lambda s: s.replace('|',' ').replace('\\n',' ').strip()\n  print(f'{clean(n)}|{clean(ic)}|{clean(ex)}|{clean(gen)}|{clean(kw)}')\n"]
             stdout: StdioCollector {
                 onStreamFinished: {
-                    try {
-                        let parsed = JSON.parse(text.trim());
-                        if (Array.isArray(parsed) && modRoot.shellRoot) {
-                            let hasFinder = parsed.some(item => String(item.name || '').toLowerCase() === 'finder');
-                            if (!hasFinder) {
-                                parsed.unshift({
-                                    name: 'Finder',
-                                    generic: 'File Manager',
-                                    keywords: 'files folder thunar nautilus explorer',
-                                    cmd: 'command -v thunar >/dev/null 2>&1 && thunar || (command -v nautilus >/dev/null 2>&1 && nautilus || xdg-open "$HOME")',
-                                    icon: 'system-file-manager',
-                                    bg: '#1E88E5',
-                                    glyph: 'FI'
-                                });
-                            }
-                            modRoot.shellRoot.allSystemApps = parsed;
+                    let lines = text.trim().split("\n").filter(l => l.length > 0);
+                    let arr = [];
+                    let palette = ["#0A84FF", "#30D158", "#FF9F0A", "#5E5CE6", "#FF375F", "#64D2FF", "#BF5AF2"];
+                    for (let i = 0; i < lines.length; i++) {
+                        let p = lines[i].split("|");
+                        if (p.length >= 3) {
+                            arr.push({
+                                name: p[0],
+                                icon: p[1],
+                                cmd: p[2],
+                                generic: p[3] || "",
+                                keywords: p[4] || "",
+                                bg: palette[i % palette.length],
+                                glyph: p[0].slice(0, 2).toUpperCase()
+                            });
                         }
-                    } catch (e) {}
+                    }
+                    let hasFinder = arr.some(item => String(item.name || "").toLowerCase() === "finder");
+                    if (!hasFinder) {
+                        arr.unshift({
+                            name: "Finder",
+                            generic: "File Manager",
+                            keywords: "files folder thunar nautilus explorer",
+                            cmd: "command -v thunar >/dev/null 2>&1 && thunar || (command -v nautilus >/dev/null 2>&1 && nautilus || xdg-open \"$HOME\")",
+                            icon: "system-file-manager",
+                            bg: "#1E88E5",
+                            glyph: "FI"
+                        });
+                    }
+                    if (modRoot.shellRoot) {
+                        modRoot.shellRoot.allSystemApps = arr;
+                    }
                 }
             }
         }
@@ -97,12 +111,7 @@ Item {
                 if (isOpen) {
                     launcherSearchInput.text = "";
                     launcherSearchInput.forceActiveFocus();
-                    if (modRoot.shellRoot && modRoot.shellRoot.triggerAppsScan) {
-                        modRoot.shellRoot.triggerAppsScan();
-                    } else if (typeof appsScanProc !== "undefined") {
-                        appsScanProc.running = false;
-                        appsScanProc.running = true;
-                    }
+// Scan cukup saat startup & timer agar buka langsung tidak tertahan
                 }
             }
 
@@ -110,11 +119,11 @@ Item {
             scale: isOpen ? 1.0 : 0.90
             transform: Translate {
                 y: launcherCard.isOpen ? 0 : 18
-                Behavior on y { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
+                Behavior on y { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
             }
 
             Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
-            Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
+            Behavior on scale { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
             Behavior on width { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
             Behavior on height { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 

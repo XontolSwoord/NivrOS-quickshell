@@ -462,8 +462,8 @@ ShellRoot {
     Timer {
         id: appsSyncTimer
         interval: 60000
-        repeat: true
-        running: true
+        repeat: false
+        running: false
         onTriggered: root.triggerAppsScan()
     }
 
@@ -846,6 +846,7 @@ ShellRoot {
 
     Component.onCompleted: {
         scanWallProc.running = true;
+        root.triggerAppsScan();
         niriStateProc.running = true;
         sysStatusProc.running = true;
     }
