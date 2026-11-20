@@ -1,0 +1,738 @@
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
+import QtQuick.Window
+import Quickshell
+import Quickshell.Wayland
+import Quickshell.Io
+import Quickshell.Services.Mpris
+import "../core"
+
+Item {
+    anchors.fill: parent
+    required property var root
+    required property var win
+    readonly property bool anyVisible: (aboutCard.opacity > 0.01)
+
+        Process {
+            id: sysSpecsProc
+            Component.onCompleted: running = true
+            command: ["python3", "-c", "import os, subprocess, socket, getpass\n\ndef read_first(paths, default=\"\"):\n    for p in paths:\n        try:\n            with open(p, \"r\", encoding=\"utf-8\") as f:\n                v = f.read().strip()\n                if v: return v\n        except Exception:\n            pass\n    return default\n\ndef run_out(cmd, default=\"\"):\n    try:\n        return subprocess.check_output(cmd, shell=True, text=True, stderr=subprocess.DEVNULL).strip() or default\n    except Exception:\n        return default\n\nos_name = \"Linux\"\ntry:\n    with open(\"/etc/os-release\", \"r\", encoding=\"utf-8\") as f:\n        for line in f:\n            if line.startswith(\"PRETTY_NAME=\"):\n                os_name = line.split(\"=\", 1)[1].strip().strip('\"')\n                break\nexcept Exception:\n    pass\n\nkernel = os.uname().release\nprod_ver = read_first([\"/sys/devices/virtual/dmi/id/product_version\"], \"\")\nprod_name = read_first([\"/sys/devices/virtual/dmi/id/product_name\"], \"\")\nif \"thinkpad\" in prod_ver.lower():\n    host_model = prod_ver\nelif prod_name and prod_name.lower() != \"to be filled by o.e.m.\":\n    host_model = prod_name\nelse:\n    host_model = socket.gethostname()\n\nuser_host = f\"{getpass.getuser()}@{socket.gethostname()}\"\n\ncpu_model = \"Processor\"\ncores = os.cpu_count() or 1\ntry:\n    with open(\"/proc/cpuinfo\", \"r\", encoding=\"utf-8\") as f:\n        for line in f:\n            if line.startswith(\"model name\"):\n                raw = line.split(\":\", 1)[1].strip()\n                for junk in [\"(R)\", \"(TM)\", \"with Radeon Graphics\", \"CPU\"]:\n                    raw = raw.replace(junk, \"\")\n                cpu_model = f\"{' '.join(raw.split())} ({cores} Threads)\"\n                break\nexcept Exception:\n    pass\n\ngpu_raw = run_out(\"lspci 2>/dev/null | grep -iE 'vga|3d|display' | head -n1 | cut -d':' -f3-\", \"Integrated Graphics\")\ngpu_model = gpu_raw.split(\"(rev\")[0].strip()\nif \"[\" in gpu_model and \"]\" in gpu_model:\n    parts = [p.split(\"]\")[0] for p in gpu_model.split(\"[\")[1:]]\n    if parts:\n        gpu_model = \"AMD \" + parts[-1] if \"amd\" in gpu_raw.lower() or \"ati\" in gpu_raw.lower() else parts[-1]\n\nmem_tot_kb = 1\nmem_avail_kb = 0\ntry:\n    with open(\"/proc/meminfo\", \"r\", encoding=\"utf-8\") as f:\n        for line in f:\n            if line.startswith(\"MemTotal:\"):\n                mem_tot_kb = int(line.split()[1])\n            elif line.startswith(\"MemAvailable:\"):\n                mem_avail_kb = int(line.split()[1])\nexcept Exception:\n    pass\nmem_used_kb = max(0, mem_tot_kb - mem_avail_kb)\nram_used = f\"{mem_used_kb / 1048576:.1f} GiB\"\nram_total = f\"{mem_tot_kb / 1048576:.1f} GiB\"\nram_pct = int(round((mem_used_kb / max(1, mem_tot_kb)) * 100))\n\ndf_out = run_out(\"df -BG --output=used,size,pcent / | tail -n1\", \"0G 0G 0%\").split()\ndisk_used = df_out[0].replace(\"G\", \" GB\") if len(df_out) >= 1 else \"0 GB\"\ndisk_total = df_out[1].replace(\"G\", \" GB\") if len(df_out) >= 2 else \"0 GB\"\ndisk_pct = int(df_out[2].replace(\"%\", \"\")) if len(df_out) >= 3 and df_out[2].replace(\"%\", \"\").isdigit() else 0\n\ndisp = run_out(\"niri msg outputs 2>/dev/null | grep -E 'Current mode:' | head -n1 | sed 's/.*Current mode: //'\", \"\")\nif not disp:\n    disp = read_first([\"/sys/class/drm/card0-eDP-1/modes\", \"/sys/class/drm/card1-eDP-1/modes\"], \"1920x1080\").splitlines()[0]\n\nup_str = run_out(\"uptime -p 2>/dev/null | sed 's/^up //'\", \"-\")\nwm_ver = run_out(\"niri --version 2>/dev/null | awk '{print $1\" \"$2}'\", \"Niri Wayland\")\nqs_ver = run_out(\"qs --version 2>/dev/null | head -n1\", \"Quickshell\")\n\nfields = [os_name, kernel, host_model, user_host, cpu_model, gpu_model, ram_used, ram_total, str(ram_pct), disk_used, disk_total, str(disk_pct), disp, up_str, wm_ver, qs_ver]\nprint(\"|\".join(x.replace(\"|\", \" \") for x in fields))"]
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    let p = text.trim().split("|");
+                    if (p.length >= 16) {
+                        root.sysSpecs = {
+                            osName: p[0],
+                            kernel: p[1],
+                            hostModel: p[2],
+                            userHost: p[3],
+                            cpuModel: p[4],
+                            gpuModel: p[5],
+                            ramUsed: p[6],
+                            ramTotal: p[7],
+                            ramPct: parseInt(p[8]) || 0,
+                            diskUsed: p[9],
+                            diskTotal: p[10],
+                            diskPct: parseInt(p[11]) || 0,
+                            displayInfo: p[12],
+                            uptimeStr: p[13],
+                            wmVer: p[14],
+                            shellVer: p[15]
+                        };
+                    }
+                }
+            }
+        }
+        Timer {
+            id: copiedToastTimer
+            interval: 1800
+            repeat: false
+            onTriggered: root.copiedBannerMsg = ""
+        }
+        Rectangle {
+            id: aboutCard
+            z: 16
+            anchors.centerIn: parent
+            width: 760
+            height: 468
+            radius: 28
+            color: "#9E12131B"
+            border.width: 1
+            border.color: "#44FFFFFF"
+            clip: true
+            visible: !root.preWarmDone || (root.activePopup === "about" || opacity > 0.01)
+
+            MouseArea { anchors.fill: parent; z: 0 }
+
+            // Lapisan Windows 7 Aero + iOS Liquid Glass Real-Time
+            Canvas {
+                anchors.fill: parent
+                z: 0
+                property real dO: root.aeroOpacity
+                property real dR: root.aeroReflection
+                property real dF: root.glassFade
+                property string dW: root.activeGlassWall
+                property string dSt: root.glassStyle
+                property real dTh: root.activeGlassDetail
+                onDOChanged: requestPaint()
+                onDRChanged: requestPaint()
+                onDFChanged: requestPaint()
+                onDWChanged: requestPaint()
+                onDStChanged: requestPaint()
+                onDThChanged: requestPaint()
+                onPaint: {
+                    let sw = Screen.width || 1366;
+                    let sh = Screen.height || 768;
+                    root.drawGlobalAeroGlass(getContext("2d"), width, height, 28, (sw - width) * 0.5, (sh - height) * 0.5, sw, sh, false, false);
+                }
+            }
+
+            // Specular highlight atas ala Liquid Glass
+            Rectangle {
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.topMargin: 1
+                anchors.leftMargin: 22
+                anchors.rightMargin: 22
+                height: 1
+                color: "#38FFFFFF"
+            }
+
+            property bool isOpen: root.activePopup === "about"
+            property int stage: 0
+
+            onIsOpenChanged: {
+                if (isOpen) {
+                    root.copiedBannerMsg = "";
+                    sysSpecsProc.running = false;
+                    sysSpecsProc.running = true;
+                    stage = 1;
+                    aboutStaggerTimer.restart();
+                    aboutKeyCatcher.forceActiveFocus();
+                } else {
+                    aboutStaggerTimer.stop();
+                    stage = 0;
+                }
+            }
+
+            Timer {
+                id: aboutStaggerTimer
+                interval: 34
+                repeat: true
+                onTriggered: {
+                    if (aboutCard.stage < 6) aboutCard.stage++;
+                    else stop();
+                }
+            }
+
+            Item {
+                id: aboutKeyCatcher
+                focus: aboutCard.isOpen
+                Keys.onEscapePressed: root.closePopups()
+            }
+
+            opacity: isOpen ? 1.0 : 0.0
+            scale: isOpen ? 1.0 : 0.90
+            transform: Translate {
+                y: aboutCard.isOpen ? 0 : 14
+                Behavior on y { SpringAnimation { spring: 7.5; damping: 0.72 } }
+            }
+
+            Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+            Behavior on scale { SpringAnimation { spring: 7.5; damping: 0.72 } }
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 20
+                spacing: 14
+                z: 2
+
+                // ── TOP BAR JENDELA ─────────────────────────────────────
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 10
+
+                    Row {
+                        spacing: 7
+                        Rectangle {
+                            width: 12; height: 12; radius: 6
+                            color: closeAboutM.containsMouse ? "#FF3B30" : "#FF5F56"
+                            Text {
+                                anchors.centerIn: parent
+                                text: "×"
+                                color: "#4D0000"
+                                font.pixelSize: 10
+                                font.bold: true
+                                visible: closeAboutM.containsMouse
+                            }
+                            MouseArea {
+                                id: closeAboutM
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.closePopups()
+                            }
+                        }
+                        Rectangle { width: 12; height: 12; radius: 6; color: "#FFBD2E" }
+                        Rectangle { width: 12; height: 12; radius: 6; color: "#27C93F" }
+                    }
+
+                    Item { width: 6 }
+
+                    Text {
+                        text: "About System"
+                        color: "#F5F5F7"
+                        font.pixelSize: 15
+                        font.bold: true
+                    }
+
+                    Rectangle {
+                        height: 21
+                        width: badgeRomTxt.implicitWidth + 14
+                        radius: 10.5
+                        color: "#2EFFFFFF"
+                        border.width: 1
+                        border.color: "#44FFFFFF"
+                        Text {
+                            id: badgeRomTxt
+                            anchors.centerIn: parent
+                            text: "Kairo 26.04"
+                            color: "#FFFFFF"
+                            font.pixelSize: 10
+                            font.bold: true
+                        }
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    // Toast notifikasi saat baris spesifikasi disalin
+                    Rectangle {
+                        height: 24
+                        width: toastTxt.implicitWidth + 16
+                        radius: 12
+                        color: "#4432D74B"
+                        border.width: 1
+                        border.color: "#7732D74B"
+                        visible: root.copiedBannerMsg !== ""
+                        Text {
+                            id: toastTxt
+                            anchors.centerIn: parent
+                            text: root.copiedBannerMsg
+                            color: "#E5FFE9"
+                            font.pixelSize: 10
+                            font.bold: true
+                        }
+                    }
+
+                    // Tombol Copy All Specs
+                    Rectangle {
+                        height: 26
+                        width: copyAllTxt.implicitWidth + 18
+                        radius: 13
+                        color: copyAllM.containsMouse ? "#38FFFFFF" : "#22FFFFFF"
+                        border.width: 1
+                        border.color: "#36FFFFFF"
+                        Behavior on color { ColorAnimation { duration: 60 } }
+
+                        Text {
+                            id: copyAllTxt
+                            anchors.centerIn: parent
+                            text: "Copy All Specs"
+                            color: "#F5F5F7"
+                            font.pixelSize: 11
+                            font.weight: Font.Medium
+                        }
+
+                        MouseArea {
+                            id: copyAllM
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                let s = root.sysSpecs;
+                                let summary = "Device: " + s.hostModel + " (" + s.userHost + ")\n"
+                                            + "OS: " + s.osName + " | Kernel: " + s.kernel + "\n"
+                                            + "Shell: " + s.wmVer + " + " + s.shellVer + "\n"
+                                            + "CPU: " + s.cpuModel + "\n"
+                                            + "GPU: " + s.gpuModel + " (" + s.displayInfo + ")\n"
+                                            + "RAM: " + s.ramUsed + " / " + s.ramTotal + "\n"
+                                            + "Disk: " + s.diskUsed + " / " + s.diskTotal;
+                                root.runCmd("printf \'%s\' \"" + summary.replace(/"/g, "\'") + "\" | wl-copy");
+                                root.copiedBannerMsg = "All Specs Copied ✓";
+                                copiedToastTimer.restart();
+                            }
+                        }
+                    }
+                }
+
+                // ── BODY: KIRI HERO BANNER WALLPAPER | KANAN CUSTOM ROM LIST ──
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    spacing: 18
+
+                    // KOLOM KIRI: BANNER WALLPAPER ALA CUSTOM ROM HP
+                    ColumnLayout {
+                        Layout.preferredWidth: 284
+                        Layout.fillHeight: true
+                        spacing: 9
+
+                        opacity: aboutCard.stage >= 1 ? 1.0 : 0.0
+                        transform: Translate {
+                            y: aboutCard.stage >= 1 ? 0 : 12
+                            Behavior on y { SpringAnimation { spring: 7.5; damping: 0.72 } }
+                        }
+                        Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+
+                        Rectangle {
+                            id: romHeroBanner
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            radius: 22
+                            color: "#22222C"
+                            border.width: 1
+                            border.color: "#44FFFFFF"
+                            clip: true
+                            scale: bannerM.pressed ? 0.97 : 1.0
+                            Behavior on scale { SpringAnimation { spring: 7.5; damping: 0.72 } }
+
+                            Image {
+                                id: bannerWallpaperImg
+                                anchors.fill: parent
+                                source: root.currentWallpaper
+                                fillMode: Image.PreserveAspectCrop
+                                smooth: true
+                                mipmap: true
+                                visible: status === Image.Ready
+                            }
+
+                            Rectangle {
+                                anchors.fill: parent
+                                gradient: Gradient {
+                                    GradientStop { position: 0.0; color: "#28000000" }
+                                    GradientStop { position: 0.55; color: "#44000000" }
+                                    GradientStop { position: 1.0; color: "#88000000" }
+                                }
+                            }
+
+                            // Ikon refresh wallpaper di sudut kanan atas banner
+                            Rectangle {
+                                anchors.top: parent.top
+                                anchors.right: parent.right
+                                anchors.margins: 12
+                                width: 28
+                                height: 28
+                                radius: 14
+                                color: bannerM.containsMouse ? "#66FFFFFF" : "#34000000"
+                                border.width: 1
+                                border.color: "#44FFFFFF"
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "↻"
+                                    color: "#FFFFFF"
+                                    font.pixelSize: 13
+                                    font.bold: true
+                                }
+                            }
+
+                            // Judul Tengah "KAIRO DESKTOP"
+                            Item {
+                                anchors.centerIn: parent
+                                anchors.verticalCenterOffset: -8
+                                width: parent.width - 20
+                                height: 46
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    anchors.verticalCenterOffset: 2
+                                    text: "KAIRO DESKTOP"
+                                    color: "#A6000000"
+                                    font.pixelSize: 24
+                                    font.weight: Font.Black
+                                    font.letterSpacing: 1
+                                }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "KAIRO DESKTOP"
+                                    color: "#FFFFFF"
+                                    font.pixelSize: 24
+                                    font.weight: Font.Black
+                                    font.letterSpacing: 1
+                                }
+                            }
+
+                            // Pill Bawah Banner
+                            Rectangle {
+                                anchors.bottom: parent.bottom
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                anchors.bottomMargin: 16
+                                width: parent.width - 24
+                                height: 29
+                                radius: 14.5
+                                color: "#78141210"
+                                border.width: 1
+                                border.color: "#40FFFFFF"
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "FLUID TILING • GLASS EXPERIENCE"
+                                    color: "#F5F5F7"
+                                    font.pixelSize: 9
+                                    font.bold: true
+                                    elide: Text.ElideRight
+                                    width: parent.width - 14
+                                    horizontalAlignment: Text.AlignHCenter
+                                }
+                            }
+
+                            MouseArea {
+                                id: bannerM
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.pickRandomWallpaper()
+                            }
+                        }
+
+                        // Kartu Developer / Maintainer ala Custom ROM
+                        Rectangle {
+                            Layout.fillWidth: true
+                            height: 54
+                            radius: 16
+                            color: devCardM.containsMouse ? "#661C1E2B" : "#5214151E"
+                            border.width: 1
+                            border.color: "#36FFFFFF"
+                            Behavior on color { ColorAnimation { duration: 60 } }
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 10
+                                anchors.rightMargin: 12
+                                spacing: 10
+
+                                // Avatar Bulat dengan Inisial
+                                Rectangle {
+                                    width: 34
+                                    height: 34
+                                    radius: 17
+                                    gradient: Gradient {
+                                        GradientStop { position: 0.0; color: "#0A84FF" }
+                                        GradientStop { position: 1.0; color: "#BF5AF2" }
+                                    }
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "AR"
+                                        color: "#FFFFFF"
+                                        font.pixelSize: 12
+                                        font.bold: true
+                                    }
+                                }
+
+                                // Nama Developer & Role
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 1
+
+                                    Text {
+                                        text: "Arip"
+                                        color: "#FFFFFF"
+                                        font.pixelSize: 12
+                                        font.bold: true
+                                        elide: Text.ElideRight
+                                        Layout.fillWidth: true
+                                    }
+
+                                    Text {
+                                        text: "Developer • Up " + root.sysSpecs.uptimeStr
+                                        color: "#C7C7CC"
+                                        font.pixelSize: 10
+                                        elide: Text.ElideRight
+                                        Layout.fillWidth: true
+                                    }
+                                }
+
+                                Rectangle {
+                                    height: 20
+                                    width: devBadgeTxt.implicitWidth + 12
+                                    radius: 10
+                                    color: "#26A1C6FF"
+                                    border.width: 1
+                                    border.color: "#44A1C6FF"
+
+                                    Text {
+                                        id: devBadgeTxt
+                                        anchors.centerIn: parent
+                                        text: "DEV"
+                                        color: "#A1C6FF"
+                                        font.pixelSize: 9
+                                        font.bold: true
+                                    }
+                                }
+                            }
+
+                            MouseArea {
+                                id: devCardM
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.pickRandomWallpaper()
+                            }
+                        }
+                    }
+
+                    // KOLOM KANAN: DAFTAR KARTU SPESIFIKASI ALA CUSTOM ROM HP
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        spacing: 10
+
+                        // Subheader ala ROM HP
+                        Text {
+                            Layout.fillWidth: true
+                            text: "System & hardware specifications — click any row to copy"
+                            color: "#D1D1D6"
+                            font.pixelSize: 11
+                            opacity: aboutCard.stage >= 1 ? 1.0 : 0.0
+                            Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                        }
+
+                        // Container Kartu Utama Transparan
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            radius: 22
+                            color: "#5214151E"
+                            border.width: 1
+                            border.color: "#36FFFFFF"
+
+                            ColumnLayout {
+                                anchors.fill: parent
+                                anchors.margins: 12
+                                spacing: 6
+
+                                // BARIS 1: DEVICE & HOST
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    radius: 13
+                                    color: row1M.containsMouse ? "#26FFFFFF" : "transparent"
+                                    opacity: aboutCard.stage >= 2 ? 1.0 : 0.0
+                                    Behavior on color { ColorAnimation { duration: 60 } }
+                                    Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 8
+                                        anchors.rightMargin: 10
+                                        spacing: 12
+
+                                        Rectangle {
+                                            width: 36; height: 36; radius: 12; color: "#3DF4B8E4"
+                                            Text { anchors.centerIn: parent; text: "💻"; font.pixelSize: 16 }
+                                        }
+                                        ColumnLayout {
+                                            Layout.fillWidth: true; spacing: 1
+                                            Text { text: root.sysSpecs.hostModel; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
+                                            Text { text: "Host: " + root.sysSpecs.userHost; color: "#C7C7CC"; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
+                                        }
+                                        Text { text: "›"; color: "#AEAEB2"; font.pixelSize: 16; font.bold: true }
+                                    }
+
+                                    MouseArea {
+                                        id: row1M; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            root.runCmd("printf \'%s\' \"" + root.sysSpecs.hostModel + " (" + root.sysSpecs.userHost + ")\" | wl-copy");
+                                            root.copiedBannerMsg = "Device Info Copied ✓";
+                                            copiedToastTimer.restart();
+                                        }
+                                    }
+                                }
+
+                                Rectangle { Layout.fillWidth: true; height: 1; color: "#1FFFFFFF" }
+
+                                // BARIS 2: OS & KERNEL
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    radius: 13
+                                    color: row2M.containsMouse ? "#26FFFFFF" : "transparent"
+                                    opacity: aboutCard.stage >= 3 ? 1.0 : 0.0
+                                    Behavior on color { ColorAnimation { duration: 60 } }
+                                    Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 8
+                                        anchors.rightMargin: 10
+                                        spacing: 12
+
+                                        Rectangle {
+                                            width: 36; height: 36; radius: 12; color: "#3D89B4FA"
+                                            Text { anchors.centerIn: parent; text: "🐧"; font.pixelSize: 16 }
+                                        }
+                                        ColumnLayout {
+                                            Layout.fillWidth: true; spacing: 1
+                                            Text { text: root.sysSpecs.osName; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
+                                            Text { text: "Kernel " + root.sysSpecs.kernel; color: "#C7C7CC"; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
+                                        }
+                                        Text { text: "›"; color: "#AEAEB2"; font.pixelSize: 16; font.bold: true }
+                                    }
+
+                                    MouseArea {
+                                        id: row2M; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            root.runCmd("printf \'%s\' \"" + root.sysSpecs.osName + " | Kernel " + root.sysSpecs.kernel + "\" | wl-copy");
+                                            root.copiedBannerMsg = "OS & Kernel Copied ✓";
+                                            copiedToastTimer.restart();
+                                        }
+                                    }
+                                }
+
+                                Rectangle { Layout.fillWidth: true; height: 1; color: "#1FFFFFFF" }
+
+                                // BARIS 3: COMPOSITOR & SHELL
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    radius: 13
+                                    color: row3M.containsMouse ? "#26FFFFFF" : "transparent"
+                                    opacity: aboutCard.stage >= 4 ? 1.0 : 0.0
+                                    Behavior on color { ColorAnimation { duration: 60 } }
+                                    Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 8
+                                        anchors.rightMargin: 10
+                                        spacing: 12
+
+                                        Rectangle {
+                                            width: 36; height: 36; radius: 12; color: "#3DA6E3A1"
+                                            Text { anchors.centerIn: parent; text: "✦"; color: "#A6E3A1"; font.pixelSize: 16; font.bold: true }
+                                        }
+                                        ColumnLayout {
+                                            Layout.fillWidth: true; spacing: 1
+                                            Text { text: root.sysSpecs.wmVer + " • " + root.sysSpecs.shellVer; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
+                                            Text { text: "Wayland Custom Desktop Shell"; color: "#C7C7CC"; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
+                                        }
+                                        Text { text: "›"; color: "#AEAEB2"; font.pixelSize: 16; font.bold: true }
+                                    }
+
+                                    MouseArea {
+                                        id: row3M; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            root.runCmd("printf \'%s\' \"" + root.sysSpecs.wmVer + " + " + root.sysSpecs.shellVer + "\" | wl-copy");
+                                            root.copiedBannerMsg = "Shell Info Copied ✓";
+                                            copiedToastTimer.restart();
+                                        }
+                                    }
+                                }
+
+                                Rectangle { Layout.fillWidth: true; height: 1; color: "#1FFFFFFF" }
+
+                                // BARIS 4: PROCESSOR & GRAPHICS
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    radius: 13
+                                    color: row4M.containsMouse ? "#26FFFFFF" : "transparent"
+                                    opacity: aboutCard.stage >= 5 ? 1.0 : 0.0
+                                    Behavior on color { ColorAnimation { duration: 60 } }
+                                    Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 8
+                                        anchors.rightMargin: 10
+                                        spacing: 12
+
+                                        Rectangle {
+                                            width: 36; height: 36; radius: 12; color: "#3DCBA6F7"
+                                            Text { anchors.centerIn: parent; text: "⚙"; color: "#CBA6F7"; font.pixelSize: 17; font.bold: true }
+                                        }
+                                        ColumnLayout {
+                                            Layout.fillWidth: true; spacing: 1
+                                            Text { text: root.sysSpecs.cpuModel; color: "#FFFFFF"; font.pixelSize: 12; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
+                                            Text { text: root.sysSpecs.gpuModel + " (" + root.sysSpecs.displayInfo + ")"; color: "#C7C7CC"; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
+                                        }
+                                        Text { text: "›"; color: "#AEAEB2"; font.pixelSize: 16; font.bold: true }
+                                    }
+
+                                    MouseArea {
+                                        id: row4M; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            root.runCmd("printf \'%s\' \"" + root.sysSpecs.cpuModel + " | " + root.sysSpecs.gpuModel + "\" | wl-copy");
+                                            root.copiedBannerMsg = "CPU & GPU Copied ✓";
+                                            copiedToastTimer.restart();
+                                        }
+                                    }
+                                }
+
+                                Rectangle { Layout.fillWidth: true; height: 1; color: "#1FFFFFFF" }
+
+                                // BARIS 5: MEMORY & STORAGE
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    radius: 13
+                                    color: row5M.containsMouse ? "#26FFFFFF" : "transparent"
+                                    opacity: aboutCard.stage >= 6 ? 1.0 : 0.0
+                                    Behavior on color { ColorAnimation { duration: 60 } }
+                                    Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 8
+                                        anchors.rightMargin: 10
+                                        spacing: 12
+
+                                        Rectangle {
+                                            width: 36; height: 36; radius: 12; color: "#3D94E2D5"
+                                            Text { anchors.centerIn: parent; text: "▤"; color: "#94E2D5"; font.pixelSize: 15; font.bold: true }
+                                        }
+                                        ColumnLayout {
+                                            Layout.fillWidth: true; spacing: 4
+                                            RowLayout {
+                                                Layout.fillWidth: true
+                                                Text { text: "RAM " + root.sysSpecs.ramUsed + " / " + root.sysSpecs.ramTotal; color: "#FFFFFF"; font.pixelSize: 12; font.bold: true }
+                                                Item { Layout.fillWidth: true }
+                                                Text { text: "Disk " + root.sysSpecs.diskUsed + " / " + root.sysSpecs.diskTotal; color: "#C7C7CC"; font.pixelSize: 11 }
+                                            }
+                                            Rectangle {
+                                                Layout.fillWidth: true
+                                                height: 5
+                                                radius: 2.5
+                                                color: "#33FFFFFF"
+                                                Rectangle {
+                                                    width: Math.min(parent.width, parent.width * (root.sysSpecs.ramPct / 100))
+                                                    height: 5
+                                                    radius: 2.5
+                                                    color: "#94E2D5"
+                                                    Behavior on width { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                                                }
+                                            }
+                                        }
+                                        Text { text: "›"; color: "#AEAEB2"; font.pixelSize: 16; font.bold: true }
+                                    }
+
+                                    MouseArea {
+                                        id: row5M; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            root.runCmd("printf \'%s\' \"RAM " + root.sysSpecs.ramUsed + "/" + root.sysSpecs.ramTotal + " | Disk " + root.sysSpecs.diskUsed + "/" + root.sysSpecs.diskTotal + "\" | wl-copy");
+                                            root.copiedBannerMsg = "Memory & Disk Copied ✓";
+                                            copiedToastTimer.restart();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+}

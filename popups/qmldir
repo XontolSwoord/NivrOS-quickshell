@@ -1,1 +1,7 @@
 SettingsPopup 1.0 SettingsPopup.qml
+MenuPopups 1.0 MenuPopups.qml
+ControlCenterPopup 1.0 ControlCenterPopup.qml
+NetworkPopups 1.0 NetworkPopups.qml
+MediaCalendarPopups 1.0 MediaCalendarPopups.qml
+LauncherPopup 1.0 LauncherPopup.qml
+AboutPopup 1.0 AboutPopup.qml
