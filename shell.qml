@@ -423,7 +423,7 @@ ShellRoot {
         onTriggered: {
             if (targetPopup === "settings") {
                 sysStatusProc.running = false; sysStatusProc.running = true;
-                settingsExtraProc.running = false; settingsExtraProc.running = true;
+                if (typeof settingsExtraProc !== "undefined" && settingsExtraProc) { settingsExtraProc.running = false; settingsExtraProc.running = true; }
                 root.scanWifiNetworks();
                 root.scanBtDevices();
             } else if (targetPopup === "about") {
@@ -592,30 +592,30 @@ ShellRoot {
         let shouldPause = !activeVid || root.liveWallpaperPaused;
         let rawPath = String(root.currentWallpaper || "");
         if (rawPath.startsWith("file://")) rawPath = rawPath.slice(7);
+        let safePath = rawPath.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\$/g, "\\$").replace(/`/g, "\\`");
 
         let cmd = "";
         if (!activeVid) {
-            cmd = "pkill -f 'qs-livewp-mpv' 2>/dev/null || true";
+            cmd = "pkill -f '[q]s-livewp-mpv' 2>/dev/null || true";
         } else if (shouldPause) {
-            cmd = "if pgrep -f 'qs-livewp-mpv' >/dev/null 2>&1; then "
+            cmd = "if pgrep -f '[q]s-livewp-mpv' >/dev/null 2>&1; then "
                 + "if command -v socat >/dev/null 2>&1 && [ -S /tmp/qs-livewp.sock ]; then "
                 + "printf '{\"command\": [\"set_property\", \"pause\", true]}\n' | socat - /tmp/qs-livewp.sock >/dev/null 2>&1 || true; "
-                + "else pkill -STOP -f 'qs-livewp-mpv' 2>/dev/null || true; fi; fi";
+                + "else pkill -STOP -f '[q]s-livewp-mpv' 2>/dev/null || true; fi; fi";
         } else {
-            cmd = "if pgrep -f 'qs-livewp-mpv' >/dev/null 2>&1; then "
+            cmd = "if pgrep -f '[q]s-livewp-mpv' >/dev/null 2>&1; then "
                 + "if command -v socat >/dev/null 2>&1 && [ -S /tmp/qs-livewp.sock ]; then "
                 + "printf '{\"command\": [\"set_property\", \"pause\", false]}\n' | socat - /tmp/qs-livewp.sock >/dev/null 2>&1 || true; "
-                + "else pkill -CONT -f 'qs-livewp-mpv' 2>/dev/null || true; fi; "
+                + "else pkill -CONT -f '[q]s-livewp-mpv' 2>/dev/null || true; fi; "
                 + "elif command -v mpv >/dev/null 2>&1; then "
                 + "rm -f /tmp/qs-livewp.sock; "
-                + "nohup mpv --no-audio --loop-file=inf --really-quiet --input-ipc-server=/tmp/qs-livewp.sock --title='qs-livewp-mpv' \"" + rawPath + "\" >/dev/null 2>&1 & fi";
+                + "nohup mpv --no-audio --loop-file=inf --really-quiet --input-ipc-server=/tmp/qs-livewp.sock --title='qs-livewp-mpv' \"" + safePath + "\" >/dev/null 2>&1 & fi";
         }
 
         liveWpProc.running = false;
         liveWpProc.command = ["sh", "-c", cmd];
         liveWpProc.running = true;
     }
-
     function reloadWallpapers() {
         let dir = activeWallpaperTargetDir();
         let vidExpr = liveWallpaperEnabled ? " -o -iname '*.mp4' -o -iname '*.webm' -o -iname '*.mkv' -o -iname '*.mov'" : "";
@@ -1008,15 +1008,12 @@ ShellRoot {
         target: root
         function onAutoCycleMinutesChanged() {
             if (root.autoCycleMinutes > 0) {
-                wpAutoCycleTimer.stop();
-                wpAutoCycleTimer.interval = root.autoCycleMinutes * 60 * 1000;
                 if (wpAutoCycleTimer.running) wpAutoCycleTimer.restart();
             } else {
                 wpAutoCycleTimer.stop();
             }
         }
     }
-
 
     Connections {
         target: root
