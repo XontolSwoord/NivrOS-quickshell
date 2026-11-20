@@ -8,6 +8,13 @@ QtObject {
     property string activePopup: ""
     property string glassStyle: "mac"
 
+    property int batteryPercent: -1
+    property string batteryStatus: ""
+    property int bootStage: 6
+    property string focusedAppName: "Finder"
+    property bool musicPreviewVisible: false
+    property bool wifiConnected: false
+
     property real macOpacity: 0.33
     property real macFrost: 0.42
     property real aeroBaseOpacity: 0.30
