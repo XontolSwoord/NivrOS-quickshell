@@ -10,8 +10,8 @@ import "../core"
 
 Item {
     anchors.fill: parent
-    required property var root
-    required property var win
+    required property var shellRoot
+    required property var hostWin
     readonly property bool anyVisible: (launcherCard.opacity > 0.01)
 
         Process {
@@ -68,7 +68,7 @@ for n, ic, ex in apps:
                             });
                         }
                     }
-                    root.allSystemApps = arr;
+                    shellRoot.allSystemApps = arr;
                 }
             }
         }
@@ -77,20 +77,20 @@ for n, ic, ex in apps:
             z: 15
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
-            anchors.verticalCenterOffset: root.activePopup === "spotlight" ? -42 : -10
-            width: root.activePopup === "spotlight" ? 560 : 720
-            height: root.activePopup === "spotlight" ? 410 : 470
+            anchors.verticalCenterOffset: shellRoot.activePopup === "spotlight" ? -42 : -10
+            width: shellRoot.activePopup === "spotlight" ? 560 : 720
+            height: shellRoot.activePopup === "spotlight" ? 410 : 470
             radius: 26
             color: "transparent"
             Canvas {
                 anchors.fill: parent
                 z: -1
-                property real dO: root.aeroOpacity
-                property real dR: root.aeroReflection
-                property real dF: root.glassFade
-                property string dW: root.activeGlassWall
-                property string dSt: root.glassStyle
-                property real dTh: root.activeGlassDetail
+                property real dO: shellRoot.aeroOpacity
+                property real dR: shellRoot.aeroReflection
+                property real dF: shellRoot.glassFade
+                property string dW: shellRoot.activeGlassWall
+                property string dSt: shellRoot.glassStyle
+                property real dTh: shellRoot.activeGlassDetail
                 onDOChanged: requestPaint()
                 onDRChanged: requestPaint()
                 onDFChanged: requestPaint()
@@ -101,20 +101,20 @@ for n, ic, ex in apps:
                     let sw = Screen.width || 1366;
                     let sh = Screen.height || 768;
                     let pos = parent.mapToItem(null, 0, 0);
-                    root.drawGlobalAeroGlass(getContext("2d"), width, height, parent.radius, pos.x, pos.y, sw, sh, false, false);
+                    shellRoot.drawGlobalAeroGlass(getContext("2d"), width, height, parent.radius, pos.x, pos.y, sw, sh, false, false);
                 }
             }
             border.width: 1
             border.color: "#3CFFFFFF"
-            visible: !root.preWarmDone || ((root.activePopup === "launchpad" || root.activePopup === "spotlight") || opacity > 0.01)
+            visible: !shellRoot.preWarmDone || ((shellRoot.activePopup === "launchpad" || shellRoot.activePopup === "spotlight") || opacity > 0.01)
 
             MouseArea { anchors.fill: parent; z: 0 }
 
-            property bool isOpen: root.activePopup === "launchpad" || root.activePopup === "spotlight"
+            property bool isOpen: shellRoot.activePopup === "launchpad" || shellRoot.activePopup === "spotlight"
             property var filteredApps: {
-                let q = root.launcherSearchText.trim().toLowerCase();
-                if (q === "") return root.allSystemApps;
-                return root.allSystemApps.filter(a => a.name.toLowerCase().includes(q) || a.cmd.toLowerCase().includes(q));
+                let q = shellRoot.launcherSearchText.trim().toLowerCase();
+                if (q === "") return shellRoot.allSystemApps;
+                return shellRoot.allSystemApps.filter(a => a.name.toLowerCase().includes(q) || a.cmd.toLowerCase().includes(q));
             }
 
             onIsOpenChanged: {
@@ -174,20 +174,20 @@ for n, ic, ex in apps:
                             font.pixelSize: 15
                             selectionColor: "#0A84FF"
                             clip: true
-                            onTextChanged: root.launcherSearchText = text
-                            Keys.onEscapePressed: root.closePopups()
+                            onTextChanged: shellRoot.launcherSearchText = text
+                            Keys.onEscapePressed: shellRoot.closePopups()
                             Keys.onReturnPressed: {
                                 if (launcherCard.filteredApps.length > 0) {
                                     let chosen = launcherCard.filteredApps[0];
-                                    root.closePopups();
-                                    root.runCmd(chosen.cmd);
+                                    shellRoot.closePopups();
+                                    shellRoot.runCmd(chosen.cmd);
                                 }
                             }
 
                             Text {
                                 anchors.fill: parent
                                 verticalAlignment: Text.AlignVCenter
-                                text: root.activePopup === "spotlight" ? "Spotlight Search — Ketik nama aplikasi..." : "Cari Aplikasi di Launchpad..."
+                                text: shellRoot.activePopup === "spotlight" ? "Spotlight Search — Ketik nama aplikasi..." : "Cari Aplikasi di Launchpad..."
                                 color: "#8E8E93"
                                 font.pixelSize: 14
                                 visible: launcherSearchInput.text === ""
@@ -201,7 +201,7 @@ for n, ic, ex in apps:
                             color: "#22FFFFFF"
                             Text {
                                 anchors.centerIn: parent
-                                text: root.activePopup === "spotlight" ? "Spotlight" : "Launchpad"
+                                text: shellRoot.activePopup === "spotlight" ? "Spotlight" : "Launchpad"
                                 color: "#AEAEB2"
                                 font.pixelSize: 10
                                 font.bold: true
@@ -216,7 +216,7 @@ for n, ic, ex in apps:
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     clip: true
-                    cellWidth: Math.floor(width / (root.activePopup === "spotlight" ? 5 : 6))
+                    cellWidth: Math.floor(width / (shellRoot.activePopup === "spotlight" ? 5 : 6))
                     cellHeight: 96
                     model: launcherCard.filteredApps
 
@@ -284,8 +284,8 @@ for n, ic, ex in apps:
                                 cursorShape: Qt.PointingHandCursor
                                 onPressed: {
                                     let targetCmd = modelData.cmd;
-                                    root.closePopups();
-                                    if (targetCmd && targetCmd !== "") root.runCmd(targetCmd);
+                                    shellRoot.closePopups();
+                                    if (targetCmd && targetCmd !== "") shellRoot.runCmd(targetCmd);
                                 }
                             }
                         }

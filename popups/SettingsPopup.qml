@@ -9,8 +9,8 @@ import "../core"
 Item {
     id: settingsScope
     anchors.fill: parent
-    required property var root
-    required property var win
+    required property var shellRoot
+    required property var hostWin
     readonly property real cardOpacity: settingsCard.opacity
 
         // ── 4K. KAIRO SYSTEM SETTINGS (HARMONYOS LIQUID GLASS PILLS & ORBS) ──
@@ -22,16 +22,16 @@ Item {
                 onStreamFinished: {
                     let p = text.trim().split("|");
                     if (p.length >= 2) {
-                        root.localIpAddr = p[0];
-                        root.powerProfile = p[1];
+                        shellRoot.localIpAddr = p[0];
+                        shellRoot.powerProfile = p[1];
                     }
                 }
             }
         }
 
         function setPowerProfile(prof) {
-            root.powerProfile = prof;
-            root.runCmd("powerprofilesctl set " + prof + " 2>/dev/null || true");
+            shellRoot.powerProfile = prof;
+            shellRoot.runCmd("powerprofilesctl set " + prof + " 2>/dev/null || true");
         }
 
         Rectangle {
@@ -45,7 +45,7 @@ Item {
             border.width: 1.2
             border.color: "#4CFFFFFF"
             clip: true
-            visible: !root.preWarmDone || (root.activePopup === "settings" || opacity > 0.01)
+            visible: !shellRoot.preWarmDone || (shellRoot.activePopup === "settings" || opacity > 0.01)
 
             MouseArea { anchors.fill: parent; z: 0 }
 
@@ -53,12 +53,12 @@ Item {
             Canvas {
                 anchors.fill: parent
                 z: 0
-                property real dO: root.aeroOpacity
-                property real dR: root.aeroReflection
-                property real dF: root.glassFade
-                property string dW: root.activeGlassWall
-                property string dSt: root.glassStyle
-                property real dTh: root.activeGlassDetail
+                property real dO: shellRoot.aeroOpacity
+                property real dR: shellRoot.aeroReflection
+                property real dF: shellRoot.glassFade
+                property string dW: shellRoot.activeGlassWall
+                property string dSt: shellRoot.glassStyle
+                property real dTh: shellRoot.activeGlassDetail
                 onDOChanged: requestPaint()
                 onDRChanged: requestPaint()
                 onDFChanged: requestPaint()
@@ -68,7 +68,7 @@ Item {
                 onPaint: {
                     let sw = Screen.width || 1366;
                     let sh = Screen.height || 768;
-                    root.drawGlobalAeroGlass(getContext("2d"), width, height, 36, (sw - width) * 0.5, (sh - height) * 0.5, sw, sh, false, false);
+                    shellRoot.drawGlobalAeroGlass(getContext("2d"), width, height, 36, (sw - width) * 0.5, (sh - height) * 0.5, sw, sh, false, false);
                 }
             }
 
@@ -82,7 +82,7 @@ Item {
                 border.color: "#28FFFFFF"
             }
 
-            property bool isOpen: root.activePopup === "settings"
+            property bool isOpen: shellRoot.activePopup === "settings"
             property int stage: 0
 
             onIsOpenChanged: {
@@ -109,7 +109,7 @@ Item {
             Item {
                 id: settingsKeyCatcher
                 focus: settingsCard.isOpen && !setSearchInput.activeFocus && !setWifiPassField.activeFocus
-                Keys.onEscapePressed: root.closePopups()
+                Keys.onEscapePressed: shellRoot.closePopups()
             }
 
             opacity: isOpen ? 1.0 : 0.0
@@ -166,7 +166,7 @@ Item {
                                         anchors.fill: parent
                                         hoverEnabled: true
                                         cursorShape: Qt.PointingHandCursor
-                                        onClicked: root.closePopups()
+                                        onClicked: shellRoot.closePopups()
                                     }
                                 }
                                 Rectangle { width: 12; height: 12; radius: 6; color: "#FFBD2E" }
@@ -244,7 +244,7 @@ Item {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onPressed: root.switchPopup("about")
+                                onPressed: shellRoot.switchPopup("about")
                             }
                         }
 
@@ -272,15 +272,15 @@ Item {
                                     font.pixelSize: 12
                                     clip: true
                                     onTextChanged: {
-                                        root.settingsSearch = text;
+                                        shellRoot.settingsSearch = text;
                                         let q = text.trim().toLowerCase();
-                                        if (q.includes("wifi") || q.includes("net") || q.includes("ip")) root.settingsTab = "wifi";
-                                        else if (q.includes("blue") || q.includes("bt")) root.settingsTab = "bluetooth";
-                                        else if (q.includes("bright") || q.includes("sound") || q.includes("vol") || q.includes("layar")) root.settingsTab = "display_sound";
-                                        else if (q.includes("wall") || q.includes("dock") || q.includes("widget") || q.includes("kairo")) root.settingsTab = "appearance";
-                                        else if (q.includes("bat") || q.includes("power") || q.includes("daya") || q.includes("about")) root.settingsTab = "power";
+                                        if (q.includes("wifi") || q.includes("net") || q.includes("ip")) shellRoot.settingsTab = "wifi";
+                                        else if (q.includes("blue") || q.includes("bt")) shellRoot.settingsTab = "bluetooth";
+                                        else if (q.includes("bright") || q.includes("sound") || q.includes("vol") || q.includes("layar")) shellRoot.settingsTab = "display_sound";
+                                        else if (q.includes("wall") || q.includes("dock") || q.includes("widget") || q.includes("kairo")) shellRoot.settingsTab = "appearance";
+                                        else if (q.includes("bat") || q.includes("power") || q.includes("daya") || q.includes("about")) shellRoot.settingsTab = "power";
                                     }
-                                    Keys.onEscapePressed: root.closePopups()
+                                    Keys.onEscapePressed: shellRoot.closePopups()
 
                                     Text {
                                         anchors.fill: parent
@@ -303,16 +303,16 @@ Item {
                                 model: [
                                     { id: "appearance", title: "Kairo & Wallpaper", sub: "Preview, Dock, Widget", glyph: "✦" },
                                     { id: "display_sound", title: "Display & Sound", sub: "Brightness, Volume, Focus", glyph: "☀" },
-                                    { id: "wifi", title: "Wi-Fi & Network", sub: root.wifiConnected ? root.wifiName : "Terputus", glyph: "ᯤ" },
-                                    { id: "bluetooth", title: "Bluetooth", sub: root.btEnabled ? "Aktif" : "Mati", glyph: "ᛒ" },
-                                    { id: "power", title: "Power & System", sub: root.batteryPercent >= 0 ? ("Baterai " + root.batteryPercent + "%") : "AC Power", glyph: "⚡" }
+                                    { id: "wifi", title: "Wi-Fi & Network", sub: shellRoot.wifiConnected ? shellRoot.wifiName : "Terputus", glyph: "ᯤ" },
+                                    { id: "bluetooth", title: "Bluetooth", sub: shellRoot.btEnabled ? "Aktif" : "Mati", glyph: "ᛒ" },
+                                    { id: "power", title: "Power & System", sub: shellRoot.batteryPercent >= 0 ? ("Baterai " + shellRoot.batteryPercent + "%") : "AC Power", glyph: "⚡" }
                                 ]
 
                                 Rectangle {
                                     Layout.fillWidth: true
                                     height: 44
                                     radius: 22
-                                    property bool active: root.settingsTab === modelData.id
+                                    property bool active: shellRoot.settingsTab === modelData.id
                                     border.width: 1.1
                                     border.color: active ? "#80FFFFFF" : (navPillM.containsMouse ? "#46FFFFFF" : "#22FFFFFF")
                                     scale: navPillM.pressed ? 0.96 : 1.0
@@ -370,7 +370,7 @@ Item {
                                         anchors.fill: parent
                                         hoverEnabled: true
                                         cursorShape: Qt.PointingHandCursor
-                                        onClicked: root.settingsTab = modelData.id
+                                        onClicked: shellRoot.settingsTab = modelData.id
                                     }
                                 }
                             }
@@ -400,7 +400,7 @@ Item {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onPressed: root.switchPopup("about")
+                                onPressed: shellRoot.switchPopup("about")
                             }
                         }
                     }
@@ -417,7 +417,7 @@ Item {
                     ColumnLayout {
                         anchors.fill: parent
                         spacing: 12
-                        visible: root.settingsTab === "appearance"
+                        visible: shellRoot.settingsTab === "appearance"
                         opacity: visible ? 1.0 : 0.0
                         Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
 
@@ -453,7 +453,7 @@ Item {
                                     id: nextWpPillM
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.pickRandomWallpaper()
+                                    onClicked: shellRoot.pickRandomWallpaper()
                                 }
                             }
                         }
@@ -476,7 +476,7 @@ Item {
 
                                 Image {
                                     anchors.fill: parent
-                                    source: root.currentWallpaper
+                                    source: shellRoot.currentWallpaper
                                     fillMode: Image.PreserveAspectCrop
                                     smooth: true
                                     visible: status === Image.Ready
@@ -531,7 +531,7 @@ Item {
                                 Rectangle {
                                     anchors.bottom: parent.bottom
                                     anchors.horizontalCenter: parent.horizontalCenter
-                                    anchors.bottomMargin: root.dockHideMode === "always" ? -18 : 7
+                                    anchors.bottomMargin: shellRoot.dockHideMode === "always" ? -18 : 7
                                     width: 154
                                     height: 20
                                     radius: 10
@@ -601,7 +601,7 @@ Item {
                                         Layout.fillWidth: true
                                         height: 32
                                         radius: 16
-                                        property bool isSel: root.dockHideMode === modelData.mode
+                                        property bool isSel: shellRoot.dockHideMode === modelData.mode
                                         border.width: 1.1
                                         border.color: isSel ? "#80FFFFFF" : "#30FFFFFF"
                                         gradient: Gradient {
@@ -631,7 +631,7 @@ Item {
                                         MouseArea {
                                             anchors.fill: parent
                                             cursorShape: Qt.PointingHandCursor
-                                            onClicked: root.dockHideMode = modelData.mode
+                                            onClicked: shellRoot.dockHideMode = modelData.mode
                                         }
                                     }
                                 }
@@ -661,8 +661,8 @@ Item {
                                             hoverEnabled: true
                                             cursorShape: Qt.PointingHandCursor
                                             onClicked: {
-                                                root.closePopups();
-                                                win.editMode = true;
+                                                shellRoot.closePopups();
+                                                hostWin.editMode = true;
                                             }
                                         }
                                     }
@@ -685,7 +685,7 @@ Item {
                                             anchors.fill: parent
                                             hoverEnabled: true
                                             cursorShape: Qt.PointingHandCursor
-                                            onClicked: win.resetLayout()
+                                            onClicked: hostWin.resetLayout()
                                         }
                                     }
                                 }
@@ -709,7 +709,7 @@ Item {
                                     Layout.fillWidth: true
                                     height: 40
                                     radius: 20
-                                    property bool active: root.glassStyle === modelData.id
+                                    property bool active: shellRoot.glassStyle === modelData.id
                                     border.width: 1.15
                                     border.color: active ? "#85FFFFFF" : "#3CFFFFFF"
                                     scale: optPillM.pressed ? 0.96 : 1.0
@@ -758,8 +758,8 @@ Item {
                                         anchors.fill: parent
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: {
-                                            root.glassStyle = modelData.id;
-                                            win.saveLayout();
+                                            shellRoot.glassStyle = modelData.id;
+                                            hostWin.saveLayout();
                                         }
                                     }
                                 }
@@ -771,7 +771,7 @@ Item {
                             Layout.fillWidth: true
                             height: 40
                             spacing: 10
-                            visible: root.glassStyle === "mac"
+                            visible: shellRoot.glassStyle === "mac"
 
                             // Slider 1A: Transparansi Opsi 1
                             Rectangle {
@@ -784,7 +784,7 @@ Item {
                                 clip: true
 
                                 Rectangle {
-                                    width: Math.max(40, parent.width * Math.max(0.12, Math.min(0.90, 1.0 - root.macOpacity)))
+                                    width: Math.max(40, parent.width * Math.max(0.12, Math.min(0.90, 1.0 - shellRoot.macOpacity)))
                                     height: 40
                                     radius: 20
                                     gradient: Gradient {
@@ -802,7 +802,7 @@ Item {
                                     Text { text: "◌"; color: "#FFFFFF"; font.pixelSize: 14; font.bold: true }
                                     Text { text: "Transparansi"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
                                     Item { Layout.fillWidth: true }
-                                    Text { text: Math.round((1.0 - root.macOpacity) * 100) + "%"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
+                                    Text { text: Math.round((1.0 - shellRoot.macOpacity) * 100) + "%"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
                                 }
 
                                 MouseArea {
@@ -810,15 +810,15 @@ Item {
                                     cursorShape: Qt.PointingHandCursor
                                     onPressed: (m) => {
                                         let t = Math.max(0.15, Math.min(0.90, m.x / width));
-                                        root.macOpacity = Number((1.0 - t).toFixed(2));
+                                        shellRoot.macOpacity = Number((1.0 - t).toFixed(2));
                                     }
                                     onPositionChanged: (m) => {
                                         if (pressed) {
                                             let t = Math.max(0.15, Math.min(0.90, m.x / width));
-                                            root.macOpacity = Number((1.0 - t).toFixed(2));
+                                            shellRoot.macOpacity = Number((1.0 - t).toFixed(2));
                                         }
                                     }
-                                    onReleased: win.saveLayout()
+                                    onReleased: hostWin.saveLayout()
                                 }
                             }
 
@@ -833,7 +833,7 @@ Item {
                                 clip: true
 
                                 Rectangle {
-                                    width: Math.max(40, parent.width * root.macFrost)
+                                    width: Math.max(40, parent.width * shellRoot.macFrost)
                                     height: 40
                                     radius: 20
                                     gradient: Gradient {
@@ -851,15 +851,15 @@ Item {
                                     Text { text: "✦"; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true }
                                     Text { text: "Blin Rata"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
                                     Item { Layout.fillWidth: true }
-                                    Text { text: Math.round(root.macFrost * 100) + "%"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
+                                    Text { text: Math.round(shellRoot.macFrost * 100) + "%"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
                                 }
 
                                 MouseArea {
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
-                                    onPressed: (m) => root.macFrost = Number(Math.max(0.0, Math.min(1.0, m.x / width)).toFixed(2))
-                                    onPositionChanged: (m) => { if (pressed) root.macFrost = Number(Math.max(0.0, Math.min(1.0, m.x / width)).toFixed(2)); }
-                                    onReleased: win.saveLayout()
+                                    onPressed: (m) => shellRoot.macFrost = Number(Math.max(0.0, Math.min(1.0, m.x / width)).toFixed(2))
+                                    onPositionChanged: (m) => { if (pressed) shellRoot.macFrost = Number(Math.max(0.0, Math.min(1.0, m.x / width)).toFixed(2)); }
+                                    onReleased: hostWin.saveLayout()
                                 }
                             }
                         }
@@ -869,7 +869,7 @@ Item {
                             Layout.fillWidth: true
                             height: 40
                             spacing: 8
-                            visible: root.glassStyle === "aero"
+                            visible: shellRoot.glassStyle === "aero"
 
                             // Slider 2A: Transparansi Opsi 2
                             Rectangle {
@@ -882,7 +882,7 @@ Item {
                                 clip: true
 
                                 Rectangle {
-                                    width: Math.max(36, parent.width * Math.max(0.12, Math.min(0.90, 1.0 - root.aeroBaseOpacity)))
+                                    width: Math.max(36, parent.width * Math.max(0.12, Math.min(0.90, 1.0 - shellRoot.aeroBaseOpacity)))
                                     height: 40
                                     radius: 20
                                     gradient: Gradient {
@@ -899,7 +899,7 @@ Item {
                                     anchors.rightMargin: 11
                                     Text { text: "Transparansi"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
                                     Item { Layout.fillWidth: true }
-                                    Text { text: Math.round((1.0 - root.aeroBaseOpacity) * 100) + "%"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
+                                    Text { text: Math.round((1.0 - shellRoot.aeroBaseOpacity) * 100) + "%"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
                                 }
 
                                 MouseArea {
@@ -907,15 +907,15 @@ Item {
                                     cursorShape: Qt.PointingHandCursor
                                     onPressed: (m) => {
                                         let t = Math.max(0.15, Math.min(0.90, m.x / width));
-                                        root.aeroBaseOpacity = Number((1.0 - t).toFixed(2));
+                                        shellRoot.aeroBaseOpacity = Number((1.0 - t).toFixed(2));
                                     }
                                     onPositionChanged: (m) => {
                                         if (pressed) {
                                             let t = Math.max(0.15, Math.min(0.90, m.x / width));
-                                            root.aeroBaseOpacity = Number((1.0 - t).toFixed(2));
+                                            shellRoot.aeroBaseOpacity = Number((1.0 - t).toFixed(2));
                                         }
                                     }
-                                    onReleased: win.saveLayout()
+                                    onReleased: hostWin.saveLayout()
                                 }
                             }
 
@@ -930,7 +930,7 @@ Item {
                                 clip: true
 
                                 Rectangle {
-                                    width: Math.max(36, parent.width * root.aeroSheenBright)
+                                    width: Math.max(36, parent.width * shellRoot.aeroSheenBright)
                                     height: 40
                                     radius: 20
                                     gradient: Gradient {
@@ -947,15 +947,15 @@ Item {
                                     anchors.rightMargin: 11
                                     Text { text: "Cerah Blin"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
                                     Item { Layout.fillWidth: true }
-                                    Text { text: Math.round(root.aeroSheenBright * 100) + "%"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
+                                    Text { text: Math.round(shellRoot.aeroSheenBright * 100) + "%"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
                                 }
 
                                 MouseArea {
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
-                                    onPressed: (m) => root.aeroSheenBright = Number(Math.max(0.0, Math.min(1.0, m.x / width)).toFixed(2))
-                                    onPositionChanged: (m) => { if (pressed) root.aeroSheenBright = Number(Math.max(0.0, Math.min(1.0, m.x / width)).toFixed(2)); }
-                                    onReleased: win.saveLayout()
+                                    onPressed: (m) => shellRoot.aeroSheenBright = Number(Math.max(0.0, Math.min(1.0, m.x / width)).toFixed(2))
+                                    onPositionChanged: (m) => { if (pressed) shellRoot.aeroSheenBright = Number(Math.max(0.0, Math.min(1.0, m.x / width)).toFixed(2)); }
+                                    onReleased: hostWin.saveLayout()
                                 }
                             }
 
@@ -970,7 +970,7 @@ Item {
                                 clip: true
 
                                 Rectangle {
-                                    width: Math.max(36, parent.width * root.aeroSheenWidth)
+                                    width: Math.max(36, parent.width * shellRoot.aeroSheenWidth)
                                     height: 40
                                     radius: 20
                                     gradient: Gradient {
@@ -987,15 +987,15 @@ Item {
                                     anchors.rightMargin: 11
                                     Text { text: "Tebal Blin"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
                                     Item { Layout.fillWidth: true }
-                                    Text { text: Math.round(root.aeroSheenWidth * 100) + "%"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
+                                    Text { text: Math.round(shellRoot.aeroSheenWidth * 100) + "%"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
                                 }
 
                                 MouseArea {
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
-                                    onPressed: (m) => root.aeroSheenWidth = Number(Math.max(0.08, Math.min(1.0, m.x / width)).toFixed(2))
-                                    onPositionChanged: (m) => { if (pressed) root.aeroSheenWidth = Number(Math.max(0.08, Math.min(1.0, m.x / width)).toFixed(2)); }
-                                    onReleased: win.saveLayout()
+                                    onPressed: (m) => shellRoot.aeroSheenWidth = Number(Math.max(0.08, Math.min(1.0, m.x / width)).toFixed(2))
+                                    onPositionChanged: (m) => { if (pressed) shellRoot.aeroSheenWidth = Number(Math.max(0.08, Math.min(1.0, m.x / width)).toFixed(2)); }
+                                    onReleased: hostWin.saveLayout()
                                 }
                             }
                         }
@@ -1005,7 +1005,7 @@ Item {
                             Layout.fillWidth: true
                             height: 40
                             spacing: 8
-                            visible: root.glassStyle === "liquid"
+                            visible: shellRoot.glassStyle === "liquid"
 
                             Rectangle {
                                 Layout.fillWidth: true
@@ -1017,7 +1017,7 @@ Item {
                                 clip: true
 
                                 Rectangle {
-                                    width: Math.max(36, parent.width * Math.max(0.12, Math.min(0.90, 1.0 - root.liquidOpacity)))
+                                    width: Math.max(36, parent.width * Math.max(0.12, Math.min(0.90, 1.0 - shellRoot.liquidOpacity)))
                                     height: 40
                                     radius: 20
                                     gradient: Gradient {
@@ -1034,7 +1034,7 @@ Item {
                                     anchors.rightMargin: 11
                                     Text { text: "Transparansi"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
                                     Item { Layout.fillWidth: true }
-                                    Text { text: Math.round((1.0 - root.liquidOpacity) * 100) + "%"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
+                                    Text { text: Math.round((1.0 - shellRoot.liquidOpacity) * 100) + "%"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
                                 }
 
                                 MouseArea {
@@ -1042,15 +1042,15 @@ Item {
                                     cursorShape: Qt.PointingHandCursor
                                     onPressed: (m) => {
                                         let t = Math.max(0.15, Math.min(0.90, m.x / width));
-                                        root.liquidOpacity = Number((1.0 - t).toFixed(2));
+                                        shellRoot.liquidOpacity = Number((1.0 - t).toFixed(2));
                                     }
                                     onPositionChanged: (m) => {
                                         if (pressed) {
                                             let t = Math.max(0.15, Math.min(0.90, m.x / width));
-                                            root.liquidOpacity = Number((1.0 - t).toFixed(2));
+                                            shellRoot.liquidOpacity = Number((1.0 - t).toFixed(2));
                                         }
                                     }
-                                    onReleased: win.saveLayout()
+                                    onReleased: hostWin.saveLayout()
                                 }
                             }
 
@@ -1064,7 +1064,7 @@ Item {
                                 clip: true
 
                                 Rectangle {
-                                    width: Math.max(36, parent.width * root.liquidRefraction)
+                                    width: Math.max(36, parent.width * shellRoot.liquidRefraction)
                                     height: 40
                                     radius: 20
                                     gradient: Gradient {
@@ -1081,15 +1081,15 @@ Item {
                                     anchors.rightMargin: 11
                                     Text { text: "Refraksi"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
                                     Item { Layout.fillWidth: true }
-                                    Text { text: Math.round(root.liquidRefraction * 100) + "%"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
+                                    Text { text: Math.round(shellRoot.liquidRefraction * 100) + "%"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
                                 }
 
                                 MouseArea {
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
-                                    onPressed: (m) => root.liquidRefraction = Number(Math.max(0.0, Math.min(1.0, m.x / width)).toFixed(2))
-                                    onPositionChanged: (m) => { if (pressed) root.liquidRefraction = Number(Math.max(0.0, Math.min(1.0, m.x / width)).toFixed(2)); }
-                                    onReleased: win.saveLayout()
+                                    onPressed: (m) => shellRoot.liquidRefraction = Number(Math.max(0.0, Math.min(1.0, m.x / width)).toFixed(2))
+                                    onPositionChanged: (m) => { if (pressed) shellRoot.liquidRefraction = Number(Math.max(0.0, Math.min(1.0, m.x / width)).toFixed(2)); }
+                                    onReleased: hostWin.saveLayout()
                                 }
                             }
 
@@ -1103,7 +1103,7 @@ Item {
                                 clip: true
 
                                 Rectangle {
-                                    width: Math.max(36, parent.width * root.liquidFringing)
+                                    width: Math.max(36, parent.width * shellRoot.liquidFringing)
                                     height: 40
                                     radius: 20
                                     gradient: Gradient {
@@ -1120,15 +1120,15 @@ Item {
                                     anchors.rightMargin: 11
                                     Text { text: "Prisma RGB"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
                                     Item { Layout.fillWidth: true }
-                                    Text { text: Math.round(root.liquidFringing * 100) + "%"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
+                                    Text { text: Math.round(shellRoot.liquidFringing * 100) + "%"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
                                 }
 
                                 MouseArea {
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
-                                    onPressed: (m) => root.liquidFringing = Number(Math.max(0.0, Math.min(1.0, m.x / width)).toFixed(2))
-                                    onPositionChanged: (m) => { if (pressed) root.liquidFringing = Number(Math.max(0.0, Math.min(1.0, m.x / width)).toFixed(2)); }
-                                    onReleased: win.saveLayout()
+                                    onPressed: (m) => shellRoot.liquidFringing = Number(Math.max(0.0, Math.min(1.0, m.x / width)).toFixed(2))
+                                    onPositionChanged: (m) => { if (pressed) shellRoot.liquidFringing = Number(Math.max(0.0, Math.min(1.0, m.x / width)).toFixed(2)); }
+                                    onReleased: hostWin.saveLayout()
                                 }
                             }
                         }
@@ -1146,12 +1146,12 @@ Item {
                             Item { Layout.fillWidth: true }
                             Rectangle {
                                 height: 24; width: setLockTxt.implicitWidth + 16; radius: 12
-                                color: win.widgetsLocked ? "#44FFD60A" : "#22FFFFFF"
-                                border.width: 1; border.color: win.widgetsLocked ? "#88FFD60A" : "#3CFFFFFF"
+                                color: hostWin.widgetsLocked ? "#44FFD60A" : "#22FFFFFF"
+                                border.width: 1; border.color: hostWin.widgetsLocked ? "#88FFD60A" : "#3CFFFFFF"
                                 Text {
                                     id: setLockTxt
                                     anchors.centerIn: parent
-                                    text: win.widgetsLocked ? "🔒 Posisi Terkunci" : "🔓 Posisi Bebas"
+                                    text: hostWin.widgetsLocked ? "🔒 Posisi Terkunci" : "🔓 Posisi Bebas"
                                     color: "#FFFFFF"
                                     font.pixelSize: 10
                                     font.bold: true
@@ -1159,7 +1159,7 @@ Item {
                                 MouseArea {
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: win.toggleLock()
+                                    onClicked: hostWin.toggleLock()
                                 }
                             }
                         }
@@ -1182,7 +1182,7 @@ Item {
                                     height: 30
                                     width: wChipTxt.implicitWidth + 24
                                     radius: 15
-                                    property bool active: win.isWidgetOn(modelData.key)
+                                    property bool active: hostWin.isWidgetOn(modelData.key)
                                     border.width: 1.1
                                     border.color: active ? "#85FFFFFF" : "#38FFFFFF"
                                     gradient: Gradient {
@@ -1202,14 +1202,14 @@ Item {
                                     MouseArea {
                                         anchors.fill: parent
                                         cursorShape: Qt.PointingHandCursor
-                                        onClicked: win.setWidgetEnabled(modelData.key, !active)
+                                        onClicked: hostWin.setWidgetEnabled(modelData.key, !active)
                                     }
                                 }
                             }
                         }
 
                         Text {
-                            text: "Koleksi Wallpaper (" + root.wallpaperList.length + " tersedia)"
+                            text: "Koleksi Wallpaper (" + shellRoot.wallpaperList.length + " tersedia)"
                             color: "#D1D1D6"
                             font.pixelSize: 11
                             font.bold: true
@@ -1222,7 +1222,7 @@ Item {
                             clip: true
                             cellWidth: Math.floor(width / 3)
                             cellHeight: 74
-                            model: root.wallpaperList
+                            model: shellRoot.wallpaperList
 
                             delegate: Item {
                                 width: wallGrid.cellWidth
@@ -1233,8 +1233,8 @@ Item {
                                     anchors.margins: 4
                                     radius: 22
                                     color: "#222534"
-                                    border.width: root.currentWallpaper === modelData ? 2 : 1.1
-                                    border.color: root.currentWallpaper === modelData ? "#64D2FF" : "#3CFFFFFF"
+                                    border.width: shellRoot.currentWallpaper === modelData ? 2 : 1.1
+                                    border.color: shellRoot.currentWallpaper === modelData ? "#64D2FF" : "#3CFFFFFF"
                                     clip: true
                                     scale: wpThumbM.pressed ? 0.94 : (wpThumbM.containsMouse ? 1.03 : 1.0)
                                     Behavior on scale { SpringAnimation { spring: 7.5; damping: 0.72 } }
@@ -1256,7 +1256,7 @@ Item {
                                         color: "#0A84FF"
                                         border.width: 1
                                         border.color: "#FFFFFF"
-                                        visible: root.currentWallpaper === modelData
+                                        visible: shellRoot.currentWallpaper === modelData
                                         Text {
                                             anchors.centerIn: parent
                                             text: "✓"
@@ -1271,7 +1271,7 @@ Item {
                                         anchors.fill: parent
                                         hoverEnabled: true
                                         cursorShape: Qt.PointingHandCursor
-                                        onClicked: root.currentWallpaper = modelData
+                                        onClicked: shellRoot.currentWallpaper = modelData
                                     }
                                 }
                             }
@@ -1284,7 +1284,7 @@ Item {
                     ColumnLayout {
                         anchors.fill: parent
                         spacing: 14
-                        visible: root.settingsTab === "display_sound"
+                        visible: shellRoot.settingsTab === "display_sound"
                         opacity: visible ? 1.0 : 0.0
                         Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
 
@@ -1302,11 +1302,11 @@ Item {
                                 height: 58
                                 radius: 29
                                 border.width: 1.2
-                                border.color: root.dndEnabled ? "#85FFFFFF" : "#48FFFFFF"
+                                border.color: shellRoot.dndEnabled ? "#85FFFFFF" : "#48FFFFFF"
                                 scale: setDndPillM.pressed ? 0.96 : 1.0
                                 gradient: Gradient {
-                                    GradientStop { position: 0.0; color: root.dndEnabled ? "#D92B8EFF" : "#2EFFFFFF" }
-                                    GradientStop { position: 1.0; color: root.dndEnabled ? "#AD0866E6" : "#14FFFFFF" }
+                                    GradientStop { position: 0.0; color: shellRoot.dndEnabled ? "#D92B8EFF" : "#2EFFFFFF" }
+                                    GradientStop { position: 1.0; color: shellRoot.dndEnabled ? "#AD0866E6" : "#14FFFFFF" }
                                 }
                                 Behavior on scale { SpringAnimation { spring: 7.5; damping: 0.72 } }
 
@@ -1321,7 +1321,7 @@ Item {
                                         Layout.fillWidth: true
                                         spacing: 1
                                         Text { text: "Do Not Disturb"; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true }
-                                        Text { text: root.dndEnabled ? "Aktif • Notifikasi Hening" : "Nonaktif"; color: "#E5E5EA"; font.pixelSize: 10 }
+                                        Text { text: shellRoot.dndEnabled ? "Aktif • Notifikasi Hening" : "Nonaktif"; color: "#E5E5EA"; font.pixelSize: 10 }
                                     }
                                 }
 
@@ -1329,7 +1329,7 @@ Item {
                                     id: setDndPillM
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.toggleDnd()
+                                    onClicked: shellRoot.toggleDnd()
                                 }
                             }
 
@@ -1344,7 +1344,7 @@ Item {
                                 clip: true
 
                                 Rectangle {
-                                    width: Math.max(58, parent.width * (root.brightnessLevel / 100))
+                                    width: Math.max(58, parent.width * (shellRoot.brightnessLevel / 100))
                                     height: 58
                                     radius: 29
                                     gradient: Gradient {
@@ -1363,14 +1363,14 @@ Item {
                                     Text { text: "☀"; color: "#FFFFFF"; font.pixelSize: 19; font.bold: true }
                                     Text { text: "Brightness"; color: "#FFFFFF"; font.pixelSize: 12; font.bold: true }
                                     Item { Layout.fillWidth: true }
-                                    Text { text: root.brightnessLevel + "%"; color: "#FFFFFF"; font.pixelSize: 12; font.bold: true }
+                                    Text { text: shellRoot.brightnessLevel + "%"; color: "#FFFFFF"; font.pixelSize: 12; font.bold: true }
                                 }
 
                                 MouseArea {
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
-                                    onPressed: (m) => root.setBrightnessPct((m.x / width) * 100)
-                                    onPositionChanged: (m) => { if (pressed) root.setBrightnessPct((m.x / width) * 100); }
+                                    onPressed: (m) => shellRoot.setBrightnessPct((m.x / width) * 100)
+                                    onPositionChanged: (m) => { if (pressed) shellRoot.setBrightnessPct((m.x / width) * 100); }
                                 }
                             }
                         }
@@ -1386,12 +1386,12 @@ Item {
                             clip: true
 
                             Rectangle {
-                                width: root.volumeMuted ? 58 : Math.max(58, parent.width * (root.volumeLevel / 100))
+                                width: shellRoot.volumeMuted ? 58 : Math.max(58, parent.width * (shellRoot.volumeLevel / 100))
                                 height: 58
                                 radius: 29
                                 gradient: Gradient {
-                                    GradientStop { position: 0.0; color: root.volumeMuted ? "#44FF453A" : "#78FFFFFF" }
-                                    GradientStop { position: 1.0; color: root.volumeMuted ? "#28FF453A" : "#4CFFFFFF" }
+                                    GradientStop { position: 0.0; color: shellRoot.volumeMuted ? "#44FF453A" : "#78FFFFFF" }
+                                    GradientStop { position: 1.0; color: shellRoot.volumeMuted ? "#28FF453A" : "#4CFFFFFF" }
                                 }
                                 border.width: 1
                                 border.color: "#66FFFFFF"
@@ -1402,11 +1402,11 @@ Item {
                                 anchors.fill: parent
                                 anchors.leftMargin: 18
                                 anchors.rightMargin: 18
-                                Text { text: root.volumeMuted ? "🔇" : "🔊"; font.pixelSize: 17 }
+                                Text { text: shellRoot.volumeMuted ? "🔇" : "🔊"; font.pixelSize: 17 }
                                 Text { text: "Master Volume"; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true }
                                 Item { Layout.fillWidth: true }
                                 Text {
-                                    text: root.volumeMuted ? "Muted" : (root.volumeLevel + "%")
+                                    text: shellRoot.volumeMuted ? "Muted" : (shellRoot.volumeLevel + "%")
                                     color: "#FFFFFF"
                                     font.pixelSize: 13
                                     font.bold: true
@@ -1416,8 +1416,8 @@ Item {
                             MouseArea {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
-                                onPressed: (m) => root.setVolumePct((m.x / width) * 100)
-                                onPositionChanged: (m) => { if (pressed) root.setVolumePct((m.x / width) * 100); }
+                                onPressed: (m) => shellRoot.setVolumePct((m.x / width) * 100)
+                                onPositionChanged: (m) => { if (pressed) shellRoot.setVolumePct((m.x / width) * 100); }
                             }
                         }
 
@@ -1428,8 +1428,8 @@ Item {
 
                             Repeater {
                                 model: [
-                                    { label: "Keep Awake", glyph: "⏱", active: root.keepAwake, act: "awake" },
-                                    { label: "Mute Audio", glyph: "🔇", active: root.volumeMuted, act: "mute" },
+                                    { label: "Keep Awake", glyph: "⏱", active: shellRoot.keepAwake, act: "awake" },
+                                    { label: "Mute Audio", glyph: "🔇", active: shellRoot.volumeMuted, act: "mute" },
                                     { label: "Screenshot", glyph: "📷", active: false, act: "ss" },
                                     { label: "Overview", glyph: "⊞", active: false, act: "ov" }
                                 ]
@@ -1465,10 +1465,10 @@ Item {
                                             hoverEnabled: true
                                             cursorShape: Qt.PointingHandCursor
                                             onClicked: {
-                                                if (modelData.act === "awake") root.toggleKeepAwake();
-                                                else if (modelData.act === "mute") root.toggleMute();
-                                                else if (modelData.act === "ss") { root.closePopups(); screenshotDelayTimer.restart(); }
-                                                else if (modelData.act === "ov") { root.closePopups(); root.runCmd("niri msg action toggle-overview"); }
+                                                if (modelData.act === "awake") shellRoot.toggleKeepAwake();
+                                                else if (modelData.act === "mute") shellRoot.toggleMute();
+                                                else if (modelData.act === "ss") { shellRoot.closePopups(); screenshotDelayTimer.restart(); }
+                                                else if (modelData.act === "ov") { shellRoot.closePopups(); shellRoot.runCmd("niri msg action toggle-overview"); }
                                             }
                                         }
                                     }
@@ -1497,9 +1497,9 @@ Item {
                                 anchors.fill: parent
                                 anchors.leftMargin: 18
                                 anchors.rightMargin: 18
-                                Text { text: "Layar Utama • " + root.sysSpecs.displayInfo; color: "#FFFFFF"; font.pixelSize: 12; font.bold: true }
+                                Text { text: "Layar Utama • " + shellRoot.sysSpecs.displayInfo; color: "#FFFFFF"; font.pixelSize: 12; font.bold: true }
                                 Item { Layout.fillWidth: true }
-                                Text { text: root.sysSpecs.gpuModel; color: "#C7C7CC"; font.pixelSize: 11; elide: Text.ElideRight; Layout.maximumWidth: 250 }
+                                Text { text: shellRoot.sysSpecs.gpuModel; color: "#C7C7CC"; font.pixelSize: 11; elide: Text.ElideRight; Layout.maximumWidth: 250 }
                             }
                         }
 
@@ -1512,7 +1512,7 @@ Item {
                     ColumnLayout {
                         anchors.fill: parent
                         spacing: 12
-                        visible: root.settingsTab === "wifi"
+                        visible: shellRoot.settingsTab === "wifi"
                         opacity: visible ? 1.0 : 0.0
                         Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
 
@@ -1526,10 +1526,10 @@ Item {
                                 height: 54
                                 radius: 27
                                 border.width: 1.2
-                                border.color: root.wifiEnabled ? "#85FFFFFF" : "#48FFFFFF"
+                                border.color: shellRoot.wifiEnabled ? "#85FFFFFF" : "#48FFFFFF"
                                 gradient: Gradient {
-                                    GradientStop { position: 0.0; color: root.wifiEnabled ? "#D92B8EFF" : "#2EFFFFFF" }
-                                    GradientStop { position: 1.0; color: root.wifiEnabled ? "#AD0866E6" : "#14FFFFFF" }
+                                    GradientStop { position: 0.0; color: shellRoot.wifiEnabled ? "#D92B8EFF" : "#2EFFFFFF" }
+                                    GradientStop { position: 1.0; color: shellRoot.wifiEnabled ? "#AD0866E6" : "#14FFFFFF" }
                                 }
 
                                 RowLayout {
@@ -1543,15 +1543,15 @@ Item {
                                         Layout.fillWidth: true
                                         spacing: 1
                                         Text { text: "Wi-Fi"; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true }
-                                        Text { text: root.wifiName + " • IP " + root.localIpAddr; color: "#E5F2FF"; font.pixelSize: 10; elide: Text.ElideRight; Layout.fillWidth: true }
+                                        Text { text: shellRoot.wifiName + " • IP " + shellRoot.localIpAddr; color: "#E5F2FF"; font.pixelSize: 10; elide: Text.ElideRight; Layout.fillWidth: true }
                                     }
-                                    Text { text: root.wifiEnabled ? "ON" : "OFF"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
+                                    Text { text: shellRoot.wifiEnabled ? "ON" : "OFF"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
                                 }
 
                                 MouseArea {
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.toggleWifi()
+                                    onClicked: shellRoot.toggleWifi()
                                 }
                             }
 
@@ -1560,14 +1560,14 @@ Item {
                                 width: 54; height: 54; radius: 27
                                 border.width: 1.2
                                 border.color: "#4CFFFFFF"
-                                visible: root.wifiEnabled
+                                visible: shellRoot.wifiEnabled
                                 gradient: Gradient {
                                     GradientStop { position: 0.0; color: "#30FFFFFF" }
                                     GradientStop { position: 1.0; color: "#14FFFFFF" }
                                 }
                                 Text {
                                     anchors.centerIn: parent
-                                    text: root.wifiScanning ? "…" : "↻"
+                                    text: shellRoot.wifiScanning ? "…" : "↻"
                                     color: "#FFFFFF"
                                     font.pixelSize: 18
                                     font.bold: true
@@ -1575,7 +1575,7 @@ Item {
                                 MouseArea {
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.scanWifiNetworks()
+                                    onClicked: shellRoot.scanWifiNetworks()
                                 }
                             }
                         }
@@ -1588,7 +1588,7 @@ Item {
                             color: "#2EFFFFFF"
                             border.width: 1.2
                             border.color: "#66A1C6FF"
-                            visible: root.wifiPasswordTarget !== ""
+                            visible: shellRoot.wifiPasswordTarget !== ""
 
                             RowLayout {
                                 anchors.fill: parent
@@ -1602,11 +1602,11 @@ Item {
                                     echoMode: TextInput.Password
                                     color: "#FFFFFF"
                                     font.pixelSize: 12
-                                    onAccepted: root.connectWifi(root.wifiPasswordTarget, text)
+                                    onAccepted: shellRoot.connectWifi(shellRoot.wifiPasswordTarget, text)
                                     Text {
                                         anchors.fill: parent
                                         verticalAlignment: Text.AlignVCenter
-                                        text: "Sandi untuk " + root.wifiPasswordTarget + "..."
+                                        text: "Sandi untuk " + shellRoot.wifiPasswordTarget + "..."
                                         color: "#C7C7CC"
                                         font.pixelSize: 11
                                         visible: setWifiPassField.text === ""
@@ -1622,7 +1622,7 @@ Item {
                                     MouseArea {
                                         anchors.fill: parent
                                         cursorShape: Qt.PointingHandCursor
-                                        onClicked: root.connectWifi(root.wifiPasswordTarget, setWifiPassField.text)
+                                        onClicked: shellRoot.connectWifi(shellRoot.wifiPasswordTarget, setWifiPassField.text)
                                     }
                                 }
                             }
@@ -1634,8 +1634,8 @@ Item {
                             Layout.fillHeight: true
                             clip: true
                             spacing: 8
-                            visible: root.wifiEnabled
-                            model: root.wifiNetworks
+                            visible: shellRoot.wifiEnabled
+                            model: shellRoot.wifiNetworks
 
                             delegate: Rectangle {
                                 width: ListView.view.width
@@ -1690,17 +1690,17 @@ Item {
                                     onClicked: {
                                         if (modelData.connected) return;
                                         if (modelData.secured) {
-                                            root.wifiPasswordTarget = modelData.ssid;
+                                            shellRoot.wifiPasswordTarget = modelData.ssid;
                                             setWifiPassField.text = "";
                                             setWifiPassField.forceActiveFocus();
                                         }
-                                        root.connectWifi(modelData.ssid, "");
+                                        shellRoot.connectWifi(modelData.ssid, "");
                                     }
                                 }
                             }
                         }
 
-                        Item { Layout.fillHeight: true; visible: !root.wifiEnabled }
+                        Item { Layout.fillHeight: true; visible: !shellRoot.wifiEnabled }
                     }
 
                     // ========================================================
@@ -1709,7 +1709,7 @@ Item {
                     ColumnLayout {
                         anchors.fill: parent
                         spacing: 12
-                        visible: root.settingsTab === "bluetooth"
+                        visible: shellRoot.settingsTab === "bluetooth"
                         opacity: visible ? 1.0 : 0.0
                         Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
 
@@ -1722,10 +1722,10 @@ Item {
                                 height: 54
                                 radius: 27
                                 border.width: 1.2
-                                border.color: root.btEnabled ? "#85FFFFFF" : "#48FFFFFF"
+                                border.color: shellRoot.btEnabled ? "#85FFFFFF" : "#48FFFFFF"
                                 gradient: Gradient {
-                                    GradientStop { position: 0.0; color: root.btEnabled ? "#D92B8EFF" : "#2EFFFFFF" }
-                                    GradientStop { position: 1.0; color: root.btEnabled ? "#AD0866E6" : "#14FFFFFF" }
+                                    GradientStop { position: 0.0; color: shellRoot.btEnabled ? "#D92B8EFF" : "#2EFFFFFF" }
+                                    GradientStop { position: 1.0; color: shellRoot.btEnabled ? "#AD0866E6" : "#14FFFFFF" }
                                 }
 
                                 RowLayout {
@@ -1739,15 +1739,15 @@ Item {
                                         Layout.fillWidth: true
                                         spacing: 1
                                         Text { text: "Bluetooth"; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true }
-                                        Text { text: root.btEnabled ? (root.btDeviceName !== "" ? "Terhubung: " + root.btDeviceName : "Siap dipasangkan") : "Bluetooth Nonaktif"; color: "#E5F2FF"; font.pixelSize: 10 }
+                                        Text { text: shellRoot.btEnabled ? (shellRoot.btDeviceName !== "" ? "Terhubung: " + shellRoot.btDeviceName : "Siap dipasangkan") : "Bluetooth Nonaktif"; color: "#E5F2FF"; font.pixelSize: 10 }
                                     }
-                                    Text { text: root.btEnabled ? "ON" : "OFF"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
+                                    Text { text: shellRoot.btEnabled ? "ON" : "OFF"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
                                 }
 
                                 MouseArea {
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.toggleBluetooth()
+                                    onClicked: shellRoot.toggleBluetooth()
                                 }
                             }
 
@@ -1755,14 +1755,14 @@ Item {
                                 width: 54; height: 54; radius: 27
                                 border.width: 1.2
                                 border.color: "#4CFFFFFF"
-                                visible: root.btEnabled
+                                visible: shellRoot.btEnabled
                                 gradient: Gradient {
                                     GradientStop { position: 0.0; color: "#30FFFFFF" }
                                     GradientStop { position: 1.0; color: "#14FFFFFF" }
                                 }
                                 Text {
                                     anchors.centerIn: parent
-                                    text: root.btScanning ? "…" : "↻"
+                                    text: shellRoot.btScanning ? "…" : "↻"
                                     color: "#FFFFFF"
                                     font.pixelSize: 18
                                     font.bold: true
@@ -1770,7 +1770,7 @@ Item {
                                 MouseArea {
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.scanBtDevices()
+                                    onClicked: shellRoot.scanBtDevices()
                                 }
                             }
                         }
@@ -1780,8 +1780,8 @@ Item {
                             Layout.fillHeight: true
                             clip: true
                             spacing: 8
-                            visible: root.btEnabled
-                            model: root.btDevices
+                            visible: shellRoot.btEnabled
+                            model: shellRoot.btDevices
 
                             delegate: Rectangle {
                                 width: ListView.view.width
@@ -1822,7 +1822,7 @@ Item {
                                     }
 
                                     Text {
-                                        text: root.btBusyMac === modelData.mac ? "Proses..." : (modelData.connected ? "Terhubung" : "Hubungkan")
+                                        text: shellRoot.btBusyMac === modelData.mac ? "Proses..." : (modelData.connected ? "Terhubung" : "Hubungkan")
                                         color: modelData.connected ? "#32D74B" : "#E5E5EA"
                                         font.pixelSize: 11
                                         font.bold: true
@@ -1834,12 +1834,12 @@ Item {
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.toggleBtDevice(modelData.mac, modelData.connected)
+                                    onClicked: shellRoot.toggleBtDevice(modelData.mac, modelData.connected)
                                 }
                             }
                         }
 
-                        Item { Layout.fillHeight: true; visible: !root.btEnabled }
+                        Item { Layout.fillHeight: true; visible: !shellRoot.btEnabled }
                     }
 
                     // ========================================================
@@ -1848,7 +1848,7 @@ Item {
                     ColumnLayout {
                         anchors.fill: parent
                         spacing: 14
-                        visible: root.settingsTab === "power"
+                        visible: shellRoot.settingsTab === "power"
                         opacity: visible ? 1.0 : 0.0
                         Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
 
@@ -1865,11 +1865,11 @@ Item {
                             clip: true
 
                             Rectangle {
-                                width: root.batteryPercent >= 0 ? Math.max(58, parent.width * (root.batteryPercent / 100)) : parent.width
+                                width: shellRoot.batteryPercent >= 0 ? Math.max(58, parent.width * (shellRoot.batteryPercent / 100)) : parent.width
                                 height: 58
                                 radius: 29
                                 gradient: Gradient {
-                                    GradientStop { position: 0.0; color: root.batteryStatus === "Charging" ? "#5532D74B" : "#552E94FF" }
+                                    GradientStop { position: 0.0; color: shellRoot.batteryStatus === "Charging" ? "#5532D74B" : "#552E94FF" }
                                     GradientStop { position: 1.0; color: "#22FFFFFF" }
                                 }
                             }
@@ -1878,15 +1878,15 @@ Item {
                                 anchors.fill: parent
                                 anchors.leftMargin: 18
                                 anchors.rightMargin: 18
-                                Text { text: root.batteryStatus === "Charging" ? "⚡" : "🔋"; font.pixelSize: 18 }
+                                Text { text: shellRoot.batteryStatus === "Charging" ? "⚡" : "🔋"; font.pixelSize: 18 }
                                 Text {
-                                    text: root.batteryPercent >= 0 ? ("Baterai " + root.batteryPercent + "% (" + root.batteryStatus + ")") : "Daya Listrik Langsung (AC)"
+                                    text: shellRoot.batteryPercent >= 0 ? ("Baterai " + shellRoot.batteryPercent + "% (" + shellRoot.batteryStatus + ")") : "Daya Listrik Langsung (AC)"
                                     color: "#FFFFFF"
                                     font.pixelSize: 13
                                     font.bold: true
                                 }
                                 Item { Layout.fillWidth: true }
-                                Text { text: "Up " + root.sysSpecs.uptimeStr; color: "#E5E5EA"; font.pixelSize: 11 }
+                                Text { text: "Up " + shellRoot.sysSpecs.uptimeStr; color: "#E5E5EA"; font.pixelSize: 11 }
                             }
                         }
 
@@ -1908,7 +1908,7 @@ Item {
                                     Layout.fillWidth: true
                                     height: 44
                                     radius: 22
-                                    property bool active: root.powerProfile === modelData.id
+                                    property bool active: shellRoot.powerProfile === modelData.id
                                     border.width: 1.2
                                     border.color: active ? "#85FFFFFF" : "#38FFFFFF"
                                     gradient: Gradient {
@@ -1927,7 +1927,7 @@ Item {
                                     MouseArea {
                                         anchors.fill: parent
                                         cursorShape: Qt.PointingHandCursor
-                                        onClicked: root.setPowerProfile(modelData.id)
+                                        onClicked: shellRoot.setPowerProfile(modelData.id)
                                     }
                                 }
                             }
@@ -1979,8 +1979,8 @@ Item {
                                             hoverEnabled: true
                                             cursorShape: Qt.PointingHandCursor
                                             onClicked: {
-                                                root.closePopups();
-                                                root.runCmd(modelData.cmd);
+                                                shellRoot.closePopups();
+                                                shellRoot.runCmd(modelData.cmd);
                                             }
                                         }
                                     }

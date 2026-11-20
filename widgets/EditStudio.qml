@@ -10,19 +10,19 @@ import "../core"
 
 Item {
     anchors.fill: parent
-    required property var root
-    required property var win
+    required property var shellRoot
+    required property var hostWin
 
         Item {
             id: widgetCtxMenu
             z: 60
-            x: win.ctxMenuX
-            y: win.ctxMenuY
+            x: hostWin.ctxMenuX
+            y: hostWin.ctxMenuY
             width: 156
             height: 112
-            visible: win.ctxMenuVisible || opacity > 0.01
-            opacity: win.ctxMenuVisible ? 1.0 : 0.0
-            scale: win.ctxMenuVisible ? 1.0 : 0.90
+            visible: hostWin.ctxMenuVisible || opacity > 0.01
+            opacity: hostWin.ctxMenuVisible ? 1.0 : 0.0
+            scale: hostWin.ctxMenuVisible ? 1.0 : 0.90
             transformOrigin: Item.TopLeft
 
             Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
@@ -32,17 +32,17 @@ Item {
                 anchors.fill: parent
                 property real dX: widgetCtxMenu.x
                 property real dY: widgetCtxMenu.y
-                property real dO: root.aeroOpacity
-                property real dR: root.aeroReflection
-                property string dSt: root.glassStyle
-                property real dTh: root.activeGlassDetail
+                property real dO: shellRoot.aeroOpacity
+                property real dR: shellRoot.aeroReflection
+                property string dSt: shellRoot.glassStyle
+                property real dTh: shellRoot.activeGlassDetail
                 onDXChanged: requestPaint()
                 onDYChanged: requestPaint()
                 onDOChanged: requestPaint()
                 onDRChanged: requestPaint()
                 onDStChanged: requestPaint()
                 onDThChanged: requestPaint()
-                onPaint: win.drawWidgetGlass(getContext("2d"), width, height, 18, widgetCtxMenu.x, widgetCtxMenu.y, false)
+                onPaint: hostWin.drawWidgetGlass(getContext("2d"), width, height, 18, widgetCtxMenu.x, widgetCtxMenu.y, false)
             }
 
             ColumnLayout {
@@ -60,9 +60,9 @@ Item {
                         anchors.fill: parent
                         anchors.leftMargin: 10
                         anchors.rightMargin: 10
-                        Text { text: win.editMode ? "✓" : "✥"; color: "#A1C6FF"; font.pixelSize: 12; font.bold: true }
+                        Text { text: hostWin.editMode ? "✓" : "✥"; color: "#A1C6FF"; font.pixelSize: 12; font.bold: true }
                         Text {
-                            text: win.editMode ? "Selesai Atur" : "Atur Widget"
+                            text: hostWin.editMode ? "Selesai Atur" : "Atur Widget"
                             color: "#FFFFFF"
                             font.pixelSize: 11
                             font.bold: true
@@ -75,12 +75,12 @@ Item {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            win.ctxMenuVisible = false;
-                            if (win.editMode) {
-                                win.editMode = false;
-                                win.saveLayout();
+                            hostWin.ctxMenuVisible = false;
+                            if (hostWin.editMode) {
+                                hostWin.editMode = false;
+                                hostWin.saveLayout();
                             } else {
-                                win.editMode = true;
+                                hostWin.editMode = true;
                             }
                         }
                     }
@@ -96,9 +96,9 @@ Item {
                         anchors.fill: parent
                         anchors.leftMargin: 10
                         anchors.rightMargin: 10
-                        Text { text: win.widgetsLocked ? "🔓" : "🔒"; font.pixelSize: 11 }
+                        Text { text: hostWin.widgetsLocked ? "🔓" : "🔒"; font.pixelSize: 11 }
                         Text {
-                            text: win.widgetsLocked ? "Buka Kunci" : "Lock Posisi"
+                            text: hostWin.widgetsLocked ? "Buka Kunci" : "Lock Posisi"
                             color: "#F5F5F7"
                             font.pixelSize: 11
                         }
@@ -110,8 +110,8 @@ Item {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            win.ctxMenuVisible = false;
-                            win.toggleLock();
+                            hostWin.ctxMenuVisible = false;
+                            hostWin.toggleLock();
                         }
                     }
                 }
@@ -140,9 +140,9 @@ Item {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            win.ctxMenuVisible = false;
-                            root.settingsTab = "appearance";
-                            root.switchPopup("settings");
+                            hostWin.ctxMenuVisible = false;
+                            shellRoot.settingsTab = "appearance";
+                            shellRoot.switchPopup("settings");
                         }
                     }
                 }
@@ -160,7 +160,7 @@ Item {
             color: "#D9181A24"
             border.width: 1.1
             border.color: "#55FFFFFF"
-            visible: win.editMode
+            visible: hostWin.editMode
 
             RowLayout {
                 id: editToolbarRow
@@ -168,8 +168,8 @@ Item {
                 spacing: 8
 
                 Text {
-                    text: win.widgetsLocked ? "🔒 Terkunci" : "✥ Geser Tiap Widget"
-                    color: win.widgetsLocked ? "#FFD60A" : "#E5E5EA"
+                    text: hostWin.widgetsLocked ? "🔒 Terkunci" : "✥ Geser Tiap Widget"
+                    color: hostWin.widgetsLocked ? "#FFD60A" : "#E5E5EA"
                     font.pixelSize: 11
                     font.bold: true
                 }
@@ -177,12 +177,12 @@ Item {
                 // Tombol Lock / Unlock Posisi
                 Rectangle {
                     height: 24; width: lockBtnTxt.implicitWidth + 16; radius: 12
-                    color: win.widgetsLocked ? "#44FFD60A" : "#24FFFFFF"
-                    border.width: 1; border.color: win.widgetsLocked ? "#88FFD60A" : "#3CFFFFFF"
+                    color: hostWin.widgetsLocked ? "#44FFD60A" : "#24FFFFFF"
+                    border.width: 1; border.color: hostWin.widgetsLocked ? "#88FFD60A" : "#3CFFFFFF"
                     Text {
                         id: lockBtnTxt
                         anchors.centerIn: parent
-                        text: win.widgetsLocked ? "Buka Kunci" : "Lock"
+                        text: hostWin.widgetsLocked ? "Buka Kunci" : "Lock"
                         color: "#FFFFFF"
                         font.pixelSize: 10
                         font.bold: true
@@ -190,7 +190,7 @@ Item {
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: win.toggleLock()
+                        onClicked: hostWin.toggleLock()
                     }
                 }
 
@@ -211,10 +211,10 @@ Item {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            win.editMode = false;
-                            win.saveLayout();
-                            root.settingsTab = "appearance";
-                            root.switchPopup("settings");
+                            hostWin.editMode = false;
+                            hostWin.saveLayout();
+                            shellRoot.settingsTab = "appearance";
+                            shellRoot.switchPopup("settings");
                         }
                     }
                 }
@@ -227,7 +227,7 @@ Item {
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: win.resetLayout()
+                        onClicked: hostWin.resetLayout()
                     }
                 }
 
@@ -240,8 +240,8 @@ Item {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            win.editMode = false;
-                            win.saveLayout();
+                            hostWin.editMode = false;
+                            hostWin.saveLayout();
                         }
                     }
                 }

@@ -10,8 +10,8 @@ import "../core"
 
 Item {
     anchors.fill: parent
-    required property var root
-    required property var win
+    required property var shellRoot
+    required property var hostWin
     readonly property bool anyVisible: (aboutCard.opacity > 0.01)
 
         Process {
@@ -22,7 +22,7 @@ Item {
                 onStreamFinished: {
                     let p = text.trim().split("|");
                     if (p.length >= 16) {
-                        root.sysSpecs = {
+                        shellRoot.sysSpecs = {
                             osName: p[0],
                             kernel: p[1],
                             hostModel: p[2],
@@ -48,7 +48,7 @@ Item {
             id: copiedToastTimer
             interval: 1800
             repeat: false
-            onTriggered: root.copiedBannerMsg = ""
+            onTriggered: shellRoot.copiedBannerMsg = ""
         }
         Rectangle {
             id: aboutCard
@@ -61,7 +61,7 @@ Item {
             border.width: 1
             border.color: "#44FFFFFF"
             clip: true
-            visible: !root.preWarmDone || (root.activePopup === "about" || opacity > 0.01)
+            visible: !shellRoot.preWarmDone || (shellRoot.activePopup === "about" || opacity > 0.01)
 
             MouseArea { anchors.fill: parent; z: 0 }
 
@@ -69,12 +69,12 @@ Item {
             Canvas {
                 anchors.fill: parent
                 z: 0
-                property real dO: root.aeroOpacity
-                property real dR: root.aeroReflection
-                property real dF: root.glassFade
-                property string dW: root.activeGlassWall
-                property string dSt: root.glassStyle
-                property real dTh: root.activeGlassDetail
+                property real dO: shellRoot.aeroOpacity
+                property real dR: shellRoot.aeroReflection
+                property real dF: shellRoot.glassFade
+                property string dW: shellRoot.activeGlassWall
+                property string dSt: shellRoot.glassStyle
+                property real dTh: shellRoot.activeGlassDetail
                 onDOChanged: requestPaint()
                 onDRChanged: requestPaint()
                 onDFChanged: requestPaint()
@@ -84,7 +84,7 @@ Item {
                 onPaint: {
                     let sw = Screen.width || 1366;
                     let sh = Screen.height || 768;
-                    root.drawGlobalAeroGlass(getContext("2d"), width, height, 28, (sw - width) * 0.5, (sh - height) * 0.5, sw, sh, false, false);
+                    shellRoot.drawGlobalAeroGlass(getContext("2d"), width, height, 28, (sw - width) * 0.5, (sh - height) * 0.5, sw, sh, false, false);
                 }
             }
 
@@ -100,12 +100,12 @@ Item {
                 color: "#38FFFFFF"
             }
 
-            property bool isOpen: root.activePopup === "about"
+            property bool isOpen: shellRoot.activePopup === "about"
             property int stage: 0
 
             onIsOpenChanged: {
                 if (isOpen) {
-                    root.copiedBannerMsg = "";
+                    shellRoot.copiedBannerMsg = "";
                     sysSpecsProc.running = false;
                     sysSpecsProc.running = true;
                     stage = 1;
@@ -130,7 +130,7 @@ Item {
             Item {
                 id: aboutKeyCatcher
                 focus: aboutCard.isOpen
-                Keys.onEscapePressed: root.closePopups()
+                Keys.onEscapePressed: shellRoot.closePopups()
             }
 
             opacity: isOpen ? 1.0 : 0.0
@@ -172,7 +172,7 @@ Item {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: root.closePopups()
+                                onClicked: shellRoot.closePopups()
                             }
                         }
                         Rectangle { width: 12; height: 12; radius: 6; color: "#FFBD2E" }
@@ -215,11 +215,11 @@ Item {
                         color: "#4432D74B"
                         border.width: 1
                         border.color: "#7732D74B"
-                        visible: root.copiedBannerMsg !== ""
+                        visible: shellRoot.copiedBannerMsg !== ""
                         Text {
                             id: toastTxt
                             anchors.centerIn: parent
-                            text: root.copiedBannerMsg
+                            text: shellRoot.copiedBannerMsg
                             color: "#E5FFE9"
                             font.pixelSize: 10
                             font.bold: true
@@ -251,7 +251,7 @@ Item {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                let s = root.sysSpecs;
+                                let s = shellRoot.sysSpecs;
                                 let summary = "Device: " + s.hostModel + " (" + s.userHost + ")\n"
                                             + "OS: " + s.osName + " | Kernel: " + s.kernel + "\n"
                                             + "Shell: " + s.wmVer + " + " + s.shellVer + "\n"
@@ -259,8 +259,8 @@ Item {
                                             + "GPU: " + s.gpuModel + " (" + s.displayInfo + ")\n"
                                             + "RAM: " + s.ramUsed + " / " + s.ramTotal + "\n"
                                             + "Disk: " + s.diskUsed + " / " + s.diskTotal;
-                                root.runCmd("printf \'%s\' \"" + summary.replace(/"/g, "\'") + "\" | wl-copy");
-                                root.copiedBannerMsg = "All Specs Copied ✓";
+                                shellRoot.runCmd("printf \'%s\' \"" + summary.replace(/"/g, "\'") + "\" | wl-copy");
+                                shellRoot.copiedBannerMsg = "All Specs Copied ✓";
                                 copiedToastTimer.restart();
                             }
                         }
@@ -301,7 +301,7 @@ Item {
                             Image {
                                 id: bannerWallpaperImg
                                 anchors.fill: parent
-                                source: root.currentWallpaper
+                                source: shellRoot.currentWallpaper
                                 fillMode: Image.PreserveAspectCrop
                                 smooth: true
                                 mipmap: true
@@ -394,7 +394,7 @@ Item {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: root.pickRandomWallpaper()
+                                onClicked: shellRoot.pickRandomWallpaper()
                             }
                         }
 
@@ -448,7 +448,7 @@ Item {
                                     }
 
                                     Text {
-                                        text: "Developer • Up " + root.sysSpecs.uptimeStr
+                                        text: "Developer • Up " + shellRoot.sysSpecs.uptimeStr
                                         color: "#C7C7CC"
                                         font.pixelSize: 10
                                         elide: Text.ElideRight
@@ -480,7 +480,7 @@ Item {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: root.pickRandomWallpaper()
+                                onClicked: shellRoot.pickRandomWallpaper()
                             }
                         }
                     }
@@ -537,8 +537,8 @@ Item {
                                         }
                                         ColumnLayout {
                                             Layout.fillWidth: true; spacing: 1
-                                            Text { text: root.sysSpecs.hostModel; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
-                                            Text { text: "Host: " + root.sysSpecs.userHost; color: "#C7C7CC"; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
+                                            Text { text: shellRoot.sysSpecs.hostModel; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
+                                            Text { text: "Host: " + shellRoot.sysSpecs.userHost; color: "#C7C7CC"; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
                                         }
                                         Text { text: "›"; color: "#AEAEB2"; font.pixelSize: 16; font.bold: true }
                                     }
@@ -546,8 +546,8 @@ Item {
                                     MouseArea {
                                         id: row1M; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                         onClicked: {
-                                            root.runCmd("printf \'%s\' \"" + root.sysSpecs.hostModel + " (" + root.sysSpecs.userHost + ")\" | wl-copy");
-                                            root.copiedBannerMsg = "Device Info Copied ✓";
+                                            shellRoot.runCmd("printf \'%s\' \"" + shellRoot.sysSpecs.hostModel + " (" + shellRoot.sysSpecs.userHost + ")\" | wl-copy");
+                                            shellRoot.copiedBannerMsg = "Device Info Copied ✓";
                                             copiedToastTimer.restart();
                                         }
                                     }
@@ -577,8 +577,8 @@ Item {
                                         }
                                         ColumnLayout {
                                             Layout.fillWidth: true; spacing: 1
-                                            Text { text: root.sysSpecs.osName; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
-                                            Text { text: "Kernel " + root.sysSpecs.kernel; color: "#C7C7CC"; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
+                                            Text { text: shellRoot.sysSpecs.osName; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
+                                            Text { text: "Kernel " + shellRoot.sysSpecs.kernel; color: "#C7C7CC"; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
                                         }
                                         Text { text: "›"; color: "#AEAEB2"; font.pixelSize: 16; font.bold: true }
                                     }
@@ -586,8 +586,8 @@ Item {
                                     MouseArea {
                                         id: row2M; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                         onClicked: {
-                                            root.runCmd("printf \'%s\' \"" + root.sysSpecs.osName + " | Kernel " + root.sysSpecs.kernel + "\" | wl-copy");
-                                            root.copiedBannerMsg = "OS & Kernel Copied ✓";
+                                            shellRoot.runCmd("printf \'%s\' \"" + shellRoot.sysSpecs.osName + " | Kernel " + shellRoot.sysSpecs.kernel + "\" | wl-copy");
+                                            shellRoot.copiedBannerMsg = "OS & Kernel Copied ✓";
                                             copiedToastTimer.restart();
                                         }
                                     }
@@ -617,7 +617,7 @@ Item {
                                         }
                                         ColumnLayout {
                                             Layout.fillWidth: true; spacing: 1
-                                            Text { text: root.sysSpecs.wmVer + " • " + root.sysSpecs.shellVer; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
+                                            Text { text: shellRoot.sysSpecs.wmVer + " • " + shellRoot.sysSpecs.shellVer; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
                                             Text { text: "Wayland Custom Desktop Shell"; color: "#C7C7CC"; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
                                         }
                                         Text { text: "›"; color: "#AEAEB2"; font.pixelSize: 16; font.bold: true }
@@ -626,8 +626,8 @@ Item {
                                     MouseArea {
                                         id: row3M; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                         onClicked: {
-                                            root.runCmd("printf \'%s\' \"" + root.sysSpecs.wmVer + " + " + root.sysSpecs.shellVer + "\" | wl-copy");
-                                            root.copiedBannerMsg = "Shell Info Copied ✓";
+                                            shellRoot.runCmd("printf \'%s\' \"" + shellRoot.sysSpecs.wmVer + " + " + shellRoot.sysSpecs.shellVer + "\" | wl-copy");
+                                            shellRoot.copiedBannerMsg = "Shell Info Copied ✓";
                                             copiedToastTimer.restart();
                                         }
                                     }
@@ -657,8 +657,8 @@ Item {
                                         }
                                         ColumnLayout {
                                             Layout.fillWidth: true; spacing: 1
-                                            Text { text: root.sysSpecs.cpuModel; color: "#FFFFFF"; font.pixelSize: 12; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
-                                            Text { text: root.sysSpecs.gpuModel + " (" + root.sysSpecs.displayInfo + ")"; color: "#C7C7CC"; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
+                                            Text { text: shellRoot.sysSpecs.cpuModel; color: "#FFFFFF"; font.pixelSize: 12; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
+                                            Text { text: shellRoot.sysSpecs.gpuModel + " (" + shellRoot.sysSpecs.displayInfo + ")"; color: "#C7C7CC"; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
                                         }
                                         Text { text: "›"; color: "#AEAEB2"; font.pixelSize: 16; font.bold: true }
                                     }
@@ -666,8 +666,8 @@ Item {
                                     MouseArea {
                                         id: row4M; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                         onClicked: {
-                                            root.runCmd("printf \'%s\' \"" + root.sysSpecs.cpuModel + " | " + root.sysSpecs.gpuModel + "\" | wl-copy");
-                                            root.copiedBannerMsg = "CPU & GPU Copied ✓";
+                                            shellRoot.runCmd("printf \'%s\' \"" + shellRoot.sysSpecs.cpuModel + " | " + shellRoot.sysSpecs.gpuModel + "\" | wl-copy");
+                                            shellRoot.copiedBannerMsg = "CPU & GPU Copied ✓";
                                             copiedToastTimer.restart();
                                         }
                                     }
@@ -699,9 +699,9 @@ Item {
                                             Layout.fillWidth: true; spacing: 4
                                             RowLayout {
                                                 Layout.fillWidth: true
-                                                Text { text: "RAM " + root.sysSpecs.ramUsed + " / " + root.sysSpecs.ramTotal; color: "#FFFFFF"; font.pixelSize: 12; font.bold: true }
+                                                Text { text: "RAM " + shellRoot.sysSpecs.ramUsed + " / " + shellRoot.sysSpecs.ramTotal; color: "#FFFFFF"; font.pixelSize: 12; font.bold: true }
                                                 Item { Layout.fillWidth: true }
-                                                Text { text: "Disk " + root.sysSpecs.diskUsed + " / " + root.sysSpecs.diskTotal; color: "#C7C7CC"; font.pixelSize: 11 }
+                                                Text { text: "Disk " + shellRoot.sysSpecs.diskUsed + " / " + shellRoot.sysSpecs.diskTotal; color: "#C7C7CC"; font.pixelSize: 11 }
                                             }
                                             Rectangle {
                                                 Layout.fillWidth: true
@@ -709,7 +709,7 @@ Item {
                                                 radius: 2.5
                                                 color: "#33FFFFFF"
                                                 Rectangle {
-                                                    width: Math.min(parent.width, parent.width * (root.sysSpecs.ramPct / 100))
+                                                    width: Math.min(parent.width, parent.width * (shellRoot.sysSpecs.ramPct / 100))
                                                     height: 5
                                                     radius: 2.5
                                                     color: "#94E2D5"
@@ -723,8 +723,8 @@ Item {
                                     MouseArea {
                                         id: row5M; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                         onClicked: {
-                                            root.runCmd("printf \'%s\' \"RAM " + root.sysSpecs.ramUsed + "/" + root.sysSpecs.ramTotal + " | Disk " + root.sysSpecs.diskUsed + "/" + root.sysSpecs.diskTotal + "\" | wl-copy");
-                                            root.copiedBannerMsg = "Memory & Disk Copied ✓";
+                                            shellRoot.runCmd("printf \'%s\' \"RAM " + shellRoot.sysSpecs.ramUsed + "/" + shellRoot.sysSpecs.ramTotal + " | Disk " + shellRoot.sysSpecs.diskUsed + "/" + shellRoot.sysSpecs.diskTotal + "\" | wl-copy");
+                                            shellRoot.copiedBannerMsg = "Memory & Disk Copied ✓";
                                             copiedToastTimer.restart();
                                         }
                                     }

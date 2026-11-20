@@ -10,36 +10,36 @@ import "../core"
 
 Item {
     anchors.fill: parent
-    required property var root
-    required property var win
+    required property var shellRoot
+    required property var hostWin
 
         Item {
             id: wMedia
-            x: win.getWidgetX("media")
-            y: win.getWidgetY("media")
+            x: hostWin.getWidgetX("media")
+            y: hostWin.getWidgetY("media")
             width: 226
             height: 296
-            scale: win.widgetScale
+            scale: hostWin.widgetScale
             transformOrigin: Item.TopLeft
-            visible: win.isWidgetOn("media")
-            opacity: root.bootStage >= 2 ? 1.0 : 0.0
+            visible: hostWin.isWidgetOn("media")
+            opacity: shellRoot.bootStage >= 2 ? 1.0 : 0.0
             Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
 
             Canvas {
                 anchors.fill: parent
                 property real dX: wMedia.x
                 property real dY: wMedia.y
-                property real dO: root.aeroOpacity
-                property real dR: root.aeroReflection
-                property string dSt: root.glassStyle
-                property real dTh: root.activeGlassDetail
+                property real dO: shellRoot.aeroOpacity
+                property real dR: shellRoot.aeroReflection
+                property string dSt: shellRoot.glassStyle
+                property real dTh: shellRoot.activeGlassDetail
                 onDXChanged: requestPaint()
                 onDYChanged: requestPaint()
                 onDOChanged: requestPaint()
                 onDRChanged: requestPaint()
                 onDStChanged: requestPaint()
                 onDThChanged: requestPaint()
-                onPaint: win.drawWidgetGlass(getContext("2d"), width, height, 24, wMedia.x, wMedia.y, false)
+                onPaint: hostWin.drawWidgetGlass(getContext("2d"), width, height, 24, wMedia.x, wMedia.y, false)
             }
 
             ColumnLayout {
@@ -59,14 +59,14 @@ Item {
                         clip: true
                         Image {
                             anchors.fill: parent
-                            source: root.mediaArtUrl
+                            source: shellRoot.mediaArtUrl
                             fillMode: Image.PreserveAspectCrop
-                            visible: root.mediaArtUrl !== "" && status === Image.Ready
+                            visible: shellRoot.mediaArtUrl !== "" && status === Image.Ready
                         }
                         Row {
                             anchors.centerIn: parent
                             spacing: 4
-                            visible: !root.mediaArtUrl || root.mediaArtUrl === ""
+                            visible: !shellRoot.mediaArtUrl || shellRoot.mediaArtUrl === ""
                             Repeater {
                                 model: [14, 24, 18]
                                 Rectangle { width: 4; height: modelData; radius: 2; color: "#A1C6FF"; anchors.verticalCenter: parent.verticalCenter }
@@ -78,7 +78,7 @@ Item {
                         Layout.fillWidth: true
                         spacing: 3
                         Text {
-                            text: root.mediaTitle
+                            text: shellRoot.mediaTitle
                             color: "#FFFFFF"
                             font.pixelSize: 15
                             font.bold: true
@@ -86,7 +86,7 @@ Item {
                             Layout.fillWidth: true
                         }
                         Text {
-                            text: root.mediaArtist
+                            text: shellRoot.mediaArtist
                             color: "#B4B4BC"
                             font.pixelSize: 12
                             elide: Text.ElideRight
@@ -104,15 +104,15 @@ Item {
                         Layout.fillWidth: true
                         height: 4; radius: 2; color: "#2CFFFFFF"
                         Rectangle {
-                            width: root.mediaLength > 0 ? parent.width * Math.min(1, root.mediaPosition / root.mediaLength) : 0
+                            width: shellRoot.mediaLength > 0 ? parent.width * Math.min(1, shellRoot.mediaPosition / shellRoot.mediaLength) : 0
                             height: 4; radius: 2; color: "#A1C6FF"
                         }
                     }
                     RowLayout {
                         Layout.fillWidth: true
-                        Text { text: root.formatTime(root.mediaPosition); color: "#8E8E93"; font.pixelSize: 10 }
+                        Text { text: shellRoot.formatTime(shellRoot.mediaPosition); color: "#8E8E93"; font.pixelSize: 10 }
                         Item { Layout.fillWidth: true }
-                        Text { text: root.formatTime(root.mediaLength); color: "#8E8E93"; font.pixelSize: 10 }
+                        Text { text: shellRoot.formatTime(shellRoot.mediaLength); color: "#8E8E93"; font.pixelSize: 10 }
                     }
                 }
 
@@ -124,7 +124,7 @@ Item {
                         text: "⏮"
                         color: "#FFFFFF"
                         font.pixelSize: 18
-                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.runCmd("playerctl previous") }
+                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.runCmd("playerctl previous") }
                     }
 
                     Rectangle {
@@ -132,19 +132,19 @@ Item {
                         color: "#A1C6FF"
                         Text {
                             anchors.centerIn: parent
-                            text: root.mediaPlaying ? "⏸" : "▶"
+                            text: shellRoot.mediaPlaying ? "⏸" : "▶"
                             color: "#0C101A"
                             font.pixelSize: 16
                             font.bold: true
                         }
-                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.runCmd("playerctl play-pause") }
+                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.runCmd("playerctl play-pause") }
                     }
 
                     Text {
                         text: "⏭"
                         color: "#FFFFFF"
                         font.pixelSize: 18
-                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.runCmd("playerctl next") }
+                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.runCmd("playerctl next") }
                     }
                 }
             }
@@ -155,20 +155,20 @@ Item {
                 z: 18
                 acceptedButtons: Qt.RightButton
                 onClicked: (m) => {
-                    let p = mapToItem(win.contentItem, m.x, m.y);
-                    win.openWidgetCtxMenu(p.x, p.y);
+                    let p = mapToItem(hostWin.contentItem, m.x, m.y);
+                    hostWin.openWidgetCtxMenu(p.x, p.y);
                 }
             }
 
             MouseArea {
                 anchors.fill: parent
                 z: 20
-                visible: win.editMode && !win.widgetsLocked
+                visible: hostWin.editMode && !hostWin.widgetsLocked
                 cursorShape: Qt.SizeAllCursor
                 property real sx: 0; property real sy: 0; property real ox: 0; property real oy: 0
-                onPressed: (m) => { let p = mapToItem(win.contentItem, m.x, m.y); sx = p.x; sy = p.y; ox = wMedia.x; oy = wMedia.y; }
-                onPositionChanged: (m) => { if (pressed) { let p = mapToItem(win.contentItem, m.x, m.y); win.setWidgetPos("media", ox + (p.x - sx), oy + (p.y - sy)); } }
-                onReleased: win.saveLayout()
+                onPressed: (m) => { let p = mapToItem(hostWin.contentItem, m.x, m.y); sx = p.x; sy = p.y; ox = wMedia.x; oy = wMedia.y; }
+                onPositionChanged: (m) => { if (pressed) { let p = mapToItem(hostWin.contentItem, m.x, m.y); hostWin.setWidgetPos("media", ox + (p.x - sx), oy + (p.y - sy)); } }
+                onReleased: hostWin.saveLayout()
             }
 
             // Tombol Sembunyikan Widget Saat Edit Mode
@@ -176,9 +176,9 @@ Item {
                 anchors.top: parent.top; anchors.left: parent.left; anchors.margins: -6
                 z: 25; width: 22; height: 22; radius: 11
                 color: "#FF453A"; border.width: 1; border.color: "#FFFFFF"
-                visible: win.editMode
+                visible: hostWin.editMode
                 Text { anchors.centerIn: parent; text: "×"; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true }
-                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: win.setWidgetEnabled("media", false) }
+                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: hostWin.setWidgetEnabled("media", false) }
             }
         }
 }

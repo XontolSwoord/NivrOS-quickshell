@@ -10,8 +10,8 @@ import "../core"
 
 Item {
     anchors.fill: parent
-    required property var root
-    required property var win
+    required property var shellRoot
+    required property var hostWin
     required property var overlay
     readonly property bool anyVisible: (ccCard.opacity > 0.01)
 
@@ -29,12 +29,12 @@ Item {
             Canvas {
                 anchors.fill: parent
                 z: -1
-                property real dO: root.aeroOpacity
-                property real dR: root.aeroReflection
-                property real dF: root.glassFade
-                property string dW: root.activeGlassWall
-                property string dSt: root.glassStyle
-                property real dTh: root.activeGlassDetail
+                property real dO: shellRoot.aeroOpacity
+                property real dR: shellRoot.aeroReflection
+                property real dF: shellRoot.glassFade
+                property string dW: shellRoot.activeGlassWall
+                property string dSt: shellRoot.glassStyle
+                property real dTh: shellRoot.activeGlassDetail
                 onDOChanged: requestPaint()
                 onDRChanged: requestPaint()
                 onDFChanged: requestPaint()
@@ -45,16 +45,16 @@ Item {
                     let sw = Screen.width || 1366;
                     let sh = Screen.height || 768;
                     let pos = parent.mapToItem(null, 0, 0);
-                    root.drawGlobalAeroGlass(getContext("2d"), width, height, parent.radius, pos.x, pos.y, sw, sh, false, false);
+                    shellRoot.drawGlobalAeroGlass(getContext("2d"), width, height, parent.radius, pos.x, pos.y, sw, sh, false, false);
                 }
             }
             border.width: 1
             border.color: "#38FFFFFF"
-            visible: !root.preWarmDone || (root.activePopup === "cc" || opacity > 0.01)
+            visible: !shellRoot.preWarmDone || (shellRoot.activePopup === "cc" || opacity > 0.01)
 
             MouseArea { anchors.fill: parent; z: 0 }
 
-            property bool isOpen: root.activePopup === "cc"
+            property bool isOpen: shellRoot.activePopup === "cc"
             property int stage: 0
             onIsOpenChanged: {
                 if (isOpen) {
@@ -131,7 +131,7 @@ Item {
                                 Rectangle {
                                     x: 2; y: 3
                                     width: 34; height: 34; radius: 17
-                                    color: root.wifiEnabled ? "#0A84FF" : "#3A3A40"
+                                    color: shellRoot.wifiEnabled ? "#0A84FF" : "#3A3A40"
                                     Behavior on color { ColorAnimation { duration: 220 } }
 
                                     Canvas {
@@ -152,7 +152,7 @@ Item {
                                 }
 
                                 Text { x: 44; y: 4; width: 74; text: "Wi-Fi"; color: "#F5F5F7"; font.pixelSize: 12; font.bold: true }
-                                Text { x: 44; y: 20; width: 74; text: root.wifiName; color: "#AEAEB2"; font.pixelSize: 10; elide: Text.ElideRight }
+                                Text { x: 44; y: 20; width: 74; text: shellRoot.wifiName; color: "#AEAEB2"; font.pixelSize: 10; elide: Text.ElideRight }
                                 Text { x: 121; y: 12; text: "›"; color: "#8E8E93"; font.pixelSize: 13; font.bold: true }
 
                                 MouseArea {
@@ -163,8 +163,8 @@ Item {
                                     acceptedButtons: Qt.LeftButton | Qt.RightButton
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: (mouse) => {
-                                        if (mouse.button === Qt.RightButton || mouse.x > 110) root.switchPopup("wifi");
-                                        else root.toggleWifi();
+                                        if (mouse.button === Qt.RightButton || mouse.x > 110) shellRoot.switchPopup("wifi");
+                                        else shellRoot.toggleWifi();
                                     }
                                 }
                             }
@@ -180,7 +180,7 @@ Item {
                                 Rectangle {
                                     x: 2; y: 3
                                     width: 34; height: 34; radius: 17
-                                    color: root.btEnabled ? "#0A84FF" : "#3A3A40"
+                                    color: shellRoot.btEnabled ? "#0A84FF" : "#3A3A40"
                                     Behavior on color { ColorAnimation { duration: 220 } }
 
                                     Canvas {
@@ -199,7 +199,7 @@ Item {
                                 }
 
                                 Text { x: 44; y: 4; width: 74; text: "Bluetooth"; color: "#F5F5F7"; font.pixelSize: 12; font.bold: true }
-                                Text { x: 44; y: 20; width: 74; text: root.btEnabled ? (root.btDeviceName !== "" ? root.btDeviceName : "Aktif") : "Mati"; color: "#AEAEB2"; font.pixelSize: 10; elide: Text.ElideRight }
+                                Text { x: 44; y: 20; width: 74; text: shellRoot.btEnabled ? (shellRoot.btDeviceName !== "" ? shellRoot.btDeviceName : "Aktif") : "Mati"; color: "#AEAEB2"; font.pixelSize: 10; elide: Text.ElideRight }
                                 Text { x: 121; y: 12; text: "›"; color: "#8E8E93"; font.pixelSize: 13; font.bold: true }
 
                                 MouseArea {
@@ -210,8 +210,8 @@ Item {
                                     acceptedButtons: Qt.LeftButton | Qt.RightButton
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: (mouse) => {
-                                        if (mouse.button === Qt.RightButton || mouse.x > 110) root.switchPopup("bt");
-                                        else root.toggleBluetooth();
+                                        if (mouse.button === Qt.RightButton || mouse.x > 110) shellRoot.switchPopup("bt");
+                                        else shellRoot.toggleBluetooth();
                                     }
                                 }
                             }
@@ -227,7 +227,7 @@ Item {
                                 Rectangle {
                                     x: 2; y: 3
                                     width: 34; height: 34; radius: 17
-                                    color: root.keepAwake ? "#FF9F0A" : "#3A3A40"
+                                    color: shellRoot.keepAwake ? "#FF9F0A" : "#3A3A40"
                                     Behavior on color { ColorAnimation { duration: 220 } }
 
                                     Canvas {
@@ -243,7 +243,7 @@ Item {
                                 }
 
                                 Text { x: 44; y: 4; width: 84; text: "Keep Awake"; color: "#F5F5F7"; font.pixelSize: 12; font.bold: true }
-                                Text { x: 44; y: 20; width: 84; text: root.keepAwake ? "Layar Terjaga" : "Normal"; color: "#AEAEB2"; font.pixelSize: 10; elide: Text.ElideRight }
+                                Text { x: 44; y: 20; width: 84; text: shellRoot.keepAwake ? "Layar Terjaga" : "Normal"; color: "#AEAEB2"; font.pixelSize: 10; elide: Text.ElideRight }
 
                                 MouseArea {
                                     id: awakeRowM
@@ -251,7 +251,7 @@ Item {
                                     z: 5
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.toggleKeepAwake()
+                                    onClicked: shellRoot.toggleKeepAwake()
                                 }
                             }
                         }
@@ -274,7 +274,7 @@ Item {
                             Rectangle {
                                 x: 12; y: 18
                                 width: 36; height: 36; radius: 18
-                                color: root.dndEnabled ? "#5E5CE6" : "#3A3A40"
+                                color: shellRoot.dndEnabled ? "#5E5CE6" : "#3A3A40"
                                 Behavior on color { ColorAnimation { duration: 220 } }
 
                                 Canvas {
@@ -293,7 +293,7 @@ Item {
                             }
 
                             Text { x: 56; y: 19; width: 86; text: "Focus"; color: "#F5F5F7"; font.pixelSize: 12; font.bold: true }
-                            Text { x: 56; y: 36; width: 86; text: root.dndEnabled ? "Do Not Disturb" : "Off"; color: "#AEAEB2"; font.pixelSize: 10; elide: Text.ElideRight }
+                            Text { x: 56; y: 36; width: 86; text: shellRoot.dndEnabled ? "Do Not Disturb" : "Off"; color: "#AEAEB2"; font.pixelSize: 10; elide: Text.ElideRight }
 
                             MouseArea {
                                 id: dndM
@@ -301,7 +301,7 @@ Item {
                                 z: 5
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: root.toggleDnd()
+                                onClicked: shellRoot.toggleDnd()
                             }
                         }
 
@@ -341,7 +341,7 @@ Item {
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: {
-                                        root.closePopups();
+                                        shellRoot.closePopups();
                                         screenshotDelayTimer.restart();
                                     }
                                 }
@@ -377,7 +377,7 @@ Item {
                                     z: 5
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.pickRandomWallpaper()
+                                    onClicked: shellRoot.pickRandomWallpaper()
                                 }
                             }
                         }
@@ -400,7 +400,7 @@ Item {
                     Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
 
                     Text { x: 14; y: 10; text: "Display"; color: "#F5F5F7"; font.pixelSize: 11; font.bold: true }
-                    Text { anchors.right: parent.right; anchors.rightMargin: 14; y: 10; text: root.brightnessLevel + "%"; color: "#AEAEB2"; font.pixelSize: 11 }
+                    Text { anchors.right: parent.right; anchors.rightMargin: 14; y: 10; text: shellRoot.brightnessLevel + "%"; color: "#AEAEB2"; font.pixelSize: 11 }
 
                     Rectangle {
                         id: briTrack
@@ -412,7 +412,7 @@ Item {
                         clip: true
 
                         Rectangle {
-                            width: Math.max(24, 290 * (root.brightnessLevel / 100))
+                            width: Math.max(24, 290 * (shellRoot.brightnessLevel / 100))
                             height: 24
                             radius: 12
                             color: "#F5F5F7"
@@ -433,8 +433,8 @@ Item {
                             anchors.fill: parent
                             z: 5
                             cursorShape: Qt.PointingHandCursor
-                            onPressed: (m) => root.setBrightnessPct((m.x / 290) * 100)
-                            onPositionChanged: (m) => { if (pressed) root.setBrightnessPct((m.x / 290) * 100); }
+                            onPressed: (m) => shellRoot.setBrightnessPct((m.x / 290) * 100)
+                            onPositionChanged: (m) => { if (pressed) shellRoot.setBrightnessPct((m.x / 290) * 100); }
                         }
                     }
                 }
@@ -460,15 +460,15 @@ Item {
                         anchors.right: parent.right
                         anchors.rightMargin: 14
                         y: 10
-                        text: root.volumeMuted ? "Muted" : (root.volumeLevel + "%")
-                        color: root.volumeMuted ? "#FF453A" : "#AEAEB2"
+                        text: shellRoot.volumeMuted ? "Muted" : (shellRoot.volumeLevel + "%")
+                        color: shellRoot.volumeMuted ? "#FF453A" : "#AEAEB2"
                         font.pixelSize: 11
 
                         MouseArea {
                             anchors.fill: parent
                             z: 5
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: root.toggleMute()
+                            onClicked: shellRoot.toggleMute()
                         }
                     }
 
@@ -482,7 +482,7 @@ Item {
                         clip: true
 
                         Rectangle {
-                            width: root.volumeMuted ? 24 : Math.max(24, 290 * (root.volumeLevel / 100))
+                            width: shellRoot.volumeMuted ? 24 : Math.max(24, 290 * (shellRoot.volumeLevel / 100))
                             height: 24
                             radius: 12
                             color: "#F5F5F7"
@@ -506,8 +506,8 @@ Item {
                             anchors.fill: parent
                             z: 5
                             cursorShape: Qt.PointingHandCursor
-                            onPressed: (m) => root.setVolumePct((m.x / 290) * 100)
-                            onPositionChanged: (m) => { if (pressed) root.setVolumePct((m.x / 290) * 100); }
+                            onPressed: (m) => shellRoot.setVolumePct((m.x / 290) * 100)
+                            onPositionChanged: (m) => { if (pressed) shellRoot.setVolumePct((m.x / 290) * 100); }
                         }
                     }
                 }
@@ -635,8 +635,8 @@ Item {
 
                         Text {
                             anchors.centerIn: parent
-                            text: root.batteryPercent >= 0 ? ("BAT " + root.batteryPercent + "%") : "AC Power"
-                            color: root.batteryStatus === "Charging" ? "#32D74B" : "#F5F5F7"
+                            text: shellRoot.batteryPercent >= 0 ? ("BAT " + shellRoot.batteryPercent + "%") : "AC Power"
+                            color: shellRoot.batteryStatus === "Charging" ? "#32D74B" : "#F5F5F7"
                             font.pixelSize: 11
                             font.bold: true
                         }
@@ -656,9 +656,9 @@ Item {
                         MouseArea {
                             id: ccEditM; anchors.fill: parent; z: 5; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                root.closePopups();
-                                win.posY = win.resolvedY;
-                                win.editMode = true;
+                                shellRoot.closePopups();
+                                hostWin.posY = hostWin.resolvedY;
+                                hostWin.editMode = true;
                             }
                         }
                     }
@@ -676,7 +676,7 @@ Item {
 
                         MouseArea {
                             id: ccSetM; anchors.fill: parent; z: 5; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                            onPressed: root.switchPopup("settings")
+                            onPressed: shellRoot.switchPopup("settings")
                         }
                     }
 
@@ -694,8 +694,8 @@ Item {
                         MouseArea {
                             id: ccLockM; anchors.fill: parent; z: 5; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                root.closePopups();
-                                root.runCmd("swaylock -f -c 000000 || loginctl lock-session");
+                                shellRoot.closePopups();
+                                shellRoot.runCmd("swaylock -f -c 000000 || loginctl lock-session");
                             }
                         }
                     }

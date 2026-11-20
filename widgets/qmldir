@@ -4,3 +4,4 @@ ClockWidget 1.0 ClockWidget.qml
 WeatherWidget 1.0 WeatherWidget.qml
 BatteryWidget 1.0 BatteryWidget.qml
 SysmonWidget 1.0 SysmonWidget.qml
+NotesWidget 1.0 NotesWidget.qml

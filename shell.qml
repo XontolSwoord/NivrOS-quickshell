@@ -1068,8 +1068,8 @@ ShellRoot {
                 }
             }
             sourceComponent: MenuPopups {
-                root: root
-                win: win
+                shellRoot: root
+                hostWin: win
             }
         }
 
@@ -1103,8 +1103,8 @@ ShellRoot {
                 }
             }
             sourceComponent: ControlCenterPopup {
-                root: root
-                win: win
+                shellRoot: root
+                hostWin: win
                 overlay: popupOverlayWin
             }
         }
@@ -1139,8 +1139,8 @@ ShellRoot {
                 }
             }
             sourceComponent: NetworkPopups {
-                root: root
-                win: win
+                shellRoot: root
+                hostWin: win
             }
         }
 
@@ -1174,8 +1174,8 @@ ShellRoot {
                 }
             }
             sourceComponent: MediaCalendarPopups {
-                root: root
-                win: win
+                shellRoot: root
+                hostWin: win
                 overlay: popupOverlayWin
             }
         }
@@ -1210,8 +1210,8 @@ ShellRoot {
                 }
             }
             sourceComponent: LauncherPopup {
-                root: root
-                win: win
+                shellRoot: root
+                hostWin: win
             }
         }
 
@@ -1245,8 +1245,8 @@ ShellRoot {
                 }
             }
             sourceComponent: AboutPopup {
-                root: root
-                win: win
+                shellRoot: root
+                hostWin: win
             }
         }
 
@@ -1280,8 +1280,8 @@ ShellRoot {
                 }
             }
             sourceComponent: SettingsPopup {
-                root: root
-                win: win
+                shellRoot: root
+                hostWin: win
             }
         }
     }
@@ -1297,7 +1297,7 @@ ShellRoot {
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: WlrLayer.Bottom
         WlrLayershell.namespace: "quickshell-widgets"
-        WlrLayershell.keyboardFocus: (win.editMode || noteInputArea.activeFocus) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+        WlrLayershell.keyboardFocus: (win.editMode || (notesWidgetLoader.item && notesWidgetLoader.item.noteFocused)) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
         color: "transparent"
 
         property bool editMode: false
@@ -1553,8 +1553,8 @@ ShellRoot {
             anchors.fill: parent
             active: win.editMode || win.ctxMenuVisible
             sourceComponent: EditStudio {
-                root: root
-                win: win
+                shellRoot: root
+                hostWin: win
             }
         }
 
@@ -1563,8 +1563,8 @@ ShellRoot {
             anchors.fill: parent
             active: win.isWidgetOn("media")
             sourceComponent: MediaWidget {
-                root: root
-                win: win
+                shellRoot: root
+                hostWin: win
             }
         }
 
@@ -1573,8 +1573,8 @@ ShellRoot {
             anchors.fill: parent
             active: win.isWidgetOn("clock")
             sourceComponent: ClockWidget {
-                root: root
-                win: win
+                shellRoot: root
+                hostWin: win
             }
         }
 
@@ -1583,8 +1583,8 @@ ShellRoot {
             anchors.fill: parent
             active: win.isWidgetOn("weather")
             sourceComponent: WeatherWidget {
-                root: root
-                win: win
+                shellRoot: root
+                hostWin: win
             }
         }
 
@@ -1593,8 +1593,8 @@ ShellRoot {
             anchors.fill: parent
             active: win.isWidgetOn("battery")
             sourceComponent: BatteryWidget {
-                root: root
-                win: win
+                shellRoot: root
+                hostWin: win
             }
         }
 
@@ -1603,203 +1603,20 @@ ShellRoot {
             anchors.fill: parent
             active: win.isWidgetOn("sysmon")
             sourceComponent: SysmonWidget {
-                root: root
-                win: win
+                shellRoot: root
+                hostWin: win
             }
         }
 
         // ====================================================================
         // WIDGET 6: CALENDAR & INTERACTIVE QUICK NOTES (BISA LANGSUNG DIISI)
-        // ====================================================================
-        Item {
-            id: wNotes
-            x: win.getWidgetX("notes")
-            y: win.getWidgetY("notes")
-            width: 226
-            height: 206
-            scale: win.widgetScale
-            transformOrigin: Item.TopLeft
-            visible: win.isWidgetOn("notes")
-
-            SystemClock {
-                id: notesClock
-                precision: SystemClock.Minutes
-            }
-
-            Canvas {
-                anchors.fill: parent
-                property real dX: wNotes.x
-                property real dY: wNotes.y
-                property real dO: root.aeroOpacity
-                property real dR: root.aeroReflection
-                property string dSt: root.glassStyle
-                property real dTh: root.activeGlassDetail
-                property real dSc: win.widgetScale
-                onDXChanged: requestPaint()
-                onDYChanged: requestPaint()
-                onDOChanged: requestPaint()
-                onDRChanged: requestPaint()
-                onDStChanged: requestPaint()
-                onDThChanged: requestPaint()
-                onDScChanged: requestPaint()
-                onPaint: win.drawWidgetGlass(getContext("2d"), width, height, 24, wNotes.x, wNotes.y, false)
-            }
-
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 14
-                spacing: 8
-
-                // Header Kalender Hari Ini ala macOS
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 8
-
-                    Rectangle {
-                        Layout.preferredWidth: 34
-                        Layout.preferredHeight: 34
-                        radius: 10
-                        color: "#22FFFFFF"
-                        border.width: 1; border.color: "#38FFFFFF"
-                        Column {
-                            anchors.centerIn: parent
-                            spacing: -1
-                            Text {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                text: notesClock.date.toLocaleString(Qt.locale("id_ID"), "ddd").toUpperCase()
-                                color: "#FF453A"
-                                font.pixelSize: 8
-                                font.bold: true
-                            }
-                            Text {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                text: Qt.formatDate(notesClock.date, "d")
-                                color: "#FFFFFF"
-                                font.pixelSize: 13
-                                font.bold: true
-                            }
-                        }
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 0
-                        Text {
-                            text: notesClock.date.toLocaleString(Qt.locale("id_ID"), "MMMM yyyy")
-                            color: "#FFFFFF"
-                            font.pixelSize: 12
-                            font.bold: true
-                        }
-                        Text {
-                            text: win.editMode ? "Mode Atur Widget" : "Quick Notes • Klik untuk mengetik"
-                            color: "#AEAEB2"
-                            font.pixelSize: 9
-                        }
-                    }
-                }
-
-                // Area Tulis Catatan Interaktif (Auto-Save & Auto-Scroll)
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    radius: 14
-                    color: noteInputArea.activeFocus ? "#24FFFFFF" : "#14FFFFFF"
-                    border.width: 1
-                    border.color: noteInputArea.activeFocus ? "#66A1C6FF" : "#28FFFFFF"
-
-                    Timer {
-                        id: noteSaveDebounce
-                        interval: 600
-                        onTriggered: win.saveLayout()
-                    }
-
-                    Flickable {
-                        id: noteFlick
-                        anchors.fill: parent
-                        anchors.margins: 8
-                        contentWidth: width
-                        contentHeight: Math.max(noteInputArea.paintedHeight, height)
-                        clip: true
-
-                        Text {
-                            anchors.fill: parent
-                            text: "Tulis catatan di sini..."
-                            color: "#66FFFFFF"
-                            font.pixelSize: 11
-                            visible: noteInputArea.text.length === 0 && !noteInputArea.activeFocus && !win.editMode
-                        }
-
-                        TextEdit {
-                            id: noteInputArea
-                            width: noteFlick.width
-                            height: Math.max(paintedHeight, noteFlick.height)
-                            wrapMode: TextEdit.Wrap
-                            selectByMouse: true
-                            color: "#F5F5F7"
-                            selectionColor: "#550A84FF"
-                            font.pixelSize: 11
-                            text: win.quickNoteText
-                            enabled: !win.editMode
-                            onCursorRectangleChanged: {
-                                let r = cursorRectangle;
-                                if (r.y < noteFlick.contentY) {
-                                    noteFlick.contentY = r.y;
-                                } else if (r.y + r.height > noteFlick.contentY + noteFlick.height) {
-                                    noteFlick.contentY = r.y + r.height - noteFlick.height;
-                                }
-                            }
-                            onActiveFocusChanged: {
-                                if (!activeFocus && noteSaveDebounce.running) {
-                                    noteSaveDebounce.stop();
-                                    win.saveLayout();
-                                }
-                            }
-                            Component.onDestruction: {
-                                if (noteSaveDebounce.running) {
-                                    noteSaveDebounce.stop();
-                                    win.saveLayout();
-                                }
-                            }
-                            onTextChanged: {
-                                if (win.quickNoteText !== text) {
-                                    win.quickNoteText = text;
-                                    root.widgetCfg.noteText = text;
-                                    noteSaveDebounce.restart();
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                z: 18
-                acceptedButtons: Qt.RightButton
-                onClicked: (m) => {
-                    let p = mapToItem(win.contentItem, m.x, m.y);
-                    win.openWidgetCtxMenu(p.x, p.y);
-                }
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                z: 20
-                visible: win.editMode && !win.widgetsLocked
-                cursorShape: Qt.SizeAllCursor
-                property real sx: 0; property real sy: 0; property real ox: 0; property real oy: 0
-                onPressed: (m) => { let p = mapToItem(win.contentItem, m.x, m.y); sx = p.x; sy = p.y; ox = wNotes.x; oy = wNotes.y; }
-                onPositionChanged: (m) => { if (pressed) { let p = mapToItem(win.contentItem, m.x, m.y); win.setWidgetPos("notes", ox + (p.x - sx), oy + (p.y - sy)); } }
-                onReleased: win.saveLayout()
-            }
-
-            Rectangle {
-                anchors.top: parent.top; anchors.left: parent.left; anchors.margins: -6
-                z: 25; width: 22; height: 22; radius: 11
-                color: "#FF453A"; border.width: 1; border.color: "#FFFFFF"
-                visible: win.editMode
-                Text { anchors.centerIn: parent; text: "×"; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true }
-                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: win.setWidgetEnabled("notes", false) }
+        Loader {
+            id: notesWidgetLoader
+            anchors.fill: parent
+            active: win.isWidgetOn("notes")
+            sourceComponent: NotesWidget {
+                shellRoot: root
+                hostWin: win
             }
         }
     }
