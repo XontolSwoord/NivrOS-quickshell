@@ -9,6 +9,7 @@ import Quickshell.Services.Mpris
 import "../core"
 
 Item {
+    id: modRoot
     anchors.fill: parent
     required property var shellRoot
     required property var hostWin
@@ -54,7 +55,11 @@ Item {
 
             MouseArea { anchors.fill: parent; z: 0 }
 
-            property bool isOpen: shellRoot.activePopup === "cc"
+
+
+            property bool _mounted: false
+            Timer { interval: 1; running: true; repeat: false; onTriggered: parent._mounted = true }
+            property bool isOpen: _mounted && (shellRoot.activePopup === "cc")
             property int stage: 0
             onIsOpenChanged: {
                 if (isOpen) {
@@ -80,12 +85,12 @@ Item {
             scale: isOpen ? 1.0 : 0.90
             transform: Translate {
                 y: ccCard.isOpen ? 0 : -12
-                Behavior on y { SpringAnimation { spring: 7.5; damping: 0.72 } }
+                Behavior on y { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
             }
             transformOrigin: Item.TopRight
 
-            Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.InOutCubic } }
-            Behavior on scale { SpringAnimation { spring: 7.5; damping: 0.72 } }
+            Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+            Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
 
             Column {
                 x: 12
@@ -102,9 +107,9 @@ Item {
                     opacity: ccCard.stage >= 1 ? 1.0 : 0.0
                     transform: Translate {
                         y: ccCard.stage >= 1 ? 0 : 12
-                        Behavior on y { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                        Behavior on y { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
                     }
-                    Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
 
                     Rectangle {
                         width: 152
@@ -319,7 +324,7 @@ Item {
                                 border.color: "#1AFFFFFF"
                                 scale: ssTileM.pressed ? 0.94 : 1.0
                                 Behavior on color { ColorAnimation { duration: 160 } }
-                                Behavior on scale { SpringAnimation { spring: 7.5; damping: 0.72 } }
+                                Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
 
                                 Canvas {
                                     x: 25; y: 14
@@ -356,7 +361,7 @@ Item {
                                 border.color: "#1AFFFFFF"
                                 scale: wpTileM.pressed ? 0.94 : 1.0
                                 Behavior on color { ColorAnimation { duration: 160 } }
-                                Behavior on scale { SpringAnimation { spring: 7.5; damping: 0.72 } }
+                                Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
 
                                 Canvas {
                                     x: 25; y: 14
@@ -395,9 +400,9 @@ Item {
                     opacity: ccCard.stage >= 2 ? 1.0 : 0.0
                     transform: Translate {
                         y: ccCard.stage >= 2 ? 0 : 12
-                        Behavior on y { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                        Behavior on y { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
                     }
-                    Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
 
                     Text { x: 14; y: 10; text: "Display"; color: "#F5F5F7"; font.pixelSize: 11; font.bold: true }
                     Text { anchors.right: parent.right; anchors.rightMargin: 14; y: 10; text: shellRoot.brightnessLevel + "%"; color: "#AEAEB2"; font.pixelSize: 11 }
@@ -450,9 +455,9 @@ Item {
                     opacity: ccCard.stage >= 3 ? 1.0 : 0.0
                     transform: Translate {
                         y: ccCard.stage >= 3 ? 0 : 12
-                        Behavior on y { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                        Behavior on y { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
                     }
-                    Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
 
                     Text { x: 14; y: 10; text: "Sound"; color: "#F5F5F7"; font.pixelSize: 11; font.bold: true }
 
@@ -523,9 +528,9 @@ Item {
                     opacity: ccCard.stage >= 4 ? 1.0 : 0.0
                     transform: Translate {
                         y: ccCard.stage >= 4 ? 0 : 12
-                        Behavior on y { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                        Behavior on y { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
                     }
-                    Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
 
                     Rectangle {
                         x: 12; y: 12
@@ -576,7 +581,7 @@ Item {
                         Rectangle {
                             width: 28; height: 30; radius: 15
                             color: ccPrevM.containsMouse ? "#33FFFFFF" : "transparent"
-                            Behavior on color { ColorAnimation { duration: 60 } }
+                            Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
                             Text { anchors.centerIn: parent; text: "|◀"; color: "#F5F5F7"; font.pixelSize: 10 }
                             MouseArea {
                                 id: ccPrevM; anchors.fill: parent; z: 5; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -587,7 +592,7 @@ Item {
                         Rectangle {
                             width: 32; height: 30; radius: 15
                             color: ccPlayM.containsMouse ? "#33FFFFFF" : "transparent"
-                            Behavior on color { ColorAnimation { duration: 60 } }
+                            Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
                             Text {
                                 anchors.centerIn: parent
                                 text: (overlay.mediaPlayer && overlay.mediaPlayer.isPlaying) ? "❚❚" : "▶"
@@ -603,7 +608,7 @@ Item {
                         Rectangle {
                             width: 28; height: 30; radius: 15
                             color: ccNextM.containsMouse ? "#33FFFFFF" : "transparent"
-                            Behavior on color { ColorAnimation { duration: 60 } }
+                            Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
                             Text { anchors.centerIn: parent; text: "▶|"; color: "#F5F5F7"; font.pixelSize: 10 }
                             MouseArea {
                                 id: ccNextM; anchors.fill: parent; z: 5; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -621,9 +626,9 @@ Item {
                     opacity: ccCard.stage >= 5 ? 1.0 : 0.0
                     transform: Translate {
                         y: ccCard.stage >= 5 ? 0 : 12
-                        Behavior on y { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                        Behavior on y { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
                     }
-                    Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
 
                     Rectangle {
                         width: 94
@@ -649,7 +654,7 @@ Item {
                         color: ccEditM.containsMouse ? "#38FFFFFF" : "#22FFFFFF"
                         border.width: 1
                         border.color: "#1AFFFFFF"
-                        Behavior on color { ColorAnimation { duration: 60 } }
+                        Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
 
                         Text { anchors.centerIn: parent; text: "Atur Widget"; color: "#F5F5F7"; font.pixelSize: 11; font.bold: true }
 
@@ -670,7 +675,7 @@ Item {
                         color: ccSetM.containsMouse ? "#38FFFFFF" : "#22FFFFFF"
                         border.width: 1
                         border.color: "#1AFFFFFF"
-                        Behavior on color { ColorAnimation { duration: 60 } }
+                        Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
 
                         Text { anchors.centerIn: parent; text: "Settings"; color: "#F5F5F7"; font.pixelSize: 11; font.bold: true }
 
@@ -687,7 +692,7 @@ Item {
                         color: ccLockM.containsMouse ? "#38FFFFFF" : "#22FFFFFF"
                         border.width: 1
                         border.color: "#1AFFFFFF"
-                        Behavior on color { ColorAnimation { duration: 60 } }
+                        Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
 
                         Text { anchors.centerIn: parent; text: "Lock"; color: "#F5F5F7"; font.pixelSize: 11; font.bold: true }
 

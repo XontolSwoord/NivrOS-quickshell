@@ -23,7 +23,7 @@ Item {
             transformOrigin: Item.TopLeft
             visible: hostWin.isWidgetOn("weather")
             opacity: shellRoot.bootStage >= 4 ? 1.0 : 0.0
-            Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+            Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
 
             Canvas {
                 anchors.fill: parent

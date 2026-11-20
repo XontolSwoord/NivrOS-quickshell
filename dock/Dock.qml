@@ -7,6 +7,7 @@ import "../core"
 
 PanelWindow {
     id: macDockWin
+    property var shellRoot: null
     anchors.bottom: true
     anchors.left: true
     anchors.right: true
@@ -19,11 +20,11 @@ PanelWindow {
     color: "transparent"
 
     property bool dwellTriggered: false
-    property bool startupPeek: true
+    property bool startupPeek: false
     property bool shuttingDown: false
     property var runningList: []
 
-    readonly property bool isDockOpen: !ShellState.editMode && (dwellTriggered || startupPeek)
+    readonly property bool isDockOpen: !(macDockWin.shellRoot ? macDockWin.shellRoot.desktopEditMode : false) && (dwellTriggered || startupPeek)
     readonly property bool pointerInsideDock: dockInputHandler.hovered || macDockPill.hoveredSlots > 0
 
     mask: Region {
@@ -34,17 +35,17 @@ PanelWindow {
         id: macDockMaskItem
         readonly property real targetPillW: Math.max(220, macDockPill.width)
         readonly property real targetPillX: (macDockWin.width - targetPillW) * 0.5
-        readonly property real activeCoverH: macDockWin.isDockOpen ? 108 : Math.max(2, Math.round(108 - macDockPill.slideY * 1.25))
+        readonly property real activeCoverH: macDockWin.isDockOpen ? 108 : Math.max(4, Math.round(108 - macDockPill.slideY * 1.25))
         readonly property bool visuallyActive: macDockWin.isDockOpen || macDockPill.opacity > 0.05
 
-        x: ShellState.editMode ? 0 : Math.max(0, targetPillX - (visuallyActive ? 24 : 4))
-        y: ShellState.editMode ? macDockWin.height : (macDockWin.height - activeCoverH)
-        width: ShellState.editMode ? 0 : Math.min(macDockWin.width, targetPillW + (visuallyActive ? 48 : 8))
-        height: ShellState.editMode ? 0 : activeCoverH
+        x: (macDockWin.shellRoot ? macDockWin.shellRoot.desktopEditMode : false) ? 0 : Math.max(0, targetPillX - (visuallyActive ? 24 : 4))
+        y: (macDockWin.shellRoot ? macDockWin.shellRoot.desktopEditMode : false) ? macDockWin.height : (macDockWin.height - activeCoverH)
+        width: (macDockWin.shellRoot ? macDockWin.shellRoot.desktopEditMode : false) ? 0 : Math.min(macDockWin.width, targetPillW + (visuallyActive ? 48 : 8))
+        height: (macDockWin.shellRoot ? macDockWin.shellRoot.desktopEditMode : false) ? 0 : activeCoverH
     }
 
     onPointerInsideDockChanged: {
-        if (ShellState.editMode) return;
+        if ((macDockWin.shellRoot ? macDockWin.shellRoot.desktopEditMode : false)) return;
         if (pointerInsideDock) {
             macDockHideTimer.stop();
             if (!isDockOpen && !macDockDwellTimer.running) {
@@ -73,7 +74,7 @@ PanelWindow {
     Connections {
         target: ShellState
         function onEditModeChanged() {
-            if (ShellState.editMode) {
+            if ((macDockWin.shellRoot ? macDockWin.shellRoot.desktopEditMode : false)) {
                 macDockDwellTimer.stop();
                 macDockHideTimer.stop();
                 macDockWin.dwellTriggered = false;
@@ -92,10 +93,10 @@ PanelWindow {
 
     Timer {
         id: macDockDwellTimer
-        interval: 115
+        interval: 110
         repeat: false
         onTriggered: {
-            if (!ShellState.editMode && macDockWin.pointerInsideDock) {
+            if (!(macDockWin.shellRoot ? macDockWin.shellRoot.desktopEditMode : false) && macDockWin.pointerInsideDock) {
                 macDockWin.dwellTriggered = true;
                 if (dockInputHandler.hovered) {
                     macDockPill.pointerActive = true;
@@ -180,7 +181,7 @@ PanelWindow {
 
         HoverHandler {
             id: dockInputHandler
-            enabled: !ShellState.editMode
+            enabled: !(macDockWin.shellRoot ? macDockWin.shellRoot.desktopEditMode : false)
             onPointChanged: {
                 if (!hovered) return;
                 if (macDockWin.isDockOpen) {
@@ -212,15 +213,16 @@ PanelWindow {
 
             Behavior on slideY {
                 SpringAnimation {
-                    spring: 6.4
-                    damping: 0.94
-                    epsilon: 0.002
+                    mass: 1.2
+                    spring: 4.4
+                    damping: 0.88
+                    epsilon: 0.001
                 }
             }
             Behavior on opacity {
                 NumberAnimation {
-                    duration: 150
-                    easing.type: Easing.InOutCubic
+                    duration: 280
+                    easing.type: Easing.OutQuint
                 }
             }
 
@@ -279,7 +281,7 @@ PanelWindow {
                 Repeater {
                     id: macDockRepeater
                     model: [
-                        { name: "Finder", icon: "system-file-manager", glyph: "F", bg: "#1E88E5", cmd: "thunar", match: "thunar" },
+                        { name: "Finder", icon: "system-file-manager", glyph: "F", bg: "#1E88E5", cmd: "command -v thunar >/dev/null 2>&1 && thunar || xdg-open \"$HOME\"", match: "thunar" },
                         { name: "Launchpad", icon: "view-app-grid-symbolic", glyph: "::", bg: "#5E5CE6", cmd: "", match: "" },
                         { name: "Firefox", icon: "firefox", glyph: "FF", bg: "#FF7139", cmd: "firefox", match: "firefox" },
                         { name: "Terminal", icon: "Alacritty", glyph: ">_", bg: "#1C1C1E", cmd: "alacritty", match: "alacritty" },
@@ -430,17 +432,17 @@ PanelWindow {
                             onClicked: {
                                 if (modelData.name === "Launchpad") {
                                     macDockBounce.restart();
-                                    ShellState.switchPopup("launchpad");
+                                    (macDockWin.shellRoot ? macDockWin.shellRoot.switchPopup : ShellState.switchPopup)("launchpad");
                                 } else if (modelData.name === "Settings") {
                                     macDockBounce.restart();
-                                    ShellState.switchPopup("settings");
+                                    (macDockWin.shellRoot ? macDockWin.shellRoot.switchPopup : ShellState.switchPopup)("settings");
                                 } else if (macDockSlot.winId >= 0) {
-                                    ShellState.runCmd("niri msg action focus-window --id " + macDockSlot.winId);
+                                    (macDockWin.shellRoot ? macDockWin.shellRoot.runCmd : ShellState.runCmd)("niri msg action focus-window --id " + macDockSlot.winId);
                                 } else if (modelData.cmd && modelData.cmd !== "" && !macDockSlot.launching) {
                                     macDockSlot.launching = true;
                                     launchGuard.restart();
                                     macDockBounce.restart();
-                                    ShellState.runCmd(modelData.cmd);
+                                    (macDockWin.shellRoot ? macDockWin.shellRoot.runCmd : ShellState.runCmd)(modelData.cmd);
                                 }
                             }
                         }

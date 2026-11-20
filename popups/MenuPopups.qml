@@ -9,6 +9,7 @@ import Quickshell.Services.Mpris
 import "../core"
 
 Item {
+    id: modRoot
     anchors.fill: parent
     required property var shellRoot
     required property var hostWin
@@ -51,7 +52,11 @@ Item {
             border.color: "#38FFFFFF"
             visible: !shellRoot.preWarmDone || (shellRoot.activePopup === "apple" || opacity > 0.01)
 
-            property bool isOpen: shellRoot.activePopup === "apple"
+
+
+            property bool _mounted: false
+            Timer { interval: 1; running: true; repeat: false; onTriggered: parent._mounted = true }
+            property bool isOpen: _mounted && (shellRoot.activePopup === "apple")
             property int stage: 0
             onIsOpenChanged: {
                 if (isOpen) { stage = 0; appleStagger.restart(); }
@@ -67,12 +72,12 @@ Item {
             scale: isOpen ? 1.0 : 0.90
             transform: Translate {
                 y: appleCard.isOpen ? 0 : -8
-                Behavior on y { SpringAnimation { spring: 7.5; damping: 0.72 } }
+                Behavior on y { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
             }
             transformOrigin: Item.TopLeft
 
-            Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.InOutCubic } }
-            Behavior on scale { SpringAnimation { spring: 7.5; damping: 0.72 } }
+            Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+            Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
 
             Column {
                 id: appleCol
@@ -98,9 +103,9 @@ Item {
                         opacity: appleCard.stage >= (index + 1) ? 1.0 : 0.0
                         transform: Translate {
                             y: appleCard.stage >= (index + 1) ? 0 : 6
-                            Behavior on y { NumberAnimation { duration: 190; easing.type: Easing.InOutCubic } }
+                            Behavior on y { NumberAnimation { duration: 310; easing.type: Easing.OutQuint } }
                         }
-                        Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                        Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
 
                         Rectangle {
                             width: appleCol.width
@@ -186,7 +191,11 @@ Item {
             border.color: "#38FFFFFF"
             visible: !shellRoot.preWarmDone || (shellRoot.activePopup === "window" || opacity > 0.01)
 
-            property bool isOpen: shellRoot.activePopup === "window"
+
+
+            property bool _mounted: false
+            Timer { interval: 1; running: true; repeat: false; onTriggered: parent._mounted = true }
+            property bool isOpen: _mounted && (shellRoot.activePopup === "window")
             property int stage: 0
             onIsOpenChanged: {
                 if (isOpen) { stage = 0; winStagger.restart(); }
@@ -202,12 +211,12 @@ Item {
             scale: isOpen ? 1.0 : 0.90
             transform: Translate {
                 y: winCard.isOpen ? 0 : -8
-                Behavior on y { SpringAnimation { spring: 7.5; damping: 0.72 } }
+                Behavior on y { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
             }
             transformOrigin: Item.TopLeft
 
-            Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.InOutCubic } }
-            Behavior on scale { SpringAnimation { spring: 7.5; damping: 0.72 } }
+            Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+            Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
 
             Column {
                 id: winMenuCol
@@ -233,9 +242,9 @@ Item {
                         opacity: winCard.stage >= (index + 1) ? 1.0 : 0.0
                         transform: Translate {
                             y: winCard.stage >= (index + 1) ? 0 : 6
-                            Behavior on y { NumberAnimation { duration: 190; easing.type: Easing.InOutCubic } }
+                            Behavior on y { NumberAnimation { duration: 310; easing.type: Easing.OutQuint } }
                         }
-                        Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                        Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
                         Behavior on color { ColorAnimation { duration: 130 } }
 
                         Text {
@@ -300,7 +309,11 @@ Item {
             border.color: "#38FFFFFF"
             visible: !shellRoot.preWarmDone || (shellRoot.activePopup === "desktop" || opacity > 0.01)
 
-            property bool isOpen: shellRoot.activePopup === "desktop"
+
+
+            property bool _mounted: false
+            Timer { interval: 1; running: true; repeat: false; onTriggered: parent._mounted = true }
+            property bool isOpen: _mounted && (shellRoot.activePopup === "desktop")
             property int stage: 0
             onIsOpenChanged: {
                 if (isOpen) { stage = 0; deskStagger.restart(); }
@@ -316,12 +329,12 @@ Item {
             scale: isOpen ? 1.0 : 0.90
             transform: Translate {
                 y: deskCard.isOpen ? 0 : -8
-                Behavior on y { SpringAnimation { spring: 7.5; damping: 0.72 } }
+                Behavior on y { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
             }
             transformOrigin: Item.TopLeft
 
-            Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.InOutCubic } }
-            Behavior on scale { SpringAnimation { spring: 7.5; damping: 0.72 } }
+            Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+            Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
 
             Column {
                 id: deskMenuCol
@@ -347,9 +360,9 @@ Item {
                         opacity: deskCard.stage >= (index + 1) ? 1.0 : 0.0
                         transform: Translate {
                             y: deskCard.stage >= (index + 1) ? 0 : 6
-                            Behavior on y { NumberAnimation { duration: 190; easing.type: Easing.InOutCubic } }
+                            Behavior on y { NumberAnimation { duration: 310; easing.type: Easing.OutQuint } }
                         }
-                        Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                        Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
                         Behavior on color { ColorAnimation { duration: 130 } }
 
                         Text {

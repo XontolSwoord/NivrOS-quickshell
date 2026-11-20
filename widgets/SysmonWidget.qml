@@ -67,7 +67,7 @@ Item {
                         Rectangle {
                             width: parent.width * (shellRoot.cpuUsagePct / 100)
                             height: 5; radius: 2.5; color: "#0A84FF"
-                            Behavior on width { NumberAnimation { duration: 250 } }
+                            Behavior on width { NumberAnimation { duration: 420; easing.type: Easing.OutCubic } }
                         }
                     }
                 }
@@ -87,7 +87,7 @@ Item {
                         Rectangle {
                             width: parent.width * (shellRoot.ramUsagePct / 100)
                             height: 5; radius: 2.5; color: "#BF5AF2"
-                            Behavior on width { NumberAnimation { duration: 250 } }
+                            Behavior on width { NumberAnimation { duration: 420; easing.type: Easing.OutCubic } }
                         }
                     }
                 }

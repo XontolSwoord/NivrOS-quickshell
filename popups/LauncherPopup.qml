@@ -9,6 +9,7 @@ import Quickshell.Services.Mpris
 import "../core"
 
 Item {
+    id: modRoot
     anchors.fill: parent
     required property var shellRoot
     required property var hostWin
@@ -110,7 +111,11 @@ for n, ic, ex in apps:
 
             MouseArea { anchors.fill: parent; z: 0 }
 
-            property bool isOpen: shellRoot.activePopup === "launchpad" || shellRoot.activePopup === "spotlight"
+
+
+            property bool _mounted: false
+            Timer { interval: 1; running: true; repeat: false; onTriggered: parent._mounted = true }
+            property bool isOpen: _mounted && (shellRoot.activePopup === "launchpad" || shellRoot.activePopup === "spotlight")
             property var filteredApps: {
                 let q = shellRoot.launcherSearchText.trim().toLowerCase();
                 if (q === "") return shellRoot.allSystemApps;
@@ -132,13 +137,13 @@ for n, ic, ex in apps:
             scale: isOpen ? 1.0 : 0.90
             transform: Translate {
                 y: launcherCard.isOpen ? 0 : 18
-                Behavior on y { SpringAnimation { spring: 7.5; damping: 0.72 } }
+                Behavior on y { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
             }
 
-            Behavior on opacity { NumberAnimation { duration: 170; easing.type: Easing.InOutCubic } }
-            Behavior on scale { SpringAnimation { spring: 7.5; damping: 0.72 } }
-            Behavior on width { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
-            Behavior on height { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+            Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+            Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+            Behavior on width { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+            Behavior on height { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
 
             ColumnLayout {
                 anchors.fill: parent
@@ -230,8 +235,8 @@ for n, ic, ex in apps:
                             radius: 16
                             color: gridItemM.containsMouse ? "#26FFFFFF" : "transparent"
                             scale: gridItemM.pressed ? 0.92 : (gridItemM.containsMouse ? 1.05 : 1.0)
-                            Behavior on color { ColorAnimation { duration: 60 } }
-                            Behavior on scale { SpringAnimation { spring: 7.5; damping: 0.72 } }
+                            Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
+                            Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
 
                             Column {
                                 anchors.centerIn: parent

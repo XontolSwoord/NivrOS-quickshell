@@ -158,16 +158,17 @@ ShellRoot {
     Process {
         id: mediaProc
         Component.onCompleted: running = true
-        command: ["sh", "-c", "playerctl metadata --format '{{status}}|{{title}}|{{artist}}|{{mpris:artUrl}}|{{position}}|{{mpris:length}}' 2>/dev/null || echo 'Stopped|No Media|Idle||0|0'"]
+        command: ["sh", "-c", "playerctl metadata --format '{{status}}\x1f{{title}}\x1f{{artist}}\x1f{{mpris:artUrl}}\x1f{{position}}\x1f{{mpris:length}}' 2>/dev/null || printf 'Stopped\x1fNo Media\x1fIdle\x1f\x1f0\x1f0\n'"]
         stdout: StdioCollector {
             onStreamFinished: {
                 let raw = text.trim();
                 if (!raw) return;
-                let p = raw.split("|");
+                let p = raw.split("\x1f");
                 root.mediaPlaying = (p[0] === "Playing");
                 root.mediaTitle = (p[1] && p[1].trim() !== "") ? p[1].trim() : "No Media";
                 root.mediaArtist = (p[2] && p[2].trim() !== "") ? p[2].trim() : (root.mediaPlaying ? "Playing" : "Idle");
-                root.mediaArtUrl = (p[3] && p[3].trim() !== "") ? p[3].trim() : "";
+                let rawArt = (p[3] && p[3].trim() !== "") ? p[3].trim() : "";
+                root.mediaArtUrl = (rawArt.startsWith("file://") || rawArt.startsWith("http://") || rawArt.startsWith("https://")) ? rawArt : "";
                 let pos = parseFloat(p[4]) || 0;
                 let len = parseFloat(p[5]) || 0;
                 if (pos > 100000) pos = pos / 1000000.0;
@@ -501,7 +502,11 @@ ShellRoot {
     function runCmd(cmd) {
         if (!cmd || cmd.trim() === "") return;
         let clean = cmd.replace(/%[fFuUdDnNickvm]/g, "").trim();
-        Quickshell.execDetached(["sh", "-c", "setsid -f " + clean + " >/dev/null 2>&1 || (" + clean + " &)"]);
+        if (clean.startsWith("niri msg ")) {
+            Quickshell.execDetached(["sh", "-c", clean + " >/dev/null 2>&1"]);
+        } else {
+            Quickshell.execDetached(["sh", "-c", "niri msg action spawn -- sh -c " + JSON.stringify(clean) + " >/dev/null 2>&1 || setsid -f sh -c " + JSON.stringify(clean) + " >/dev/null 2>&1"]);
+        }
     }
 
     function setBrightnessPct(pct) {
@@ -879,7 +884,7 @@ ShellRoot {
     }
 
     // 2. MACOS TOP MENU BAR (SMOOTH STAGGERED ENTRANCE + SPRING HOVER)
-    TopBar {}
+    TopBar { shellRoot: root }
 
     // 3. POPUP HOVER PREVIEW MUSIC PLAYER (TENGAH ATAS TANPA KLIK)
     PanelWindow {
@@ -900,8 +905,8 @@ ShellRoot {
         HoverHandler {
             id: musicPreviewHover
             onHoveredChanged: {
-                if (hovered) musicPreviewCloseTimer.stop();
-                else musicPreviewCloseTimer.restart();
+                if (hovered) if (typeof musicPreviewCloseTimer !== 'undefined') musicPreviewCloseTimer.stop();
+                else if (typeof musicPreviewCloseTimer !== 'undefined') musicPreviewCloseTimer.restart();
             }
         }
 
@@ -1059,7 +1064,7 @@ ShellRoot {
             }
             Timer {
                 id: menuPopupsHoldTimer
-                interval: 320
+                interval: 560
                 repeat: false
                 onTriggered: {
                     if (!(root.activePopup === "apple" || root.activePopup === "window" || root.activePopup === "desktop")) {
@@ -1094,7 +1099,7 @@ ShellRoot {
             }
             Timer {
                 id: ccPopupHoldTimer
-                interval: 320
+                interval: 560
                 repeat: false
                 onTriggered: {
                     if (!(root.activePopup === "cc")) {
@@ -1130,7 +1135,7 @@ ShellRoot {
             }
             Timer {
                 id: networkPopupsHoldTimer
-                interval: 320
+                interval: 560
                 repeat: false
                 onTriggered: {
                     if (!(root.activePopup === "wifi" || root.activePopup === "bt")) {
@@ -1165,7 +1170,7 @@ ShellRoot {
             }
             Timer {
                 id: mediaCalPopupsHoldTimer
-                interval: 320
+                interval: 560
                 repeat: false
                 onTriggered: {
                     if (!(root.activePopup === "music" || root.activePopup === "calendar")) {
@@ -1201,7 +1206,7 @@ ShellRoot {
             }
             Timer {
                 id: launcherPopupHoldTimer
-                interval: 320
+                interval: 560
                 repeat: false
                 onTriggered: {
                     if (!(root.activePopup === "launchpad" || root.activePopup === "spotlight")) {
@@ -1236,7 +1241,7 @@ ShellRoot {
             }
             Timer {
                 id: aboutPopupHoldTimer
-                interval: 320
+                interval: 560
                 repeat: false
                 onTriggered: {
                     if (!(root.activePopup === "about")) {
@@ -1271,7 +1276,7 @@ ShellRoot {
             }
             Timer {
                 id: settingsHoldTimer
-                interval: 320
+                interval: 560
                 repeat: false
                 onTriggered: {
                     if (root.activePopup !== "settings") {
@@ -1623,7 +1628,7 @@ ShellRoot {
 
     // 6. MACOS FLOATING DOCK (AUTO-HIDE + EVENT-STREAM + REGION MASK)
     // ========================================================================
-    Dock {}
+    Dock { shellRoot: root }
 
 
 

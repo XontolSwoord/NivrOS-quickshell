@@ -9,6 +9,7 @@ import Quickshell.Services.Mpris
 import "../core"
 
 Item {
+    id: modRoot
     anchors.fill: parent
     required property var shellRoot
     required property var hostWin
@@ -53,7 +54,11 @@ Item {
 
             MouseArea { anchors.fill: parent; z: 0 }
 
-            property bool isOpen: shellRoot.activePopup === "wifi"
+
+
+            property bool _mounted: false
+            Timer { interval: 1; running: true; repeat: false; onTriggered: parent._mounted = true }
+            property bool isOpen: _mounted && (shellRoot.activePopup === "wifi")
             property int stage: 0
             onIsOpenChanged: {
                 if (isOpen) {
@@ -79,13 +84,13 @@ Item {
             scale: isOpen ? 1.0 : 0.90
             transform: Translate {
                 y: wifiCard.isOpen ? 0 : -12
-                Behavior on y { SpringAnimation { spring: 7.5; damping: 0.72 } }
+                Behavior on y { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
             }
             transformOrigin: Item.TopRight
 
-            Behavior on opacity { NumberAnimation { duration: 170; easing.type: Easing.InOutCubic } }
-            Behavior on scale { SpringAnimation { spring: 7.5; damping: 0.72 } }
-            Behavior on height { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+            Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+            Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+            Behavior on height { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
 
             Column {
                 id: wifiPopupCol
@@ -98,7 +103,7 @@ Item {
                 RowLayout {
                     width: 290
                     opacity: wifiCard.stage >= 1 ? 1.0 : 0.0
-                    Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
 
                     Rectangle {
                         width: 26; height: 26; radius: 13
@@ -134,7 +139,7 @@ Item {
                             y: 2
                             width: 20; height: 20; radius: 10
                             color: "#FFFFFF"
-                            Behavior on x { SpringAnimation { spring: 7.5; damping: 0.72 } }
+                            Behavior on x { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
                         }
 
                         MouseArea {
@@ -237,10 +242,10 @@ Item {
                             opacity: wifiCard.stage >= (index + 2) ? 1.0 : 0.0
                             transform: Translate {
                                 y: wifiCard.stage >= (index + 2) ? 0 : 8
-                                Behavior on y { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                                Behavior on y { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
                             }
-                            Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
-                            Behavior on color { ColorAnimation { duration: 60 } }
+                            Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                            Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
 
                             Row {
                                 anchors.fill: parent
@@ -349,7 +354,11 @@ Item {
 
             MouseArea { anchors.fill: parent; z: 0 }
 
-            property bool isOpen: shellRoot.activePopup === "bt"
+
+
+            property bool _mounted: false
+            Timer { interval: 1; running: true; repeat: false; onTriggered: parent._mounted = true }
+            property bool isOpen: _mounted && (shellRoot.activePopup === "bt")
             property int stage: 0
             onIsOpenChanged: {
                 if (isOpen) {
@@ -375,13 +384,13 @@ Item {
             scale: isOpen ? 1.0 : 0.90
             transform: Translate {
                 y: btCard.isOpen ? 0 : -12
-                Behavior on y { SpringAnimation { spring: 7.5; damping: 0.72 } }
+                Behavior on y { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
             }
             transformOrigin: Item.TopRight
 
-            Behavior on opacity { NumberAnimation { duration: 170; easing.type: Easing.InOutCubic } }
-            Behavior on scale { SpringAnimation { spring: 7.5; damping: 0.72 } }
-            Behavior on height { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+            Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+            Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+            Behavior on height { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
 
             Column {
                 id: btPopupCol
@@ -394,7 +403,7 @@ Item {
                 RowLayout {
                     width: 290
                     opacity: btCard.stage >= 1 ? 1.0 : 0.0
-                    Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
 
                     Rectangle {
                         width: 26; height: 26; radius: 13
@@ -430,7 +439,7 @@ Item {
                             y: 2
                             width: 20; height: 20; radius: 10
                             color: "#FFFFFF"
-                            Behavior on x { SpringAnimation { spring: 7.5; damping: 0.72 } }
+                            Behavior on x { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
                         }
 
                         MouseArea {
@@ -470,10 +479,10 @@ Item {
                             opacity: btCard.stage >= (index + 2) ? 1.0 : 0.0
                             transform: Translate {
                                 y: btCard.stage >= (index + 2) ? 0 : 8
-                                Behavior on y { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                                Behavior on y { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
                             }
-                            Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
-                            Behavior on color { ColorAnimation { duration: 60 } }
+                            Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+                            Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
 
                             Row {
                                 anchors.fill: parent

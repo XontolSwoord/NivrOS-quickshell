@@ -9,6 +9,7 @@ import Quickshell.Services.Mpris
 import "../core"
 
 Item {
+    id: modRoot
     anchors.fill: parent
     required property var shellRoot
     required property var hostWin
@@ -53,7 +54,11 @@ Item {
 
             MouseArea { anchors.fill: parent; z: 0 }
 
-            property bool isOpen: shellRoot.activePopup === "music"
+
+
+            property bool _mounted: false
+            Timer { interval: 1; running: true; repeat: false; onTriggered: parent._mounted = true }
+            property bool isOpen: _mounted && (shellRoot.activePopup === "music")
             property int stage: 0
             onIsOpenChanged: {
                 if (isOpen) {
@@ -79,12 +84,12 @@ Item {
             scale: isOpen ? 1.0 : 0.90
             transform: Translate {
                 y: musicFullCard.isOpen ? 0 : -12
-                Behavior on y { SpringAnimation { spring: 7.5; damping: 0.72 } }
+                Behavior on y { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
             }
             transformOrigin: Item.Top
 
-            Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
-            Behavior on scale { SpringAnimation { spring: 7.5; damping: 0.72 } }
+            Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+            Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
 
             Column {
                 x: 16
@@ -99,9 +104,9 @@ Item {
                     opacity: musicFullCard.stage >= 1 ? 1.0 : 0.0
                     transform: Translate {
                         y: musicFullCard.stage >= 1 ? 0 : 10
-                        Behavior on y { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                        Behavior on y { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
                     }
-                    Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
 
                     Rectangle {
                         width: 64; height: 64; radius: 14
@@ -165,9 +170,9 @@ Item {
                     opacity: musicFullCard.stage >= 2 ? 1.0 : 0.0
                     transform: Translate {
                         y: musicFullCard.stage >= 2 ? 0 : 10
-                        Behavior on y { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                        Behavior on y { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
                     }
-                    Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
 
                     Rectangle {
                         width: 292
@@ -184,7 +189,7 @@ Item {
                             height: 5
                             radius: 2.5
                             color: "#A1C6FF"
-                            Behavior on width { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                            Behavior on width { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
                         }
                     }
 
@@ -210,14 +215,14 @@ Item {
                     opacity: musicFullCard.stage >= 3 ? 1.0 : 0.0
                     transform: Translate {
                         y: musicFullCard.stage >= 3 ? 0 : 10
-                        Behavior on y { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                        Behavior on y { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
                     }
-                    Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
 
                     Rectangle {
                         width: 38; height: 38; radius: 19
                         color: mpPrevM.containsMouse ? "#2EFFFFFF" : "#18FFFFFF"
-                        Behavior on color { ColorAnimation { duration: 60 } }
+                        Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
                         Text { anchors.centerIn: parent; text: "|◀"; color: "#F5F5F7"; font.pixelSize: 12 }
                         MouseArea {
                             id: mpPrevM; anchors.fill: parent; z: 5; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -229,7 +234,7 @@ Item {
                         width: 44; height: 44; radius: 22
                         color: "#A1C6FF"
                         scale: mpPlayM.pressed ? 0.90 : (mpPlayM.containsMouse ? 1.06 : 1.0)
-                        Behavior on scale { SpringAnimation { spring: 7.5; damping: 0.72 } }
+                        Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
                         Text {
                             anchors.centerIn: parent
                             text: (overlay.mediaPlayer && overlay.mediaPlayer.isPlaying) ? "❚❚" : "▶"
@@ -246,7 +251,7 @@ Item {
                     Rectangle {
                         width: 38; height: 38; radius: 19
                         color: mpNextM.containsMouse ? "#2EFFFFFF" : "#18FFFFFF"
-                        Behavior on color { ColorAnimation { duration: 60 } }
+                        Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
                         Text { anchors.centerIn: parent; text: "▶|"; color: "#F5F5F7"; font.pixelSize: 12 }
                         MouseArea {
                             id: mpNextM; anchors.fill: parent; z: 5; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -326,7 +331,11 @@ Item {
 
             Component.onCompleted: rebuildCalendar()
 
-            property bool isOpen: shellRoot.activePopup === "calendar"
+
+
+            property bool _mounted: false
+            Timer { interval: 1; running: true; repeat: false; onTriggered: parent._mounted = true }
+            property bool isOpen: _mounted && (shellRoot.activePopup === "calendar")
             property int stage: 0
             onIsOpenChanged: {
                 if (isOpen) { stage = 0; calStagger.restart(); }
@@ -342,12 +351,12 @@ Item {
             scale: isOpen ? 1.0 : 0.90
             transform: Translate {
                 y: calCard.isOpen ? 0 : -12
-                Behavior on y { SpringAnimation { spring: 7.5; damping: 0.72 } }
+                Behavior on y { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
             }
             transformOrigin: Item.TopRight
 
-            Behavior on opacity { NumberAnimation { duration: 170; easing.type: Easing.InOutCubic } }
-            Behavior on scale { SpringAnimation { spring: 7.5; damping: 0.72 } }
+            Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
+            Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
 
             ColumnLayout {
                 id: calCol
@@ -363,9 +372,9 @@ Item {
                     opacity: calCard.stage >= 1 ? 1.0 : 0.0
                     transform: Translate {
                         y: calCard.stage >= 1 ? 0 : 8
-                        Behavior on y { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                        Behavior on y { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
                     }
-                    Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
 
                     Text { text: calCard.monthTitle(); color: "#F5F5F7"; font.pixelSize: 14; font.bold: true }
                     Item { Layout.fillWidth: true }
@@ -422,9 +431,9 @@ Item {
                     opacity: calCard.stage >= 2 ? 1.0 : 0.0
                     transform: Translate {
                         y: calCard.stage >= 2 ? 0 : 8
-                        Behavior on y { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                        Behavior on y { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
                     }
-                    Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
 
                     Repeater {
                         model: ["S", "M", "T", "W", "T", "F", "S"]
@@ -466,9 +475,9 @@ Item {
                     opacity: calCard.stage >= 3 ? 1.0 : 0.0
                     transform: Translate {
                         y: calCard.stage >= 3 ? 0 : 8
-                        Behavior on y { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                        Behavior on y { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
                     }
-                    Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
 
                     RowLayout {
                         anchors.fill: parent

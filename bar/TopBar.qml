@@ -8,6 +8,7 @@ import "../core"
 
     PanelWindow {
         id: topBar
+        property var shellRoot: null
         WlrLayershell.layer: WlrLayer.Top
         WlrLayershell.namespace: "macos-menubar"
         exclusionMode: ExclusionMode.Auto
@@ -45,12 +46,12 @@ import "../core"
             id: topBarSurface
             anchors.fill: parent
             color: "#8A141418"
-            opacity: ShellState.bootStage >= 1 ? 1.0 : 0.0
+            opacity: (topBar.shellRoot ? topBar.shellRoot.bootStage : 6) >= 1 ? 1.0 : 0.0
             transform: Translate {
-                y: ShellState.bootStage >= 1 ? 0 : -28
-                Behavior on y { SpringAnimation { spring: 7.5; damping: 0.72 } }
+                y: (topBar.shellRoot ? topBar.shellRoot.bootStage : 6) >= 1 ? 0 : -28
+                Behavior on y { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
             }
-            Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+            Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
 
             Rectangle {
                 anchors.bottom: parent.bottom
@@ -71,10 +72,10 @@ import "../core"
                     width: 28
                     height: 22
                     radius: 6
-                    color: (ShellState.activePopup === "apple" || logoM.containsMouse) ? "#2EFFFFFF" : "transparent"
+                    color: ((topBar.shellRoot ? topBar.shellRoot.activePopup : "") === "apple" || logoM.containsMouse) ? "#2EFFFFFF" : "transparent"
                     scale: logoM.pressed ? 0.92 : (logoM.containsMouse ? 1.05 : 1.0)
-                    Behavior on color { ColorAnimation { duration: 60 } }
-                    Behavior on scale { SpringAnimation { spring: 7.5; damping: 0.72 } }
+                    Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
+                    Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
 
                     Canvas {
                         anchors.centerIn: parent
@@ -103,7 +104,7 @@ import "../core"
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onPressed: ShellState.switchPopup("apple")
+                        onPressed: (topBar.shellRoot ? topBar.shellRoot.switchPopup : ShellState.switchPopup)("apple")
                     }
                 }
 
@@ -116,7 +117,7 @@ import "../core"
                     Text {
                         id: appTitleTxt
                         anchors.centerIn: parent
-                        text: ShellState.focusedAppName
+                        text: (topBar.shellRoot ? topBar.shellRoot.focusedAppName : "Finder")
                         color: "#FFFFFF"
                         font.pixelSize: 13
                         font.weight: Font.Bold
@@ -127,10 +128,10 @@ import "../core"
                     height: 22
                     width: winMenuTxt.implicitWidth + 14
                     radius: 6
-                    color: (ShellState.activePopup === "window" || winMenuM.containsMouse) ? "#2EFFFFFF" : "transparent"
+                    color: ((topBar.shellRoot ? topBar.shellRoot.activePopup : "") === "window" || winMenuM.containsMouse) ? "#2EFFFFFF" : "transparent"
                     scale: winMenuM.pressed ? 0.94 : (winMenuM.containsMouse ? 1.03 : 1.0)
-                    Behavior on color { ColorAnimation { duration: 60 } }
-                    Behavior on scale { SpringAnimation { spring: 7.5; damping: 0.72 } }
+                    Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
+                    Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
 
                     Text {
                         id: winMenuTxt
@@ -145,7 +146,7 @@ import "../core"
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onPressed: ShellState.switchPopup("window")
+                        onPressed: (topBar.shellRoot ? topBar.shellRoot.switchPopup : ShellState.switchPopup)("window")
                     }
                 }
 
@@ -153,10 +154,10 @@ import "../core"
                     height: 22
                     width: deskMenuTxt.implicitWidth + 14
                     radius: 6
-                    color: (ShellState.activePopup === "desktop" || deskMenuM.containsMouse) ? "#2EFFFFFF" : "transparent"
+                    color: ((topBar.shellRoot ? topBar.shellRoot.activePopup : "") === "desktop" || deskMenuM.containsMouse) ? "#2EFFFFFF" : "transparent"
                     scale: deskMenuM.pressed ? 0.94 : (deskMenuM.containsMouse ? 1.03 : 1.0)
-                    Behavior on color { ColorAnimation { duration: 60 } }
-                    Behavior on scale { SpringAnimation { spring: 7.5; damping: 0.72 } }
+                    Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
+                    Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
 
                     Text {
                         id: deskMenuTxt
@@ -171,7 +172,7 @@ import "../core"
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onPressed: ShellState.switchPopup("desktop")
+                        onPressed: (topBar.shellRoot ? topBar.shellRoot.switchPopup : ShellState.switchPopup)("desktop")
                     }
                 }
             }
@@ -182,8 +183,8 @@ import "../core"
                 interval: 160
                 repeat: false
                 onTriggered: {
-                    if (ShellState.activePopup !== "music") {
-                        ShellState.musicPreviewVisible = true;
+                    if ((topBar.shellRoot ? topBar.shellRoot.activePopup : "") !== "music") {
+                        if (topBar.shellRoot) topBar.shellRoot.musicPreviewVisible = true;
                     }
                 }
             }
@@ -194,7 +195,7 @@ import "../core"
                 repeat: false
                 onTriggered: {
                     if (!npPillM.containsMouse && !musicPreviewHover.hovered) {
-                        ShellState.musicPreviewVisible = false;
+                        if (topBar.shellRoot) topBar.shellRoot.musicPreviewVisible = false;
                     }
                 }
             }
@@ -205,15 +206,15 @@ import "../core"
                 height: 21
                 width: Math.min(276, nowPlayingRow.implicitWidth + 20)
                 radius: 10.5
-                color: (ShellState.activePopup === "music" || ShellState.musicPreviewVisible || npPillM.containsMouse) ? "#38FFFFFF" : "#22FFFFFF"
+                color: ((topBar.shellRoot ? topBar.shellRoot.activePopup : "") === "music" || (topBar.shellRoot ? topBar.shellRoot.musicPreviewVisible : false) || npPillM.containsMouse) ? "#38FFFFFF" : "#22FFFFFF"
                 border.width: 1
-                border.color: (ShellState.activePopup === "music" || ShellState.musicPreviewVisible) ? "#55A1C6FF" : "#28FFFFFF"
+                border.color: ((topBar.shellRoot ? topBar.shellRoot.activePopup : "") === "music" || (topBar.shellRoot ? topBar.shellRoot.musicPreviewVisible : false)) ? "#55A1C6FF" : "#28FFFFFF"
                 scale: npPillM.pressed ? 0.95 : (npPillM.containsMouse ? 1.03 : 1.0)
 
-                Behavior on color { ColorAnimation { duration: 60 } }
+                Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
                 Behavior on border.color { ColorAnimation { duration: 180 } }
-                Behavior on scale { SpringAnimation { spring: 7.5; damping: 0.72 } }
-                Behavior on width { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+                Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
+                Behavior on width { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
 
                 Row {
                     id: nowPlayingRow
@@ -251,7 +252,7 @@ import "../core"
 
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: (ShellState.activePopup === "music" || ShellState.musicPreviewVisible) ? "▴" : "▾"
+                        text: ((topBar.shellRoot ? topBar.shellRoot.activePopup : "") === "music" || (topBar.shellRoot ? topBar.shellRoot.musicPreviewVisible : false)) ? "▴" : "▾"
                         color: "#AEAEB2"
                         font.pixelSize: 9
                     }
@@ -264,7 +265,7 @@ import "../core"
                     cursorShape: Qt.PointingHandCursor
                     onEntered: {
                         musicPreviewCloseTimer.stop();
-                        if (ShellState.activePopup !== "music") {
+                        if ((topBar.shellRoot ? topBar.shellRoot.activePopup : "") !== "music") {
                             musicHoverOpenTimer.restart();
                         }
                     }
@@ -274,8 +275,8 @@ import "../core"
                     }
                     onClicked: {
                         musicHoverOpenTimer.stop();
-                        ShellState.musicPreviewVisible = false;
-                        ShellState.switchPopup("music");
+                        if (topBar.shellRoot) topBar.shellRoot.musicPreviewVisible = false;
+                        (topBar.shellRoot ? topBar.shellRoot.switchPopup : ShellState.switchPopup)("music");
                     }
                 }
             }
@@ -292,7 +293,7 @@ import "../core"
                     width: batRow.implicitWidth + 10
                     radius: 6
                     color: "transparent"
-                    visible: ShellState.batteryPercent >= 0
+                    visible: (topBar.shellRoot ? topBar.shellRoot.batteryPercent : -1) >= 0
 
                     Row {
                         id: batRow
@@ -301,7 +302,7 @@ import "../core"
 
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: ShellState.batteryPercent + "%"
+                            text: (topBar.shellRoot ? topBar.shellRoot.batteryPercent : -1) + "%"
                             color: "#E5F5F7"
                             font.pixelSize: 11
                             font.weight: Font.Medium
@@ -326,11 +327,11 @@ import "../core"
                                     anchors.left: parent.left
                                     anchors.leftMargin: 2
                                     anchors.verticalCenter: parent.verticalCenter
-                                    width: Math.max(2, Math.round(15 * (ShellState.batteryPercent / 100)))
+                                    width: Math.max(2, Math.round(15 * ((topBar.shellRoot ? topBar.shellRoot.batteryPercent : -1) / 100)))
                                     height: 7
                                     radius: 1.5
-                                    color: ShellState.batteryStatus === "Charging" ? "#32D74B"
-                                         : (ShellState.batteryPercent <= 20 ? "#FF453A" : "#F5F5F7")
+                                    color: (topBar.shellRoot ? topBar.shellRoot.batteryStatus : "") === "Charging" ? "#32D74B"
+                                         : ((topBar.shellRoot ? topBar.shellRoot.batteryPercent : -1) <= 20 ? "#FF453A" : "#F5F5F7")
                                 }
                             }
 
@@ -350,17 +351,17 @@ import "../core"
                     width: 26
                     height: 22
                     radius: 6
-                    color: (ShellState.activePopup === "wifi" || wifiTopM.containsMouse) ? "#2EFFFFFF" : "transparent"
+                    color: ((topBar.shellRoot ? topBar.shellRoot.activePopup : "") === "wifi" || wifiTopM.containsMouse) ? "#2EFFFFFF" : "transparent"
                     scale: wifiTopM.pressed ? 0.92 : (wifiTopM.containsMouse ? 1.05 : 1.0)
-                    Behavior on color { ColorAnimation { duration: 60 } }
-                    Behavior on scale { SpringAnimation { spring: 7.5; damping: 0.72 } }
+                    Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
+                    Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
 
                     Canvas {
                         id: topWifiCanvas
                         anchors.centerIn: parent
                         width: 16
                         height: 14
-                        property bool active: ShellState.wifiConnected
+                        property bool active: (topBar.shellRoot ? topBar.shellRoot.wifiConnected : false)
                         onActiveChanged: requestPaint()
                         onPaint: {
                             let ctx = getContext("2d");
@@ -387,8 +388,8 @@ import "../core"
                         acceptedButtons: Qt.LeftButton | Qt.RightButton
                         cursorShape: Qt.PointingHandCursor
                         onClicked: (mouse) => {
-                            if (mouse.button === Qt.RightButton) ShellState.switchPopup("wifi");
-                            else ShellState.switchPopup("cc");
+                            if (mouse.button === Qt.RightButton) (topBar.shellRoot ? topBar.shellRoot.switchPopup : ShellState.switchPopup)("wifi");
+                            else (topBar.shellRoot ? topBar.shellRoot.switchPopup : ShellState.switchPopup)("cc");
                         }
                     }
                 }
@@ -399,8 +400,8 @@ import "../core"
                     radius: 6
                     color: spotM.containsMouse ? "#2EFFFFFF" : "transparent"
                     scale: spotM.pressed ? 0.92 : (spotM.containsMouse ? 1.05 : 1.0)
-                    Behavior on color { ColorAnimation { duration: 60 } }
-                    Behavior on scale { SpringAnimation { spring: 7.5; damping: 0.72 } }
+                    Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
+                    Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
 
                     Canvas {
                         anchors.centerIn: parent
@@ -427,7 +428,7 @@ import "../core"
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onPressed: ShellState.switchPopup("spotlight")
+                        onPressed: (topBar.shellRoot ? topBar.shellRoot.switchPopup : ShellState.switchPopup)("spotlight")
                     }
                 }
 
@@ -435,10 +436,10 @@ import "../core"
                     width: 28
                     height: 22
                     radius: 6
-                    color: (ShellState.activePopup === "cc" || ccTopM.containsMouse) ? "#34FFFFFF" : "transparent"
+                    color: ((topBar.shellRoot ? topBar.shellRoot.activePopup : "") === "cc" || ccTopM.containsMouse) ? "#34FFFFFF" : "transparent"
                     scale: ccTopM.pressed ? 0.92 : (ccTopM.containsMouse ? 1.05 : 1.0)
-                    Behavior on color { ColorAnimation { duration: 60 } }
-                    Behavior on scale { SpringAnimation { spring: 7.5; damping: 0.72 } }
+                    Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
+                    Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
 
                     Canvas {
                         anchors.centerIn: parent
@@ -470,7 +471,7 @@ import "../core"
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onPressed: ShellState.switchPopup("cc")
+                        onPressed: (topBar.shellRoot ? topBar.shellRoot.switchPopup : ShellState.switchPopup)("cc")
                     }
                 }
 
@@ -478,10 +479,10 @@ import "../core"
                     height: 22
                     width: clockTxt.implicitWidth + 12
                     radius: 6
-                    color: (ShellState.activePopup === "calendar" || clockTopM.containsMouse) ? "#2EFFFFFF" : "transparent"
+                    color: ((topBar.shellRoot ? topBar.shellRoot.activePopup : "") === "calendar" || clockTopM.containsMouse) ? "#2EFFFFFF" : "transparent"
                     scale: clockTopM.pressed ? 0.94 : (clockTopM.containsMouse ? 1.03 : 1.0)
-                    Behavior on color { ColorAnimation { duration: 60 } }
-                    Behavior on scale { SpringAnimation { spring: 7.5; damping: 0.72 } }
+                    Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
+                    Behavior on scale { SpringAnimation { mass: 1.15; spring: 4.2; damping: 0.84; epsilon: 0.001 } }
 
                     Text {
                         id: clockTxt
@@ -497,7 +498,7 @@ import "../core"
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onPressed: ShellState.switchPopup("calendar")
+                        onPressed: (topBar.shellRoot ? topBar.shellRoot.switchPopup : ShellState.switchPopup)("calendar")
                     }
                 }
             }

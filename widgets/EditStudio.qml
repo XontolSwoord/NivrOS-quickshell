@@ -25,7 +25,7 @@ Item {
             scale: hostWin.ctxMenuVisible ? 1.0 : 0.90
             transformOrigin: Item.TopLeft
 
-            Behavior on opacity { NumberAnimation { duration: 145; easing.type: Easing.InOutCubic } }
+            Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
             Behavior on scale { NumberAnimation { duration: 165; easing.type: Easing.InOutCubic } }
 
             Canvas {
