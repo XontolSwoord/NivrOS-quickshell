@@ -8,6 +8,8 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Io
 import Quickshell.Services.Mpris
+import "core"
+import "dock"
 
 ShellRoot {
     id: root
@@ -234,6 +236,50 @@ ShellRoot {
     property real aeroOpacity: glassStyle === "aero" ? aeroBaseOpacity : (glassStyle === "liquid" ? liquidOpacity : macOpacity)
     property real aeroReflection: glassStyle === "aero" ? aeroSheenBright : (glassStyle === "liquid" ? liquidRefraction : macFrost)
     property real activeGlassDetail: glassStyle === "liquid" ? liquidFringing : aeroSheenWidth
+
+    Item {
+        id: coreStateBridge
+        Component.onCompleted: {
+            ShellState.glassStyle = root.glassStyle;
+            ShellState.macOpacity = root.macOpacity;
+            ShellState.macFrost = root.macFrost;
+            ShellState.aeroBaseOpacity = root.aeroBaseOpacity;
+            ShellState.aeroSheenBright = root.aeroSheenBright;
+            ShellState.aeroSheenWidth = root.aeroSheenWidth;
+            ShellState.liquidOpacity = root.liquidOpacity;
+            ShellState.liquidRefraction = root.liquidRefraction;
+            ShellState.liquidFringing = root.liquidFringing;
+            ShellState.activePopup = root.activePopup;
+            ShellState.editMode = root.desktopEditMode;
+            ShellState.switchPopupHandler = function(name) { root.switchPopup(name); };
+            ShellState.runCmdHandler = function(cmd) { root.runCmd(cmd); };
+            ShellState.saveLayoutHandler = function() { if (typeof win !== "undefined" && win.saveLayout) win.saveLayout(); };
+        }
+    
+        Connections {
+            target: root
+            function onGlassStyleChanged() { if (ShellState.glassStyle !== root.glassStyle) ShellState.glassStyle = root.glassStyle; }
+            function onMacOpacityChanged() { if (ShellState.macOpacity !== root.macOpacity) ShellState.macOpacity = root.macOpacity; }
+            function onMacFrostChanged() { if (ShellState.macFrost !== root.macFrost) ShellState.macFrost = root.macFrost; }
+            function onAeroBaseOpacityChanged() { if (ShellState.aeroBaseOpacity !== root.aeroBaseOpacity) ShellState.aeroBaseOpacity = root.aeroBaseOpacity; }
+            function onAeroSheenBrightChanged() { if (ShellState.aeroSheenBright !== root.aeroSheenBright) ShellState.aeroSheenBright = root.aeroSheenBright; }
+            function onAeroSheenWidthChanged() { if (ShellState.aeroSheenWidth !== root.aeroSheenWidth) ShellState.aeroSheenWidth = root.aeroSheenWidth; }
+            function onLiquidOpacityChanged() { if (ShellState.liquidOpacity !== root.liquidOpacity) ShellState.liquidOpacity = root.liquidOpacity; }
+            function onLiquidRefractionChanged() { if (ShellState.liquidRefraction !== root.liquidRefraction) ShellState.liquidRefraction = root.liquidRefraction; }
+            function onLiquidFringingChanged() { if (ShellState.liquidFringing !== root.liquidFringing) ShellState.liquidFringing = root.liquidFringing; }
+            function onActivePopupChanged() { if (ShellState.activePopup !== root.activePopup) ShellState.activePopup = root.activePopup; }
+            function onDesktopEditModeChanged() { if (ShellState.editMode !== root.desktopEditMode) ShellState.editMode = root.desktopEditMode; }
+        }
+    
+        Connections {
+            target: ShellState
+            function onEditModeChanged() {
+                if (typeof win !== "undefined" && win.editMode !== ShellState.editMode) {
+                    win.editMode = ShellState.editMode;
+                }
+            }
+        }
+    }
     property string activeGlassWall: ""
     property string prevGlassWall: ""
     property real glassFade: 1.0
@@ -291,154 +337,7 @@ ShellRoot {
     }
 
     function drawGlobalAeroGlass(ctx, w, h, rad, offX, offY, scrW, scrH, isCircular, drawRim) {
-        if (w <= 1 || h <= 1) return;
-        ctx.reset();
-        ctx.save();
-
-        if (rad > 0) {
-            ctx.beginPath();
-            ctx.roundedRect(0.5, 0.5, w - 1, h - 1, rad, rad);
-            ctx.clip();
-        }
-
-        if (root.glassStyle === "aero") {
-            // ── OPSI 2: AERO BLIN GLASS (PANTULAN CAHAYA DIAGONAL HALUS, BUKAN GARIS TAJAM) ──
-            let op = root.aeroBaseOpacity;
-            let bright = root.aeroSheenBright;
-            let thick = root.aeroSheenWidth;
-
-            let darkAlpha = Math.min(0.84, 0.08 + op * 0.54);
-            ctx.fillStyle = "rgba(14, 16, 26, " + darkAlpha.toFixed(3) + ")";
-            ctx.fillRect(0, 0, w, h);
-
-            // Lapisan dasar kaca halus agar menyatu dengan wallpaper
-            ctx.fillStyle = "rgba(255, 255, 255, " + (0.015 + bright * 0.035).toFixed(3) + ")";
-            ctx.fillRect(0, 0, w, h);
-
-            if (bright > 0.005) {
-                if (isCircular) {
-                    let radSpread = 0.28 + thick * 0.36;
-                    let domeGrad = ctx.createRadialGradient(w * 0.34, h * 0.24, 2, w * 0.48, h * 0.48, w * radSpread);
-                    domeGrad.addColorStop(0.0, "rgba(255, 255, 255, " + (0.20 * bright).toFixed(3) + ")");
-                    domeGrad.addColorStop(0.55, "rgba(255, 255, 255, " + (0.07 * bright).toFixed(3) + ")");
-                    domeGrad.addColorStop(1.0, "rgba(255, 255, 255, 0.0)");
-                    ctx.fillStyle = domeGrad;
-                    ctx.fillRect(0, 0, w, h);
-                } else {
-                    // Gradien diagonal lembut bertepi pudar (soft feathered blin) tanpa batas garis keras
-                    let peak1 = 0.165 * bright;
-                    let peak2 = 0.085 * bright;
-                    let c1 = 0.33;
-                    let c2 = 0.67;
-                    let hw1 = 0.05 + thick * 0.21;
-                    let hw2 = 0.035 + thick * 0.13;
-
-                    let blinGrad = ctx.createLinearGradient(0, 0, w * 0.78, h * 0.78);
-                    blinGrad.addColorStop(0.0, "rgba(255, 255, 255, 0.0)");
-                    blinGrad.addColorStop(Math.max(0.01, c1 - hw1), "rgba(255, 255, 255, 0.0)");
-                    blinGrad.addColorStop(Math.max(0.02, c1 - hw1 * 0.45), "rgba(255, 255, 255, " + (peak1 * 0.55).toFixed(3) + ")");
-                    blinGrad.addColorStop(c1, "rgba(255, 255, 255, " + peak1.toFixed(3) + ")");
-                    blinGrad.addColorStop(Math.min(0.98, c1 + hw1 * 0.45), "rgba(255, 255, 255, " + (peak1 * 0.55).toFixed(3) + ")");
-                    blinGrad.addColorStop(Math.min(0.99, c1 + hw1), "rgba(255, 255, 255, 0.0)");
-
-                    if (thick > 0.22 && (c1 + hw1) < (c2 - hw2 * 0.3)) {
-                        let s2Start = Math.max(c1 + hw1, c2 - hw2);
-                        blinGrad.addColorStop(Math.min(0.97, s2Start), "rgba(255, 255, 255, 0.0)");
-                        blinGrad.addColorStop(c2, "rgba(255, 255, 255, " + peak2.toFixed(3) + ")");
-                        blinGrad.addColorStop(Math.min(0.99, c2 + hw2), "rgba(255, 255, 255, 0.0)");
-                    }
-
-                    blinGrad.addColorStop(1.0, "rgba(255, 255, 255, 0.0)");
-                    ctx.fillStyle = blinGrad;
-                    ctx.fillRect(0, 0, w, h);
-                }
-            }
-
-            if (rad > 0) {
-                ctx.strokeStyle = "rgba(255, 255, 255, " + (0.15 + bright * 0.24).toFixed(3) + ")";
-                ctx.lineWidth = 1.0;
-                ctx.beginPath();
-                ctx.roundedRect(0.5, 0.5, w - 1.0, h - 1.0, rad, rad);
-                ctx.stroke();
-            } else if (drawRim) {
-                ctx.fillStyle = "rgba(255, 255, 255, " + (0.15 + bright * 0.22).toFixed(3) + ")";
-                ctx.fillRect(0, h - 1, w, 1);
-            }
-        } else if (root.glassStyle === "liquid") {
-            // ── OPSI 3: CLEAR LIQUID DROPLET (BENING KRISTAL + BEVEL TIMBUL SEPERTI ZAROUTT/NIRI-GLASS) ──
-            let op = root.liquidOpacity;
-            let refr = root.liquidRefraction;
-            let fringe = root.liquidFringing;
-
-            // Badan sangat bening agar wallpaper di belakangnya tetap jernih & tajam
-            let clearAlpha = Math.min(0.28, 0.03 + op * 0.18);
-            ctx.fillStyle = "rgba(16, 20, 30, " + clearAlpha.toFixed(3) + ")";
-            ctx.fillRect(0, 0, w, h);
-
-            // Kilau cembung atas & bawah (water-droplet inner bevel)
-            let dropGrad = ctx.createLinearGradient(0, 0, 0, h);
-            dropGrad.addColorStop(0.0, "rgba(255, 255, 255, " + (0.12 + refr * 0.14).toFixed(3) + ")");
-            dropGrad.addColorStop(0.18, "rgba(255, 255, 255, 0.02)");
-            dropGrad.addColorStop(0.82, "rgba(255, 255, 255, 0.01)");
-            dropGrad.addColorStop(1.0, "rgba(235, 248, 255, " + (0.08 + refr * 0.12).toFixed(3) + ")");
-            ctx.fillStyle = dropGrad;
-            ctx.fillRect(0, 0, w, h);
-
-            if (rad > 0) {
-                if (fringe > 0.01) {
-                    ctx.strokeStyle = "rgba(110, 215, 255, " + (0.30 * fringe).toFixed(3) + ")";
-                    ctx.lineWidth = 1.25;
-                    ctx.beginPath();
-                    ctx.roundedRect(0.8, 0.8, w - 1.6, h - 1.6, rad, rad);
-                    ctx.stroke();
-
-                    ctx.strokeStyle = "rgba(255, 140, 215, " + (0.25 * fringe).toFixed(3) + ")";
-                    ctx.lineWidth = 1.1;
-                    ctx.beginPath();
-                    ctx.roundedRect(1.4, 1.4, w - 2.8, h - 2.8, Math.max(1.0, rad - 0.6), Math.max(1.0, rad - 0.6));
-                    ctx.stroke();
-                }
-
-                let rimGrad = ctx.createLinearGradient(0, 0, w, h);
-                rimGrad.addColorStop(0.0, "rgba(255, 255, 255, " + (0.34 + refr * 0.28).toFixed(3) + ")");
-                rimGrad.addColorStop(0.5, "rgba(255, 255, 255, 0.12)");
-                rimGrad.addColorStop(1.0, "rgba(240, 250, 255, " + (0.28 + refr * 0.24).toFixed(3) + ")");
-                ctx.strokeStyle = rimGrad;
-                ctx.lineWidth = 1.2;
-                ctx.beginPath();
-                ctx.roundedRect(0.5, 0.5, w - 1.0, h - 1.0, rad, rad);
-                ctx.stroke();
-            } else if (drawRim) {
-                ctx.fillStyle = "rgba(255, 255, 255, " + (0.24 + refr * 0.24).toFixed(3) + ")";
-                ctx.fillRect(0, h - 1, w, 1);
-            }
-        } else {
-            // ── OPSI 1: CLEAN GLASS (FROST PUTIH RATA HALUS SEPERTI GAMBAR 1) ──
-            let op = root.macOpacity;
-            let frost = root.macFrost;
-
-            let darkAlpha = Math.min(0.84, 0.09 + op * 0.52);
-            ctx.fillStyle = "rgba(14, 16, 24, " + darkAlpha.toFixed(3) + ")";
-            ctx.fillRect(0, 0, w, h);
-
-            if (frost > 0.005) {
-                ctx.fillStyle = "rgba(255, 255, 255, " + (0.02 + frost * 0.10).toFixed(3) + ")";
-                ctx.fillRect(0, 0, w, h);
-            }
-
-            if (rad > 0) {
-                ctx.strokeStyle = "rgba(255, 255, 255, " + (0.16 + frost * 0.24).toFixed(3) + ")";
-                ctx.lineWidth = 1.0;
-                ctx.beginPath();
-                ctx.roundedRect(0.5, 0.5, w - 1.0, h - 1.0, rad, rad);
-                ctx.stroke();
-            } else if (drawRim) {
-                ctx.fillStyle = "rgba(255, 255, 255, " + (0.16 + frost * 0.22).toFixed(3) + ")";
-                ctx.fillRect(0, h - 1, w, 1);
-            }
-        }
-
-        ctx.restore();
+        GlassEngine.drawGlobalAeroGlass(ctx, w, h, rad, offX, offY, scrW, scrH, isCircular, drawRim);
     }
     property string settingsTab: "appearance"
     property string settingsSearch: ""
@@ -8019,466 +7918,8 @@ for n, ic, ex in apps:
 
     // 6. MACOS FLOATING DOCK (AUTO-HIDE + EVENT-STREAM + REGION MASK)
     // ========================================================================
-    PanelWindow {
-        id: macDockWin
-        anchors.bottom: true
-        anchors.left: true
-        anchors.right: true
-        implicitHeight: 132
-        visible: true
-        exclusionMode: ExclusionMode.Ignore
-        WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.namespace: "quickshell-macos-dock"
-        WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-        color: "transparent"
+    Dock {}
 
-        property bool dwellTriggered: false
-        property bool startupPeek: true
-        property var runningList: []
-
-        readonly property bool isDockOpen: !win.editMode && (dwellTriggered || startupPeek)
-        readonly property bool pointerInsideDock: dockInputHandler.hovered || macDockPill.hoveredSlots > 0
-
-        mask: Region {
-            item: macDockMaskItem
-        }
-
-        Item {
-            id: macDockMaskItem
-            readonly property real targetPillW: Math.max(220, macDockPill.width)
-            readonly property real targetPillX: (macDockWin.width - targetPillW) * 0.5
-            readonly property real activeCoverH: macDockWin.isDockOpen ? 108 : Math.max(2, Math.round(108 - macDockPill.slideY * 1.25))
-            readonly property bool visuallyActive: macDockWin.isDockOpen || macDockPill.slideY < 72
-
-            x: win.editMode ? 0 : Math.max(0, targetPillX - (visuallyActive ? 24 : 4))
-            y: win.editMode ? macDockWin.height : (macDockWin.height - activeCoverH)
-            width: win.editMode ? 0 : Math.min(macDockWin.width, targetPillW + (visuallyActive ? 48 : 8))
-            height: win.editMode ? 0 : activeCoverH
-        }
-
-        onPointerInsideDockChanged: {
-            if (win.editMode) return;
-            if (pointerInsideDock) {
-                macDockHideTimer.stop();
-                if (!isDockOpen && !macDockDwellTimer.running) {
-                    macDockDwellTimer.restart();
-                }
-            } else {
-                macDockDwellTimer.stop();
-                macDockPill.pointerActive = false;
-                macDockPill.pointerScreenX = -1000;
-                if (isDockOpen) {
-                    macDockHideTimer.restart();
-                }
-            }
-        }
-
-        onIsDockOpenChanged: {
-            if (isDockOpen) {
-                macDockHideTimer.stop();
-            } else {
-                macDockPill.pointerActive = false;
-                macDockPill.pointerScreenX = -1000;
-                macDockPill.hoveredSlots = 0;
-            }
-        }
-
-        Connections {
-            target: win
-            function onEditModeChanged() {
-                if (win.editMode) {
-                    macDockDwellTimer.stop();
-                    macDockHideTimer.stop();
-                    macDockWin.dwellTriggered = false;
-                    macDockWin.startupPeek = false;
-                }
-            }
-        }
-
-        Timer {
-            id: macDockStartupTimer
-            interval: 1500
-            running: true
-            repeat: false
-            onTriggered: macDockWin.startupPeek = false
-        }
-
-        Timer {
-            id: macDockDwellTimer
-            interval: 115
-            repeat: false
-            onTriggered: {
-                if (!win.editMode && macDockWin.pointerInsideDock) {
-                    macDockWin.dwellTriggered = true;
-                }
-            }
-        }
-
-        Timer {
-            id: macDockHideTimer
-            interval: 280
-            repeat: false
-            onTriggered: {
-                if (!macDockWin.pointerInsideDock) {
-                    macDockWin.dwellTriggered = false;
-                    macDockWin.startupPeek = false;
-                }
-            }
-        }
-
-        function findRunningWinId(matchKey) {
-            if (!matchKey || matchKey === "") return -1;
-            let key = matchKey.toLowerCase();
-            let fallbackId = -1;
-            for (let i = runningList.length - 1; i >= 0; i--) {
-                let w = runningList[i];
-                let appId = (w.app_id || "").toLowerCase();
-                if (appId.includes(key)) {
-                    if (w.is_focused) return w.id;
-                    if (fallbackId < 0) fallbackId = w.id;
-                }
-            }
-            return fallbackId;
-        }
-
-        Process {
-            id: macDockEventStream
-            command: ["niri", "msg", "-j", "event-stream"]
-            running: true
-            stdout: SplitParser {
-                onRead: line => {
-                    let s = line.trim();
-                    if (!s) return;
-                    try {
-                        let ev = JSON.parse(s);
-                        if (ev.WindowsChanged && Array.isArray(ev.WindowsChanged.windows)) {
-                            macDockWin.runningList = ev.WindowsChanged.windows;
-                        } else if (ev.WindowOpenedOrChanged && ev.WindowOpenedOrChanged.window) {
-                            let w = ev.WindowOpenedOrChanged.window;
-                            let next = macDockWin.runningList.filter(item => item.id !== w.id);
-                            next.push(w);
-                            macDockWin.runningList = next;
-                        } else if (ev.WindowClosed && typeof ev.WindowClosed.id === "number") {
-                            let closedId = ev.WindowClosed.id;
-                            macDockWin.runningList = macDockWin.runningList.filter(item => item.id !== closedId);
-                        }
-                    } catch (e) {}
-                }
-            }
-            onExited: (code, status) => {
-                macDockStreamRestart.restart();
-            }
-        }
-
-        Timer {
-            id: macDockStreamRestart
-            interval: 1500
-            repeat: false
-            onTriggered: macDockEventStream.running = true
-        }
-
-        Component.onDestruction: {
-            macDockStreamRestart.stop();
-            macDockEventStream.running = false;
-        }
-
-        Item {
-            id: macDockInputRoot
-            anchors.fill: parent
-
-            HoverHandler {
-                id: dockInputHandler
-                enabled: !win.editMode
-                onPointChanged: {
-                    if (!hovered) return;
-                    if (macDockWin.isDockOpen) {
-                        macDockPill.pointerActive = true;
-                        macDockPill.pointerScreenX = point.position.x;
-                    } else if (!macDockDwellTimer.running) {
-                        macDockDwellTimer.restart();
-                    }
-                }
-            }
-
-            Rectangle {
-                id: macDockPill
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: 8
-                anchors.horizontalCenter: parent.horizontalCenter
-                height: 58
-                width: Math.round(macDockRow.width + 24)
-                radius: 19
-                color: "transparent"
-
-                property bool pointerActive: false
-                property real pointerScreenX: -1000
-                property int hoveredSlots: 0
-                property real slideY: macDockWin.isDockOpen ? 0 : 86
-
-                opacity: macDockWin.isDockOpen ? 1.0 : 0.0
-                transform: Translate { y: macDockPill.slideY }
-
-                Behavior on slideY {
-                    SpringAnimation {
-                        spring: 6.4
-                        damping: 0.94
-                        epsilon: 0.002
-                    }
-                }
-                Behavior on opacity {
-                    NumberAnimation {
-                        duration: 150
-                        easing.type: Easing.InOutCubic
-                    }
-                }
-
-                function calcMag(slotIndex, hasSepBefore) {
-                    if (!pointerActive || pointerScreenX < 0 || !macDockWin.isDockOpen) return 1.0;
-                    let cnt = macDockRepeater.count;
-                    if (cnt <= 0) return 1.0;
-                    let basePitch = 46.0;
-                    let sepShift = hasSepBefore ? 13.0 : 0.0;
-                    let restRowW = cnt * 40.0 + Math.max(0, cnt - 1) * 6.0 + (cnt > 1 ? 13.0 : 0.0);
-                    let restLeftX = (macDockWin.width - restRowW) * 0.5;
-                    let restCenterX = restLeftX + slotIndex * basePitch + sepShift + 20.0;
-
-                    let dist = Math.abs(pointerScreenX - restCenterX);
-                    let radius = 112.0;
-                    if (dist >= radius) return 1.0;
-                    let bell = 0.5 * (1.0 + Math.cos(Math.PI * (dist / radius)));
-                    return 1.0 + 0.52 * (bell * bell);
-                }
-
-                Canvas {
-                    id: macDockGlassCanvas
-                    anchors.fill: parent
-                    z: 0
-                    renderTarget: Canvas.FramebufferObject
-                    property real dO: root.aeroOpacity
-                    property real dR: root.aeroReflection
-                    property string dSt: root.glassStyle
-                    property real dTh: root.activeGlassDetail
-                    property real dW: parent.width
-                    property real dGx: macDockPill.x
-                    property real dSw: Screen.width
-                    property real dSh: Screen.height
-
-                    onDOChanged: requestPaint()
-                    onDRChanged: requestPaint()
-                    onDStChanged: requestPaint()
-                    onDThChanged: requestPaint()
-                    onDWChanged: requestPaint()
-                    onDGxChanged: requestPaint()
-                    onDSwChanged: requestPaint()
-                    onDShChanged: requestPaint()
-                    onPaint: {
-                        let sw = Screen.width || 1366;
-                        let sh = Screen.height || 768;
-                        let gx = macDockPill.x;
-                        let gy = sh - height - 8;
-                        root.drawGlobalAeroGlass(getContext("2d"), width, height, parent.radius, gx, gy, sw, sh, false, true);
-                    }
-                }
-
-                Rectangle {
-                    anchors.fill: parent
-                    radius: parent.radius
-                    color: "transparent"
-                    border.width: 1
-                    border.color: "#3AFFFFFF"
-                    z: 1
-
-                    Rectangle {
-                        anchors.top: parent.top
-                        anchors.topMargin: 1
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        width: Math.max(0, parent.width - 28)
-                        height: 1
-                        color: "#2CFFFFFF"
-                    }
-                }
-
-                Row {
-                    id: macDockRow
-                    anchors.bottom: parent.bottom
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    spacing: 6
-                    z: 2
-
-                    Repeater {
-                        id: macDockRepeater
-                        model: [
-                            { name: "Finder", icon: "system-file-manager", glyph: "F", bg: "#1E88E5", cmd: "thunar", match: "thunar" },
-                            { name: "Launchpad", icon: "view-app-grid-symbolic", glyph: "::", bg: "#5E5CE6", cmd: "", match: "" },
-                            { name: "Firefox", icon: "firefox", glyph: "FF", bg: "#FF7139", cmd: "firefox", match: "firefox" },
-                            { name: "Terminal", icon: "Alacritty", glyph: ">_", bg: "#1C1C1E", cmd: "alacritty", match: "alacritty" },
-                            { name: "Settings", icon: "preferences-system", glyph: "S", bg: "#8E8E93", cmd: "", match: "" }
-                        ]
-
-                        Item {
-                            id: macDockSlot
-                            readonly property bool hasDivider: index > 0 && modelData.name === "Settings"
-                            readonly property real targetMag: macDockPill.calcMag(index, hasDivider)
-                            property real smoothMag: 1.0
-                            property real bounceY: 0
-                            property bool launching: false
-                            readonly property int winId: macDockWin.findRunningWinId(modelData.match)
-                            readonly property bool isRunning: winId >= 0
-
-                            onIsRunningChanged: {
-                                if (isRunning) {
-                                    launching = false;
-                                    launchGuard.stop();
-                                }
-                            }
-
-                            Timer {
-                                id: launchGuard
-                                interval: 8000
-                                repeat: false
-                                onTriggered: macDockSlot.launching = false
-                            }
-
-                            Binding {
-                                target: macDockSlot
-                                property: "smoothMag"
-                                value: macDockSlot.targetMag
-                            }
-
-                            Behavior on smoothMag {
-                                SpringAnimation {
-                                    spring: 7.2
-                                    damping: 0.68
-                                    epsilon: 0.001
-                                }
-                            }
-
-                            readonly property real iconSize: 40.0 * Math.max(1.0, smoothMag)
-                            width: Math.round(iconSize + (hasDivider ? 13 : 0))
-                            height: 84
-
-                            Rectangle {
-                                visible: macDockSlot.hasDivider
-                                anchors.left: parent.left
-                                anchors.leftMargin: 3
-                                anchors.bottom: parent.bottom
-                                anchors.bottomMargin: 12
-                                width: 1
-                                height: 34
-                                radius: 0.5
-                                color: "#38FFFFFF"
-                            }
-
-                            SequentialAnimation {
-                                id: macDockBounce
-                                NumberAnimation { target: macDockSlot; property: "bounceY"; to: 14; duration: 140; easing.type: Easing.OutQuad }
-                                NumberAnimation { target: macDockSlot; property: "bounceY"; to: 0; duration: 160; easing.type: Easing.InQuad }
-                                NumberAnimation { target: macDockSlot; property: "bounceY"; to: 6; duration: 100; easing.type: Easing.OutQuad }
-                                NumberAnimation { target: macDockSlot; property: "bounceY"; to: 0; duration: 120; easing.type: Easing.InQuad }
-                            }
-
-                            Rectangle {
-                                anchors.horizontalCenter: macIconSquircle.horizontalCenter
-                                anchors.bottom: macIconSquircle.top
-                                anchors.bottomMargin: macSlotMouse.containsMouse ? 8 : 4
-                                width: Math.round(macTipTxt.implicitWidth + 16)
-                                height: 22
-                                radius: 6.5
-                                color: "#EB1C1C22"
-                                border.width: 1
-                                border.color: "#3CFFFFFF"
-                                opacity: (macSlotMouse.containsMouse && macDockWin.isDockOpen) ? 1.0 : 0.0
-                                scale: macSlotMouse.containsMouse ? 1.0 : 0.92
-                                visible: opacity > 0.01
-
-                                Behavior on opacity { NumberAnimation { duration: 110; easing.type: Easing.InOutCubic } }
-                                Behavior on scale { SpringAnimation { spring: 6.8; damping: 0.72 } }
-                                Behavior on anchors.bottomMargin { NumberAnimation { duration: 110; easing.type: Easing.OutCubic } }
-
-                                Text {
-                                    id: macTipTxt
-                                    anchors.centerIn: parent
-                                    text: modelData.name
-                                    color: "#F5F5F7"
-                                    font.pixelSize: 11
-                                    font.weight: Font.Medium
-                                }
-                            }
-
-                            Rectangle {
-                                id: macIconSquircle
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                anchors.horizontalCenterOffset: macDockSlot.hasDivider ? 6 : 0
-                                anchors.bottom: parent.bottom
-                                anchors.bottomMargin: 9 + macDockSlot.bounceY - (macSlotMouse.pressed ? 2 : 0)
-                                width: Math.round(macDockSlot.iconSize)
-                                height: Math.round(macDockSlot.iconSize)
-                                radius: Math.round(10 * Math.max(1.0, macDockSlot.smoothMag))
-                                color: macAppImg.status === Image.Ready ? "transparent" : (modelData.bg || "#2C2C2E")
-
-                                Image {
-                                    id: macAppImg
-                                    anchors.fill: parent
-                                    source: modelData.icon !== "" ? Quickshell.iconPath(modelData.icon, true) : ""
-                                    sourceSize: Qt.size(128, 128)
-                                    smooth: true
-                                    mipmap: true
-                                    visible: status === Image.Ready
-                                }
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: modelData.glyph || ""
-                                    color: "#FFFFFF"
-                                    font.pixelSize: Math.round(13 * Math.max(1.0, macDockSlot.smoothMag))
-                                    font.bold: true
-                                    visible: macAppImg.status !== Image.Ready
-                                }
-                            }
-
-                            Rectangle {
-                                anchors.bottom: parent.bottom
-                                anchors.bottomMargin: 2.5
-                                anchors.horizontalCenter: macIconSquircle.horizontalCenter
-                                width: 4.5
-                                height: 4.5
-                                radius: 2.25
-                                color: "#EBFFFFFF"
-                                visible: macDockSlot.isRunning
-                            }
-
-                            MouseArea {
-                                id: macSlotMouse
-                                anchors.fill: parent
-                                enabled: macDockWin.isDockOpen
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onContainsMouseChanged: {
-                                    macDockPill.hoveredSlots = Math.max(0, macDockPill.hoveredSlots + (containsMouse ? 1 : -1));
-                                }
-                                onClicked: {
-                                    if (modelData.name === "Launchpad") {
-                                        macDockBounce.restart();
-                                        root.switchPopup("launchpad");
-                                    } else if (modelData.name === "Settings") {
-                                        macDockBounce.restart();
-                                        root.switchPopup("settings");
-                                    } else if (macDockSlot.winId >= 0) {
-                                        root.runCmd("niri msg action focus-window --id " + macDockSlot.winId);
-                                    } else if (modelData.cmd && modelData.cmd !== "" && !macDockSlot.launching) {
-                                        macDockSlot.launching = true;
-                                        launchGuard.restart();
-                                        macDockBounce.restart();
-                                        root.runCmd(modelData.cmd);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
 
 
 
