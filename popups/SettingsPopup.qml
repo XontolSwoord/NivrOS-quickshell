@@ -7,6 +7,8 @@ import Quickshell.Io
 import "../core"
 
 Item {
+    property bool showSourcePanel: false
+    property bool showMediaFavPanel: false
     id: settingsScope
     anchors.fill: parent
     required property var shellRoot
@@ -418,8 +420,15 @@ Item {
                     // ========================================================
                     // TAB 1: KAIRO & WALLPAPER (OPSI 3 LIVE PREVIEW + PILLS)
                     // ========================================================
-                    ColumnLayout {
+                    Flickable {
                         anchors.fill: parent
+                        contentWidth: width
+                        contentHeight: wpScrollCol.implicitHeight + 16
+                        clip: true
+
+                        ColumnLayout {
+                            id: wpScrollCol
+                            width: parent.width
                         spacing: 12
                         visible: shellRoot.settingsTab === "appearance"
                         opacity: visible ? 1.0 : 0.0
@@ -447,7 +456,7 @@ Item {
                                 Text {
                                     id: nextWpPillTxt
                                     anchors.centerIn: parent
-                                    text: "↻ Acak Wallpaper"
+                                    text: shellRoot.wallpaperCycleMode === "gacha" ? "🎲 Gacha Wallpaper" : "⏭ Next Wallpaper"
                                     color: "#FFFFFF"
                                     font.pixelSize: 11
                                     font.bold: true
@@ -457,7 +466,7 @@ Item {
                                     id: nextWpPillM
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: shellRoot.pickRandomWallpaper()
+                                    onClicked: shellRoot.cycleWallpaper()
                                 }
                             }
                         }
@@ -1212,6 +1221,334 @@ Item {
                             }
                         }
 
+
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            implicitHeight: wpCycleCol.implicitHeight + 22
+                            radius: 16
+                            color: "#1B1E2B"
+                            border.width: 1
+                            border.color: "#38FFFFFF"
+                            scale: wpCycleArea.pressed ? 0.985 : 1.0
+                            Behavior on scale { SpringAnimation { mass: 0.95; spring: 4.5; damping: 0.52; epsilon: 0.001 } }
+
+                            MouseArea { id: wpCycleArea; anchors.fill: parent; propagateComposedEvents: true; onPressed: function(m){ m.accepted = false; } }
+
+                            ColumnLayout {
+                                id: wpCycleCol
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.top: parent.top
+                                anchors.margins: 11
+                                spacing: 8
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text { text: "Cycle Mode & Auto Cycle"; color: "#FFFFFF"; font.pixelSize: 12; font.bold: true }
+                                    Item { Layout.fillWidth: true }
+                                    Text {
+                                        text: shellRoot.wallpaperCycleMode === "gacha" ? "Mode: Gacha" : "Mode: Next"
+                                        color: "#64D2FF"; font.pixelSize: 11; font.bold: true
+                                    }
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 8
+
+                                    Rectangle {
+                                        Layout.fillWidth: true; height: 30; radius: 10
+                                        color: shellRoot.wallpaperCycleMode === "gacha" ? "#0A84FF" : "#282C3D"
+                                        scale: modeGachaM.pressed ? 0.93 : (modeGachaM.containsMouse ? 1.03 : 1.0)
+                                        Behavior on color { ColorAnimation { duration: 140 } }
+                                        Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
+                                        Text { anchors.centerIn: parent; text: "🎲 Gacha"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
+                                        MouseArea { id: modeGachaM; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.wallpaperCycleMode = "gacha" }
+                                    }
+
+                                    Rectangle {
+                                        Layout.fillWidth: true; height: 30; radius: 10
+                                        color: shellRoot.wallpaperCycleMode === "next" ? "#0A84FF" : "#282C3D"
+                                        scale: modeNextM.pressed ? 0.93 : (modeNextM.containsMouse ? 1.03 : 1.0)
+                                        Behavior on color { ColorAnimation { duration: 140 } }
+                                        Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
+                                        Text { anchors.centerIn: parent; text: "⏭ Next"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
+                                        MouseArea { id: modeNextM; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.wallpaperCycleMode = "next" }
+                                    }
+
+                                    Rectangle {
+                                        width: 82; height: 30; radius: 10
+                                        color: "#282C3D"
+                                        scale: openFolderM.pressed ? 0.93 : (openFolderM.containsMouse ? 1.03 : 1.0)
+                                        Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
+                                        Text { anchors.centerIn: parent; text: "📁 Folder"; color: "#F5F5F7"; font.pixelSize: 11; font.bold: true }
+                                        MouseArea { id: openFolderM; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.openWallpaperFolder() }
+                                    }
+
+                                    Rectangle {
+                                        width: 78; height: 30; radius: 10
+                                        color: "#282C3D"
+                                        scale: reloadWpM.pressed ? 0.93 : (reloadWpM.containsMouse ? 1.03 : 1.0)
+                                        Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
+                                        Text { anchors.centerIn: parent; text: "↻ Reload"; color: "#F5F5F7"; font.pixelSize: 11; font.bold: true }
+                                        MouseArea { id: reloadWpM; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.reloadWallpapers() }
+                                    }
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 8
+
+                                    Text { text: "Auto Cycle:"; color: "#D1D1D6"; font.pixelSize: 11 }
+
+                                    Repeater {
+                                        model: [
+                                            { label: "Off", sec: 0 },
+                                            { label: "30m", sec: 1800 },
+                                            { label: "1h", sec: 3600 }
+                                        ]
+                                        Rectangle {
+                                            width: 56; height: 26; radius: 8
+                                            color: shellRoot.autoCycleIntervalSec === modelData.sec ? "#32ADE6" : "#282C3D"
+                                            scale: acM.pressed ? 0.92 : (acM.containsMouse ? 1.04 : 1.0)
+                                            Behavior on color { ColorAnimation { duration: 130 } }
+                                            Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
+                                            Text { anchors.centerIn: parent; text: modelData.label; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
+                                            MouseArea { id: acM; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.autoCycleIntervalSec = modelData.sec }
+                                        }
+                                    }
+
+                                    Item { Layout.fillWidth: true }
+
+                                    Rectangle {
+                                        width: 116; height: 26; radius: 8
+                                        color: "#3A2328"
+                                        border.width: 1; border.color: "#66FF453A"
+                                        scale: resetWpM.pressed ? 0.93 : (resetWpM.containsMouse ? 1.03 : 1.0)
+                                        Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
+                                        Text { anchors.centerIn: parent; text: "↩ Reset Default"; color: "#FF6961"; font.pixelSize: 11; font.bold: true }
+                                        MouseArea { id: resetWpM; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.resetWallpaperToDefault() }
+                                    }
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            implicitHeight: wpSrcCol.implicitHeight + 22
+                            radius: 16
+                            color: "#1B1E2B"
+                            border.width: 1
+                            border.color: "#38FFFFFF"
+
+                            ColumnLayout {
+                                id: wpSrcCol
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.top: parent.top
+                                anchors.margins: 11
+                                spacing: 8
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text {
+                                        text: "Custom Folder / File & Source (" + (shellRoot.wallpaperSourceMode === "custom" ? "Custom File" : "Sample") + ")"
+                                        color: "#FFFFFF"; font.pixelSize: 12; font.bold: true
+                                    }
+                                    Item { Layout.fillWidth: true }
+                                    Rectangle {
+                                        width: 86; height: 26; radius: 8
+                                        color: "#2C3246"
+                                        scale: toggleSrcPanelM.pressed ? 0.93 : 1.0
+                                        Behavior on scale { SpringAnimation { mass: 0.9; spring: 4.8; damping: 0.46; epsilon: 0.001 } }
+                                        Text { anchors.centerIn: parent; text: showSourcePanel ? "Tutup" : "Buka Opsi"; color: "#64D2FF"; font.pixelSize: 11; font.bold: true }
+                                        MouseArea { id: toggleSrcPanelM; anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: showSourcePanel = !showSourcePanel }
+                                    }
+                                }
+
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 8
+                                    visible: showSourcePanel || opacity > 0.01
+                                    opacity: showSourcePanel ? 1.0 : 0.0
+                                    scale: showSourcePanel ? 1.0 : 0.95
+                                    Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                                    Behavior on scale { SpringAnimation { mass: 0.95; spring: 4.4; damping: 0.48; epsilon: 0.001 } }
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 8
+                                        Rectangle {
+                                            Layout.fillWidth: true; height: 28; radius: 8
+                                            color: shellRoot.wallpaperSourceMode === "sample" ? "#0A84FF" : "#282C3D"
+                                            scale: srcSampleM.pressed ? 0.94 : 1.0
+                                            Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
+                                            Text { anchors.centerIn: parent; text: "Sample"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
+                                            MouseArea { id: srcSampleM; anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { shellRoot.wallpaperSourceMode = "sample"; shellRoot.reloadWallpapers(); } }
+                                        }
+                                        Rectangle {
+                                            Layout.fillWidth: true; height: 28; radius: 8
+                                            color: shellRoot.wallpaperSourceMode === "custom" ? "#0A84FF" : "#282C3D"
+                                            scale: srcCustomM.pressed ? 0.94 : 1.0
+                                            Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
+                                            Text { anchors.centerIn: parent; text: "Custom File"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
+                                            MouseArea { id: srcCustomM; anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { shellRoot.wallpaperSourceMode = "custom"; shellRoot.reloadWallpapers(); } }
+                                        }
+                                    }
+
+                                    TextField {
+                                        id: customDirInput
+                                        Layout.fillWidth: true
+                                        placeholderText: "Path folder sendiri (contoh: /home/arip/Pictures/MyWall)"
+                                        text: shellRoot.customWallpaperDir
+                                        color: "#FFFFFF"; font.pixelSize: 11
+                                        background: Rectangle { radius: 8; color: "#12141E"; border.width: 1; border.color: "#38FFFFFF" }
+                                        onTextEdited: shellRoot.customWallpaperDir = text
+                                    }
+
+                                    TextField {
+                                        id: customFileInput
+                                        Layout.fillWidth: true
+                                        placeholderText: "Path file gambar/MP4 sendiri (contoh: /home/arip/Pictures/wall.png)"
+                                        text: shellRoot.customWallpaperFile
+                                        color: "#FFFFFF"; font.pixelSize: 11
+                                        background: Rectangle { radius: 8; color: "#12141E"; border.width: 1; border.color: "#38FFFFFF" }
+                                        onTextEdited: {
+                                            shellRoot.customWallpaperFile = text;
+                                            if (text.trim() !== "") {
+                                                shellRoot.wallpaperSourceMode = "custom";
+                                                let p = text.trim();
+                                                shellRoot.currentWallpaper = p.startsWith("file://") ? p : "file://" + p;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            implicitHeight: wpMedCol.implicitHeight + 22
+                            radius: 16
+                            color: "#1B1E2B"
+                            border.width: 1
+                            border.color: "#38FFFFFF"
+
+                            ColumnLayout {
+                                id: wpMedCol
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.top: parent.top
+                                anchors.margins: 11
+                                spacing: 8
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text {
+                                        text: "Favorites & Live / MP4 (" + (shellRoot.favoriteWallpapers ? shellRoot.favoriteWallpapers.length : 0) + " fav)"
+                                        color: "#FFFFFF"; font.pixelSize: 12; font.bold: true
+                                    }
+                                    Item { Layout.fillWidth: true }
+                                    Rectangle {
+                                        width: 86; height: 26; radius: 8
+                                        color: "#2C3246"
+                                        scale: toggleMedPanelM.pressed ? 0.93 : 1.0
+                                        Behavior on scale { SpringAnimation { mass: 0.9; spring: 4.8; damping: 0.46; epsilon: 0.001 } }
+                                        Text { anchors.centerIn: parent; text: showMediaFavPanel ? "Tutup" : "Buka Opsi"; color: "#64D2FF"; font.pixelSize: 11; font.bold: true }
+                                        MouseArea { id: toggleMedPanelM; anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: showMediaFavPanel = !showMediaFavPanel }
+                                    }
+                                }
+
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 8
+                                    visible: showMediaFavPanel || opacity > 0.01
+                                    opacity: showMediaFavPanel ? 1.0 : 0.0
+                                    scale: showMediaFavPanel ? 1.0 : 0.95
+                                    Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                                    Behavior on scale { SpringAnimation { mass: 0.95; spring: 4.4; damping: 0.48; epsilon: 0.001 } }
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 8
+
+                                        Rectangle {
+                                            Layout.fillWidth: true; height: 30; radius: 9
+                                            color: shellRoot.isFavoriteWallpaper(shellRoot.currentWallpaper) ? "#FF9F0A" : "#282C3D"
+                                            scale: favBtnM.pressed ? 0.93 : 1.0
+                                            Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: shellRoot.isFavoriteWallpaper(shellRoot.currentWallpaper) ? "★ Tersimpan di Favorites" : "☆ Simpan ke Favorites"
+                                                color: "#FFFFFF"; font.pixelSize: 11; font.bold: true
+                                            }
+                                            MouseArea { id: favBtnM; anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.toggleFavoriteWallpaper(shellRoot.currentWallpaper) }
+                                        }
+
+                                        Rectangle {
+                                            width: 124; height: 30; radius: 9
+                                            color: shellRoot.liveWallpaperEnabled ? "#30D158" : "#282C3D"
+                                            scale: liveWpM.pressed ? 0.93 : 1.0
+                                            Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: shellRoot.liveWallpaperEnabled ? "🎬 Live / MP4: ON" : "🎬 Live / MP4: OFF"
+                                                color: "#FFFFFF"; font.pixelSize: 11; font.bold: true
+                                            }
+                                            MouseArea {
+                                                id: liveWpM; anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                                onClicked: { shellRoot.liveWallpaperEnabled = !shellRoot.liveWallpaperEnabled; shellRoot.reloadWallpapers(); }
+                                            }
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        Layout.fillWidth: true; height: 34; radius: 10
+                                        color: shellRoot.pauseWhenUnseen ? "#1D3528" : "#282C3D"
+                                        border.width: 1
+                                        border.color: shellRoot.pauseWhenUnseen ? "#4830D158" : "#28FFFFFF"
+                                        scale: pauseSaverM.pressed ? 0.96 : 1.0
+                                        Behavior on scale { SpringAnimation { mass: 0.9; spring: 4.8; damping: 0.46; epsilon: 0.001 } }
+
+                                        RowLayout {
+                                            anchors.fill: parent; anchors.leftMargin: 10; anchors.rightMargin: 10
+                                            Text { text: "Pause When Unseen (Battery Saver)"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
+                                            Item { Layout.fillWidth: true }
+                                            Text {
+                                                text: shellRoot.pauseWhenUnseen ? "AKTIF" : "MATI"
+                                                color: shellRoot.pauseWhenUnseen ? "#30D158" : "#A1A1AA"
+                                                font.pixelSize: 11; font.bold: true
+                                            }
+                                        }
+
+                                        MouseArea { id: pauseSaverM; anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.pauseWhenUnseen = !shellRoot.pauseWhenUnseen }
+                                    }
+
+                                    Flow {
+                                        Layout.fillWidth: true; spacing: 6
+                                        visible: shellRoot.favoriteWallpapers && shellRoot.favoriteWallpapers.length > 0
+
+                                        Repeater {
+                                            model: shellRoot.favoriteWallpapers
+                                            Rectangle {
+                                                height: 24; width: Math.min(180, favChipTxt.implicitWidth + 18); radius: 8
+                                                color: shellRoot.currentWallpaper === modelData ? "#0A84FF" : "#242838"
+                                                scale: favChipM.pressed ? 0.93 : 1.0
+                                                Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
+                                                Text {
+                                                    id: favChipTxt; anchors.centerIn: parent
+                                                    text: "★ " + String(modelData).split("/").pop()
+                                                    color: "#FFFFFF"; font.pixelSize: 10; elide: Text.ElideRight
+                                                }
+                                                MouseArea { id: favChipM; anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.currentWallpaper = modelData }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         Text {
                             text: "Koleksi Wallpaper (" + shellRoot.wallpaperList.length + " tersedia)"
                             color: "#D1D1D6"
@@ -1222,7 +1559,7 @@ Item {
                         GridView {
                             id: wallGrid
                             Layout.fillWidth: true
-                            Layout.fillHeight: true
+                            Layout.preferredHeight: 170
                             clip: true
                             cellWidth: Math.floor(width / 3)
                             cellHeight: 74
@@ -1280,8 +1617,8 @@ Item {
                                 }
                             }
                         }
+                        }
                     }
-
                     // ========================================================
                     // TAB 2: DISPLAY & SOUND (HARMONYOS GLASS PILLS & ORBS)
                     // ========================================================

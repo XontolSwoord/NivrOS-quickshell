@@ -108,6 +108,16 @@ ShellRoot {
     // ── State Sistem & Hardware Terverifikasi ───────────────────────────
     property var wallpaperList: []
     property string currentWallpaper: ""
+    property string defaultWallpaper: ""
+    property string wallpaperCycleMode: "gacha" // "gacha" | "next"
+    property string wallpaperSourceMode: "sample" // "sample" | "custom"
+    property string customWallpaperDir: ""
+    property string customWallpaperFile: ""
+    property bool liveWallpaperEnabled: false
+    property bool pauseWhenUnseen: true
+    readonly property bool liveWallpaperPaused: !liveWallpaperEnabled || (pauseWhenUnseen && hasWindowOnActiveWs && activePopup === "")
+    property var favoriteWallpapers: []
+    property int autoCycleIntervalSec: 0 // 0 = Off, 1800 = 30m, 3600 = 1h
     property string focusedAppName: "Finder"
     property var runningWindows: []
     property bool hasWindowOnActiveWs: false
@@ -513,8 +523,116 @@ ShellRoot {
         currentWallpaper = next;
     }
 
+    function pickNextWallpaper() {
+        if (wallpaperList.length === 0) return;
+        let idx = wallpaperList.indexOf(currentWallpaper);
+        let nextIdx = (idx + 1) % wallpaperList.length;
+        currentWallpaper = wallpaperList[nextIdx];
+    }
+
+    function cycleWallpaper() {
+        if (wallpaperSourceMode === "custom" && customWallpaperFile.trim() !== "") {
+            let p = customWallpaperFile.trim();
+            if (!p.startsWith("file://")) p = "file://" + p;
+            currentWallpaper = p;
+            return;
+        }
+        if (wallpaperCycleMode === "next") {
+            pickNextWallpaper();
+        } else {
+            pickRandomWallpaper();
+        }
+    }
+
+    function isFavoriteWallpaper(wp) {
+        if (!wp || !favoriteWallpapers) return false;
+        return favoriteWallpapers.indexOf(wp) !== -1;
+    }
+
+    function toggleFavoriteWallpaper(wp) {
+        if (!wp) return;
+        let arr = favoriteWallpapers ? favoriteWallpapers.slice() : [];
+        let idx = arr.indexOf(wp);
+        if (idx === -1) arr.push(wp);
+        else arr.splice(idx, 1);
+        favoriteWallpapers = arr;
+    }
+
+    function resetWallpaperToDefault() {
+        wallpaperSourceMode = "sample";
+        customWallpaperFile = "";
+        customWallpaperDir = "";
+        if (defaultWallpaper !== "") {
+            currentWallpaper = defaultWallpaper;
+        } else if (wallpaperList.length > 0) {
+            currentWallpaper = wallpaperList[0];
+        }
+        reloadWallpapers();
+    }
+
+    function activeWallpaperTargetDir() {
+        if (wallpaperSourceMode === "custom" && customWallpaperDir.trim() !== "") {
+            let d = customWallpaperDir.trim();
+            if (d.startsWith("file://")) d = d.slice(7);
+            return d;
+        }
+        return "$HOME/Pictures/Wallpapers";
+    }
+
+
+    function isVideoWallpaperPath(wp) {
+        if (!wp) return false;
+        let s = String(wp).split("?")[0].toLowerCase();
+        return s.endsWith(".mp4") || s.endsWith(".webm") || s.endsWith(".mkv") || s.endsWith(".mov");
+    }
+
+    function syncLiveWallpaperProcess() {
+        let activeVid = root.liveWallpaperEnabled && root.isVideoWallpaperPath(root.currentWallpaper);
+        let shouldPause = !activeVid || root.liveWallpaperPaused;
+        let rawPath = String(root.currentWallpaper || "");
+        if (rawPath.startsWith("file://")) rawPath = rawPath.slice(7);
+
+        let cmd = "";
+        if (!activeVid) {
+            cmd = "pkill -f 'qs-livewp-mpv' 2>/dev/null || true";
+        } else if (shouldPause) {
+            cmd = "if pgrep -f 'qs-livewp-mpv' >/dev/null 2>&1; then "
+                + "if command -v socat >/dev/null 2>&1 && [ -S /tmp/qs-livewp.sock ]; then "
+                + "printf '{\"command\": [\"set_property\", \"pause\", true]}\n' | socat - /tmp/qs-livewp.sock >/dev/null 2>&1 || true; "
+                + "else pkill -STOP -f 'qs-livewp-mpv' 2>/dev/null || true; fi; fi";
+        } else {
+            cmd = "if pgrep -f 'qs-livewp-mpv' >/dev/null 2>&1; then "
+                + "if command -v socat >/dev/null 2>&1 && [ -S /tmp/qs-livewp.sock ]; then "
+                + "printf '{\"command\": [\"set_property\", \"pause\", false]}\n' | socat - /tmp/qs-livewp.sock >/dev/null 2>&1 || true; "
+                + "else pkill -CONT -f 'qs-livewp-mpv' 2>/dev/null || true; fi; "
+                + "elif command -v mpv >/dev/null 2>&1; then "
+                + "rm -f /tmp/qs-livewp.sock; "
+                + "nohup mpv --no-audio --loop-file=inf --really-quiet --input-ipc-server=/tmp/qs-livewp.sock --title='qs-livewp-mpv' \"" + rawPath + "\" >/dev/null 2>&1 & fi";
+        }
+
+        liveWpProc.running = false;
+        liveWpProc.command = ["sh", "-c", cmd];
+        liveWpProc.running = true;
+    }
+
+    function reloadWallpapers() {
+        let dir = activeWallpaperTargetDir();
+        let vidExpr = liveWallpaperEnabled ? " -o -iname '*.mp4' -o -iname '*.webm' -o -iname '*.mkv' -o -iname '*.mov'" : "";
+        let cmd = "mkdir -p \"" + dir + "\" 2>/dev/null; find \"" + dir + "\" -maxdepth 3 -type f \\( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp'" + vidExpr + " \\) 2>/dev/null | sort";
+        scanWallProc.running = false;
+        scanWallProc.command = ["sh", "-c", cmd];
+        scanWallProc.running = true;
+    }
+
+    function openWallpaperFolder() {
+        let dir = activeWallpaperTargetDir();
+        let cmd = "mkdir -p \"" + dir + "\"; (command -v xdg-open >/dev/null 2>&1 && xdg-open \"" + dir + "\") || (command -v thunar >/dev/null 2>&1 && thunar \"" + dir + "\")";
+        runCmd(cmd);
+    }
+
     // ── Dedicated Process Runners ───────────────────────────────────────
     Process { id: actionProc }
+    Process { id: liveWpProc }
     Process { id: briProc }
     Process { id: volProc }
     Process { id: wifiToggleProc }
@@ -738,13 +856,25 @@ ShellRoot {
     // ── Proses Pembaca Status Latar Belakang (LC_ALL=C) ─────────────────
     Process {
         id: scanWallProc
-        command: ["sh", "-c", "find \"$HOME/Pictures/Wallpapers\" -type f \\( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \\) | sort"]
+        command: ["sh", "-c", "find \"$HOME/Pictures/Wallpapers\" -maxdepth 3 -type f \\( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \\) 2>/dev/null | sort"]
         stdout: StdioCollector {
             onStreamFinished: {
                 let lines = text.trim().split("\n").filter(l => l.length > 0);
-                root.wallpaperList = lines.map(p => "file://" + p);
-                if (root.wallpaperList.length > 0 && root.currentWallpaper === "") {
-                    root.pickRandomWallpaper();
+                let mapped = lines.map(p => p.startsWith("file://") ? p : "file://" + p);
+                if (root.wallpaperSourceMode === "custom" && root.customWallpaperFile.trim() !== "") {
+                    let cf = root.customWallpaperFile.trim();
+                    if (!cf.startsWith("file://")) cf = "file://" + cf;
+                    if (mapped.indexOf(cf) === -1) mapped.unshift(cf);
+                }
+                root.wallpaperList = mapped;
+                if (root.wallpaperList.length > 0 && root.defaultWallpaper === "") {
+                    root.defaultWallpaper = root.wallpaperList[0];
+                }
+                if (root.wallpaperSourceMode === "custom" && root.customWallpaperFile.trim() !== "") {
+                    let cf = root.customWallpaperFile.trim();
+                    root.currentWallpaper = cf.startsWith("file://") ? cf : "file://" + cf;
+                } else if (root.wallpaperList.length > 0 && root.currentWallpaper === "") {
+                    root.cycleWallpaper();
                 }
             }
         }
@@ -866,15 +996,24 @@ ShellRoot {
     }
 
     Timer {
-        interval: 15 * 60 * 1000
-        running: true
+        id: wpAutoCycleTimer
+        interval: root.autoCycleIntervalSec > 0 ? root.autoCycleIntervalSec * 1000 : 3600000
+        running: root.autoCycleIntervalSec > 0 && (!root.pauseWhenUnseen || root.hasWindowOnActiveWs || root.activePopup !== "")
         repeat: true
-        onTriggered: root.pickRandomWallpaper()
+        onTriggered: root.cycleWallpaper()
+    }
+
+
+    Connections {
+        target: root
+        function onCurrentWallpaperChanged() { root.syncLiveWallpaperProcess(); }
+        function onLiveWallpaperEnabledChanged() { root.syncLiveWallpaperProcess(); }
+        function onLiveWallpaperPausedChanged() { root.syncLiveWallpaperProcess(); }
     }
 
     IpcHandler {
         target: "wallpaper"
-        function next(): void { root.pickRandomWallpaper(); }
+        function next(): void { root.cycleWallpaper(); }
     }
 
     IpcHandler {
@@ -1107,7 +1246,7 @@ ShellRoot {
             id: menuPopupsLoader
             anchors.fill: parent
             property bool holdAlive: false
-            active: (root.activePopup === "apple" || root.activePopup === "window" || root.activePopup === "desktop") || holdAlive || (item && item.powerConfirmOpen)
+            active: (root.activePopup === "apple" || root.activePopup === "window" || root.activePopup === "desktop") || holdAlive
             onActiveChanged: {
                 if (active && !(root.activePopup === "apple" || root.activePopup === "window" || root.activePopup === "desktop")) holdAlive = false;
             }

@@ -7,6 +7,7 @@ Item {
     id: root
 
     property string source
+    property bool paused: false
     property int fillMode: Image.PreserveAspectCrop
     property size sourceSize
 
@@ -809,10 +810,18 @@ Item {
         }
     }
 
+
+    function _isVideoSource(src) {
+        if (!src) return false;
+        let s = String(src).split("?")[0].toLowerCase();
+        return s.endsWith(".mp4") || s.endsWith(".webm") || s.endsWith(".mkv") || s.endsWith(".mov");
+    }
+
     Component.onCompleted: {
         if (root.source !== "") {
             img0.source = root.source
             internal.displayedSource = root.source
         }
     }
+
 }
