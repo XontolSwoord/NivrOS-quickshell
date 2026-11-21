@@ -5,3 +5,4 @@ NetworkPopups 1.0 NetworkPopups.qml
 MediaCalendarPopups 1.0 MediaCalendarPopups.qml
 LauncherPopup 1.0 LauncherPopup.qml
 AboutPopup 1.0 AboutPopup.qml
+MacLockScreen 1.0 MacLockScreen.qml

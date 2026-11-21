@@ -122,6 +122,7 @@ ShellRoot {
     property string focusedAppName: "Finder"
     property var runningWindows: []
     property bool hasWindowOnActiveWs: false
+    property bool sessionLocked: false
 
     property string wifiName: "Memeriksa..."
     property bool wifiEnabled: true
@@ -1046,6 +1047,11 @@ ShellRoot {
     }
 
     IpcHandler {
+        target: "lockscreen"
+        function lock(): void { root.sessionLocked = true; }
+    }
+
+    IpcHandler {
         target: "widget"
         function edit(): void { win.editMode = !win.editMode; }
         function reset(): void { win.resetLayout(); }
@@ -1940,6 +1946,8 @@ ShellRoot {
     // 6. MACOS FLOATING DOCK (AUTO-HIDE + EVENT-STREAM + REGION MASK)
     // ========================================================================
     Dock { shellRoot: root }
+
+    MacLockScreen { shellRoot: root }
 
 
 

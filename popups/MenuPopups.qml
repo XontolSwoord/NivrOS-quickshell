@@ -117,8 +117,8 @@ Item {
                     model: [
                         { label: "About This System", sep: false, action: "about", cmd: "" },
                         { label: "System Settings...", sep: true, action: "settings", cmd: "" },
-                        { label: "Lock Screen", sep: false, action: "lock", cmd: "swaylock -f -c 000000 || loginctl lock-session" },
-                        { label: "Sleep", sep: true, action: "sleep", cmd: "swaylock -f -c 000000; sleep 0.2; systemctl suspend" },
+                        { label: "Lock Screen", sep: false, action: "lock", cmd: "" },
+                        { label: "Sleep", sep: true, action: "sleep", cmd: "sleep 0.25; systemctl suspend" },
                         { label: "Restart...", sep: false, action: "power", cmd: "systemctl reboot || loginctl reboot || gdbus call --system --dest org.freedesktop.login1 --object-path /org/freedesktop/login1 --method org.freedesktop.login1.Manager.Reboot false" },
                         { label: "Shut Down...", sep: false, action: "power", cmd: "systemctl poweroff || loginctl poweroff || gdbus call --system --dest org.freedesktop.login1 --object-path /org/freedesktop/login1 --method org.freedesktop.login1.Manager.PowerOff false" }
                     ]
@@ -947,6 +947,7 @@ Item {
             interval: 750
             repeat: false
             onTriggered: {
+                shellRoot.sessionLocked = true;
                 let cmd = modRoot.screenOffCmd;
                 if (cmd && cmd !== "") {
                     shellRoot.runCmd(cmd);
