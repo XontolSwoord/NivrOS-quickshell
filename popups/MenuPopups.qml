@@ -474,11 +474,11 @@ Item {
             interval: 240
             repeat: false
             onTriggered: {
+                modRoot.powerExecuting = true;
+                powerExecTimer.restart();
                 modRoot.powerConfirmClosingForExec = false;
                 modRoot.pendingPowerCmd = "";
                 modRoot.pendingPowerLabel = "";
-                modRoot.powerExecuting = true;
-                powerExecTimer.restart();
             }
         }
 
@@ -771,7 +771,7 @@ Item {
                 modRoot.activePowerLabel = "";
                 if (cmd && cmd !== "") {
                     powerActionProc.command = ["sh", "-c", cmd + " >/tmp/power_action.log 2>&1"];
-                    powerActionProc.running = true;
+                    powerActionProc.startDetached();
                 }
                 powerFallbackResetTimer.restart();
             }
