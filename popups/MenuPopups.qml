@@ -14,7 +14,11 @@ Item {
     anchors.fill: parent
     required property var shellRoot
     required property var hostWin
-    readonly property bool anyVisible: (appleCard.opacity > 0.01 || winCard.opacity > 0.01 || deskCard.opacity > 0.01 || powerConfirmOverlay.opacity > 0.01 || powerBlackoutOverlay.opacity > 0.01 || modRoot.powerConfirmClosingForCancel || modRoot.powerConfirmClosingForExec)
+    readonly property bool anyVisible: (appleCard.opacity > 0.01 || winCard.opacity > 0.01 || deskCard.opacity > 0.01 || powerConfirmOverlay.opacity > 0.01 || powerBlackoutOverlay.opacity > 0.01 || phoneScreenOffOverlay.opacity > 0.01 || modRoot.powerConfirmClosingForCancel || modRoot.powerConfirmClosingForExec || modRoot.powerConfirmOpen || modRoot.powerExecuting || modRoot.screenOffActive)
+    onAnyVisibleChanged: shellRoot.menuModalActive = anyVisible
+    Component.onCompleted: shellRoot.menuModalActive = anyVisible
+    Component.onDestruction: shellRoot.menuModalActive = false
+
     property string pendingPowerCmd: ""
     property string pendingPowerLabel: ""
     property bool powerConfirmOpen: (pendingPowerCmd !== "")
@@ -23,6 +27,19 @@ Item {
     property bool powerExecuting: false
     property string activePowerCmd: ""
     property string activePowerLabel: ""
+    property bool screenOffActive: false
+    property string screenOffMode: "lock"
+    property string screenOffCmd: ""
+
+    function triggerPhoneScreenOff(mode, cmd) {
+        if (modRoot.screenOffActive) return;
+        modRoot.screenOffMode = mode;
+        modRoot.screenOffCmd = cmd;
+        modRoot.screenOffActive = true;
+        shellRoot.activePopup = "";
+        phoneBeamAnim.restart();
+        phoneScreenExecTimer.restart();
+    }
 
         Rectangle {
             id: appleCard
@@ -100,10 +117,10 @@ Item {
                     model: [
                         { label: "About This System", sep: false, action: "about", cmd: "" },
                         { label: "System Settings...", sep: true, action: "settings", cmd: "" },
-                        { label: "Lock Screen", sep: false, cmd: "swaylock -f -c 000000 || loginctl lock-session" },
-                        { label: "Sleep", sep: true, cmd: "systemctl suspend" },
-                        { label: "Restart...", sep: false, cmd: "systemctl reboot" },
-                        { label: "Shut Down...", sep: false, cmd: "systemctl poweroff" }
+                        { label: "Lock Screen", sep: false, action: "lock", cmd: "swaylock -f -c 000000 || loginctl lock-session" },
+                        { label: "Sleep", sep: true, action: "sleep", cmd: "swaylock -f -c 000000; sleep 0.2; systemctl suspend" },
+                        { label: "Restart...", sep: false, action: "power", cmd: "systemctl reboot || loginctl reboot || gdbus call --system --dest org.freedesktop.login1 --object-path /org/freedesktop/login1 --method org.freedesktop.login1.Manager.Reboot false" },
+                        { label: "Shut Down...", sep: false, action: "power", cmd: "systemctl poweroff || loginctl poweroff || gdbus call --system --dest org.freedesktop.login1 --object-path /org/freedesktop/login1 --method org.freedesktop.login1.Manager.PowerOff false" }
                     ]
 
                     Column {
@@ -139,12 +156,15 @@ Item {
                                 z: 5
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: {
+                                onPressed: (mouse) => {
+                                    mouse.accepted = true;
                                     if (modelData.action === "about") {
                                         shellRoot.switchPopup("about");
                                     } else if (modelData.action === "settings") {
                                         shellRoot.switchPopup("settings");
-                                    } else if (modelData.cmd === "systemctl reboot" || modelData.cmd === "systemctl poweroff") {
+                                    } else if (modelData.action === "lock" || modelData.action === "sleep") {
+                                        modRoot.triggerPhoneScreenOff(modelData.action, modelData.cmd);
+                                    } else if (modelData.action === "power") {
                                         modRoot.pendingPowerLabel = modelData.label;
                                         modRoot.pendingPowerCmd = modelData.cmd;
                                         shellRoot.activePopup = "";
@@ -470,7 +490,7 @@ Item {
         ShaderEffectSource {
             id: bgBlurSource
             anchors.fill: parent
-            sourceItem: modRoot.hostWin && modRoot.hostWin.contentItem ? modRoot.hostWin.contentItem : null
+            sourceItem: null
             sourceRect: Qt.rect(0, 0, width, height)
             visible: false
             live: powerConfirmOverlay.visible
@@ -480,7 +500,7 @@ Item {
         MultiEffect {
             anchors.fill: parent
             source: bgBlurSource
-            blurEnabled: powerConfirmOverlay.visible && bgBlurSource.sourceItem !== null
+            blurEnabled: false
             blur: 0.72
             blurMax: 32
             opacity: powerConfirmOverlay.shown ? 0.9 : 0.0
@@ -490,6 +510,7 @@ Item {
         MouseArea {
             anchors.fill: parent
             z: 1
+            preventStealing: true
             onClicked: {
                 if (!modRoot.powerConfirmClosingForCancel && !modRoot.powerConfirmClosingForExec && modRoot.powerConfirmOpen) {
                     modRoot.powerConfirmClosingForCancel = true;
@@ -613,7 +634,8 @@ Item {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: {
+                            onPressed: (mouse) => {
+                                mouse.accepted = true;
                                 let cmd = modRoot.pendingPowerCmd;
                                 let lbl = modRoot.pendingPowerLabel;
                                 if (cmd && cmd !== "" && !modRoot.powerConfirmClosingForExec) {
@@ -648,7 +670,8 @@ Item {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: {
+                            onPressed: (mouse) => {
+                                mouse.accepted = true;
                                 if (!modRoot.powerConfirmClosingForCancel && !modRoot.powerConfirmClosingForExec && modRoot.powerConfirmOpen) {
                                     modRoot.powerConfirmClosingForCancel = true;
                                     confirmCancelReverseTimer.restart();
@@ -726,6 +749,15 @@ Item {
         }
 
         Timer {
+            id: powerFallbackResetTimer
+            interval: 4000
+            repeat: false
+            onTriggered: {
+                modRoot.powerExecuting = false;
+            }
+        }
+
+        Timer {
             id: powerExecTimer
             interval: 2000
             repeat: false
@@ -733,12 +765,156 @@ Item {
                 let cmd = modRoot.activePowerCmd;
                 modRoot.activePowerCmd = "";
                 modRoot.activePowerLabel = "";
-                modRoot.powerExecuting = false;
                 if (cmd && cmd !== "") {
                     shellRoot.runCmd(cmd);
                 }
+                powerFallbackResetTimer.restart();
             }
         }
     }
 
+
+    // ── Animasi Layar Mati ala HP untuk Lock Screen & Sleep ──
+    Item {
+        id: phoneScreenOffOverlay
+        anchors.fill: parent
+        z: 130
+        visible: modRoot.screenOffActive || opacity > 0.01
+        opacity: modRoot.screenOffActive ? 1.0 : 0.0
+        Behavior on opacity { NumberAnimation { duration: 260; easing.type: Easing.InOutCubic } }
+
+        property real beamScaleY: 1.0
+        property real beamScaleX: 1.0
+        property real beamOpacity: 0.0
+
+        SequentialAnimation {
+            id: phoneBeamAnim
+            running: false
+
+            PropertyAction { target: phoneScreenOffOverlay; property: "beamScaleY"; value: 1.0 }
+            PropertyAction { target: phoneScreenOffOverlay; property: "beamScaleX"; value: 1.0 }
+            PropertyAction { target: phoneScreenOffOverlay; property: "beamOpacity"; value: 0.45 }
+
+            ParallelAnimation {
+                NumberAnimation {
+                    target: phoneScreenOffOverlay
+                    property: "beamScaleY"
+                    from: 1.0
+                    to: 0.004
+                    duration: 230
+                    easing.type: Easing.InOutCubic
+                }
+                NumberAnimation {
+                    target: phoneScreenOffOverlay
+                    property: "beamOpacity"
+                    from: 0.45
+                    to: 0.95
+                    duration: 190
+                    easing.type: Easing.OutQuad
+                }
+            }
+
+            ParallelAnimation {
+                NumberAnimation {
+                    target: phoneScreenOffOverlay
+                    property: "beamScaleX"
+                    from: 1.0
+                    to: 0.0
+                    duration: 180
+                    easing.type: Easing.InCubic
+                }
+                NumberAnimation {
+                    target: phoneScreenOffOverlay
+                    property: "beamOpacity"
+                    from: 0.95
+                    to: 0.0
+                    duration: 180
+                    easing.type: Easing.InQuad
+                }
+            }
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            color: "#FF000000"
+        }
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: parent.width
+            height: parent.height
+            color: "#E8F4FF"
+            opacity: phoneScreenOffOverlay.beamOpacity
+            transform: Scale {
+                origin.x: phoneScreenOffOverlay.width * 0.5
+                origin.y: phoneScreenOffOverlay.height * 0.5
+                xScale: phoneScreenOffOverlay.beamScaleX
+                yScale: phoneScreenOffOverlay.beamScaleY
+            }
+        }
+
+        Column {
+            anchors.centerIn: parent
+            spacing: 10
+            opacity: modRoot.screenOffActive ? 1.0 : 0.0
+            scale: modRoot.screenOffActive ? 1.0 : 0.78
+            Behavior on opacity { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+            Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
+
+            Rectangle {
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: 58
+                height: 58
+                radius: 29
+                color: "#1EFFFFFF"
+                border.width: 1
+                border.color: "#3CFFFFFF"
+
+                Text {
+                    anchors.centerIn: parent
+                    text: modRoot.screenOffMode === "sleep" ? "☾" : "🔒"
+                    color: modRoot.screenOffMode === "sleep" ? "#BF5AF2" : "#64D2FF"
+                    font.pixelSize: 24
+                    font.bold: true
+                }
+            }
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: modRoot.screenOffMode === "sleep" ? "Sleep..." : "Screen Locked"
+                color: "#E5E5EA"
+                font.pixelSize: 13
+                font.weight: Font.Medium
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+            preventStealing: true
+        }
+
+        Timer {
+            id: phoneScreenExecTimer
+            interval: 750
+            repeat: false
+            onTriggered: {
+                let cmd = modRoot.screenOffCmd;
+                if (cmd && cmd !== "") {
+                    shellRoot.runCmd(cmd);
+                }
+                phoneScreenWakeTimer.restart();
+            }
+        }
+
+        Timer {
+            id: phoneScreenWakeTimer
+            interval: 550
+            repeat: false
+            onTriggered: {
+                modRoot.screenOffActive = false;
+                modRoot.screenOffCmd = "";
+            }
+        }
+    }
 }

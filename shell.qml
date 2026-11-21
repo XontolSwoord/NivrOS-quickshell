@@ -257,6 +257,7 @@ ShellRoot {
         id: coreStateBridge
         Component.onCompleted: {
             ShellState.glassStyle = root.glassStyle;
+            ShellState.dockHideMode = root.dockHideMode;
             ShellState.macOpacity = root.macOpacity;
             ShellState.macFrost = root.macFrost;
             ShellState.aeroBaseOpacity = root.aeroBaseOpacity;
@@ -281,6 +282,7 @@ ShellRoot {
         Connections {
             target: root
             function onGlassStyleChanged() { if (ShellState.glassStyle !== root.glassStyle) ShellState.glassStyle = root.glassStyle; }
+            function onDockHideModeChanged() { if (ShellState.dockHideMode !== root.dockHideMode) ShellState.dockHideMode = root.dockHideMode; }
             function onMacOpacityChanged() { if (ShellState.macOpacity !== root.macOpacity) ShellState.macOpacity = root.macOpacity; }
             function onMacFrostChanged() { if (ShellState.macFrost !== root.macFrost) ShellState.macFrost = root.macFrost; }
             function onAeroBaseOpacityChanged() { if (ShellState.aeroBaseOpacity !== root.aeroBaseOpacity) ShellState.aeroBaseOpacity = root.aeroBaseOpacity; }
@@ -447,6 +449,8 @@ ShellRoot {
         onTriggered: root.preWarmDone = true
     }
 
+    property bool menuModalActive: false
+
     function switchPopup(name) {
         if (root.activePopup === name) {
             root.closePopups();
@@ -464,18 +468,6 @@ ShellRoot {
 
     function triggerAppsScan(): void {
         if (typeof allAppsScanProc !== "undefined") { allAppsScanProc.running = false; allAppsScanProc.running = true; }
-        if (typeof appsScanProc !== "undefined") {
-            appsScanProc.running = false;
-            appsScanProc.running = true;
-        }
-    }
-
-    Timer {
-        id: appsSyncTimer
-        interval: 60000
-        repeat: false
-        running: false
-        onTriggered: root.triggerAppsScan()
     }
 
     function closePopups() {
@@ -881,58 +873,92 @@ ShellRoot {
         }
     }
 
+    property int activeWorkspaceId: -1
+    property bool shuttingDownShell: false
+
+    function recomputeActiveWsOccupancy() {
+        let ws = root.runningWindows || [];
+        if (root.activeWorkspaceId >= 0) {
+            root.hasWindowOnActiveWs = ws.some(w => w.workspace_id === root.activeWorkspaceId);
+        } else {
+            root.hasWindowOnActiveWs = ws.some(w => w.is_focused);
+        }
+    }
+
     Process {
-        id: niriStateProc
-        command: ["sh", "-c", "printf 'FOCUS:'; niri msg -j focused-window 2>/dev/null || echo 'null'; printf '\nWS:'; niri msg -j workspaces 2>/dev/null || echo '[]'; printf '\nWINS:'; niri msg -j windows 2>/dev/null || echo '[]'"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                let lines = text.trim().split("\n");
-                let activeWsId = -1;
-                let hasFocusedWin = false;
-                for (let i = 0; i < lines.length; i++) {
-                    if (lines[i].startsWith("FOCUS:")) {
-                        try {
-                            let fw = JSON.parse(lines[i].slice(6));
-                            hasFocusedWin = !!(fw && fw.id);
-                            root.focusedAppName = (fw && fw.app_id) ? root.formatAppName(fw.app_id) : "Finder";
-                        } catch (e) {
-                            root.focusedAppName = "Finder";
+        id: niriEventStreamProc
+        command: ["niri", "msg", "-j", "event-stream"]
+        running: true
+        stdout: SplitParser {
+            onRead: line => {
+                let s = line.trim();
+                if (!s) return;
+                try {
+                    let ev = JSON.parse(s);
+                    if (ev.WorkspacesChanged && Array.isArray(ev.WorkspacesChanged.workspaces)) {
+                        let wss = ev.WorkspacesChanged.workspaces;
+                        for (let i = 0; i < wss.length; i++) {
+                            if (wss[i].is_focused || wss[i].is_active) {
+                                root.activeWorkspaceId = wss[i].id;
+                                break;
+                            }
                         }
-                    } else if (lines[i].startsWith("WS:")) {
-                        try {
-                            let wss = JSON.parse(lines[i].slice(3));
-                            if (Array.isArray(wss)) {
-                                for (let k = 0; k < wss.length; k++) {
-                                    if (wss[k].is_focused || wss[k].is_active) {
-                                        activeWsId = wss[k].id;
-                                        break;
-                                    }
-                                }
-                            }
-                        } catch (e) {}
-                    } else if (lines[i].startsWith("WINS:")) {
-                        try {
-                            let ws = JSON.parse(lines[i].slice(5));
-                            if (Array.isArray(ws)) {
-                                root.runningWindows = ws;
-                                if (activeWsId >= 0) {
-                                    let found = false;
-                                    for (let j = 0; j < ws.length; j++) {
-                                        if (ws[j].workspace_id === activeWsId) {
-                                            found = true;
-                                            break;
-                                        }
-                                    }
-                                    root.hasWindowOnActiveWs = found;
-                                } else {
-                                    root.hasWindowOnActiveWs = hasFocusedWin || ws.length > 0;
-                                }
-                            }
-                        } catch (e) {}
+                        root.recomputeActiveWsOccupancy();
+                    } else if (ev.WorkspaceActivated && typeof ev.WorkspaceActivated.id === "number") {
+                        if (ev.WorkspaceActivated.focused) {
+                            root.activeWorkspaceId = ev.WorkspaceActivated.id;
+                            root.recomputeActiveWsOccupancy();
+                        }
+                    } else if (ev.WindowsChanged && Array.isArray(ev.WindowsChanged.windows)) {
+                        root.runningWindows = ev.WindowsChanged.windows;
+                        let foc = root.runningWindows.find(w => w.is_focused);
+                        root.focusedAppName = (foc && foc.app_id) ? root.formatAppName(foc.app_id) : "Finder";
+                        root.recomputeActiveWsOccupancy();
+                    } else if (ev.WindowOpenedOrChanged && ev.WindowOpenedOrChanged.window) {
+                        let w = ev.WindowOpenedOrChanged.window;
+                        let next = root.runningWindows.filter(item => item.id !== w.id);
+                        if (w.is_focused) {
+                            next = next.map(item => Object.assign({}, item, { is_focused: false }));
+                            root.focusedAppName = w.app_id ? root.formatAppName(w.app_id) : "Finder";
+                        }
+                        next.push(w);
+                        root.runningWindows = next;
+                        root.recomputeActiveWsOccupancy();
+                    } else if (ev.WindowClosed && typeof ev.WindowClosed.id === "number") {
+                        let closedId = ev.WindowClosed.id;
+                        root.runningWindows = root.runningWindows.filter(item => item.id !== closedId);
+                        let foc = root.runningWindows.find(w => w.is_focused);
+                        root.focusedAppName = (foc && foc.app_id) ? root.formatAppName(foc.app_id) : "Finder";
+                        root.recomputeActiveWsOccupancy();
+                    } else if (ev.WindowFocusChanged) {
+                        let fid = ev.WindowFocusChanged.id;
+                        let next = root.runningWindows.map(w => Object.assign({}, w, { is_focused: w.id === fid }));
+                        root.runningWindows = next;
+                        let foc = next.find(w => w.id === fid);
+                        root.focusedAppName = (foc && foc.app_id) ? root.formatAppName(foc.app_id) : "Finder";
+                        root.recomputeActiveWsOccupancy();
+                    } else if ((ev.OverviewOpenedOrClosed || ev.OverviewOpenedOrChanged) && typeof (ev.OverviewOpenedOrClosed || ev.OverviewOpenedOrChanged).is_open === "boolean") {
+                        root.niriOverviewActive = (ev.OverviewOpenedOrClosed || ev.OverviewOpenedOrChanged).is_open;
                     }
-                }
+                } catch (e) {}
             }
         }
+        onExited: {
+            if (!root.shuttingDownShell) niriStreamRestartTimer.restart();
+        }
+    }
+
+    Timer {
+        id: niriStreamRestartTimer
+        interval: 1500
+        repeat: false
+        onTriggered: if (!root.shuttingDownShell) niriEventStreamProc.running = true
+    }
+
+    Component.onDestruction: {
+        root.shuttingDownShell = true;
+        niriStreamRestartTimer.stop();
+        niriEventStreamProc.running = false;
     }
 
     Process {
@@ -978,15 +1004,7 @@ ShellRoot {
     Component.onCompleted: {
         scanWallProc.running = true;
         root.triggerAppsScan();
-        niriStateProc.running = true;
         sysStatusProc.running = true;
-    }
-
-    Timer {
-        interval: 260
-        running: true
-        repeat: true
-        onTriggered: niriStateProc.running = true
     }
 
     Timer {
@@ -1047,13 +1065,52 @@ ShellRoot {
         exclusionMode: ExclusionMode.Ignore
 
         anchors { top: true; bottom: true; left: true; right: true }
-        color: "#000000"
+        color: "transparent"
+
+        property real cornerRadius: root.niriOverviewActive ? 22 : 0
+        Behavior on cornerRadius {
+            NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+        }
 
         WallpaperCrossfader {
+            id: bgCrossfader
             anchors.fill: parent
+            opacity: bgMaskEffect.visible ? 0.0 : 1.0
             source: root.currentWallpaper
             transitionType: "shaderRandom"
             transitionBaseDuration: 950
+        }
+
+        Item {
+            id: bgMaskSource
+            anchors.fill: parent
+            visible: false
+            layer.enabled: true
+            Rectangle {
+                anchors.fill: parent
+                radius: bgWin.cornerRadius
+                color: "#FFFFFF"
+            }
+        }
+
+        MultiEffect {
+            id: bgMaskEffect
+            anchors.fill: parent
+            source: bgCrossfader
+            visible: bgWin.cornerRadius > 0.5
+            maskEnabled: true
+            maskSource: bgMaskSource
+            maskThresholdMin: 0.5
+            maskSpreadAtMin: 1.0
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            radius: bgWin.cornerRadius
+            color: "transparent"
+            border.width: bgWin.cornerRadius > 0.5 ? 1 : 0
+            border.color: "#33FFFFFF"
+            visible: bgWin.cornerRadius > 0.5
         }
     }
 
@@ -1063,33 +1120,64 @@ ShellRoot {
         WlrLayershell.layer: WlrLayer.Background
         WlrLayershell.namespace: "iris-overview-backdrop"
         exclusionMode: ExclusionMode.Ignore
+        visible: true
 
         anchors { top: true; bottom: true; left: true; right: true }
         color: "#0D1017"
 
+        readonly property string resolvedBgSource: {
+            let src = String(root.currentWallpaper || "");
+            let low = src.split("?")[0].toLowerCase();
+            if (low.endsWith(".mp4") || low.endsWith(".webm") || low.endsWith(".mkv") || low.endsWith(".mov")) {
+                for (let i = 0; i < root.wallpaperList.length; i++) {
+                    let cand = String(root.wallpaperList[i] || "");
+                    let cl = cand.split("?")[0].toLowerCase();
+                    if (!cl.endsWith(".mp4") && !cl.endsWith(".webm") && !cl.endsWith(".mkv") && !cl.endsWith(".mov")) {
+                        return cand;
+                    }
+                }
+                return "";
+            }
+            return src;
+        }
+
         Image {
             id: overviewWpImg
             anchors.fill: parent
-            source: root.currentWallpaper
+            source: overviewBackdropWin.resolvedBgSource
             fillMode: Image.PreserveAspectCrop
             asynchronous: true
             cache: true
             smooth: true
-            scale: 1.05
+            visible: false
         }
 
         MultiEffect {
-            anchors.fill: overviewWpImg
+            anchors.fill: parent
             source: overviewWpImg
+            visible: overviewWpImg.status === Image.Ready
             blurEnabled: true
-            blurMax: 64
-            blur: 0.85
-            saturation: 0.15
+            blur: 0.88
+            blurMax: 56
+            saturation: 0.16
+            contrast: -0.04
         }
 
+        // Lapisan tint kaca halus yang sinkron dengan mode Glass Engine aktif
         Rectangle {
             anchors.fill: parent
-            color: "#260E121B"
+            gradient: Gradient {
+                GradientStop {
+                    position: 0.0
+                    color: root.glassStyle === "liquid"
+                        ? Qt.rgba(0.08, 0.11, 0.16, 0.28)
+                        : Qt.rgba(0.06, 0.08, 0.12, Math.max(0.24, Math.min(0.46, root.aeroOpacity * 0.85)))
+                }
+                GradientStop {
+                    position: 1.0
+                    color: Qt.rgba(0.04, 0.05, 0.08, 0.42)
+                }
+            }
         }
     }
 
@@ -1102,7 +1190,7 @@ ShellRoot {
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.namespace: "macos-music-preview"
         exclusionMode: ExclusionMode.Ignore
-        visible: (root.musicPreviewVisible && root.activePopup !== "music") || musicPreviewCard.opacity > 0.01
+        visible: false // Digantikan oleh Dynamic Island di bar/TopBar.qml
 
         anchors { top: true }
         margins { top: 32 }
@@ -1249,6 +1337,7 @@ ShellRoot {
             id: backdropMouse
             anchors.fill: parent
             z: 0
+            enabled: !root.menuModalActive
             acceptedButtons: Qt.LeftButton | Qt.RightButton
             onClicked: root.closePopups()
         }
@@ -1257,7 +1346,7 @@ ShellRoot {
             id: menuPopupsLoader
             anchors.fill: parent
             property bool holdAlive: false
-            active: (root.activePopup === "apple" || root.activePopup === "window" || root.activePopup === "desktop") || holdAlive
+            active: (root.activePopup === "apple" || root.activePopup === "window" || root.activePopup === "desktop") || holdAlive || root.menuModalActive
             onActiveChanged: {
                 if (active && !(root.activePopup === "apple" || root.activePopup === "window" || root.activePopup === "desktop")) holdAlive = false;
             }
@@ -1642,6 +1731,12 @@ ShellRoot {
                 dockItems: root.dockItems,
                 dockLeftOrder: root.dockLeftOrder,
                 dockRightOrder: root.dockRightOrder,
+                dockHideMode: root.dockHideMode,
+                wallpaperCycleMode: root.wallpaperCycleMode,
+                autoCycleMinutes: root.autoCycleMinutes,
+                favoriteWallpapers: root.favoriteWallpapers,
+                liveWallpaperEnabled: root.liveWallpaperEnabled,
+                pauseWhenUnseen: root.pauseWhenUnseen,
                 noteText: quickNoteText,
                 items: widgetStates,
                 glassStyle: root.glassStyle,
@@ -1685,6 +1780,12 @@ ShellRoot {
                         }
                         if (Array.isArray(obj.dockLeftOrder) && obj.dockLeftOrder.length === 4) root.dockLeftOrder = obj.dockLeftOrder;
                         if (Array.isArray(obj.dockRightOrder) && obj.dockRightOrder.length === 2) root.dockRightOrder = obj.dockRightOrder;
+                        if (obj.dockHideMode === "smart" || obj.dockHideMode === "always" || obj.dockHideMode === "never") root.dockHideMode = obj.dockHideMode;
+                        if (obj.wallpaperCycleMode === "gacha" || obj.wallpaperCycleMode === "next") root.wallpaperCycleMode = obj.wallpaperCycleMode;
+                        if (typeof obj.autoCycleMinutes === "number") root.autoCycleMinutes = Math.max(0, Math.min(1440, obj.autoCycleMinutes));
+                        if (Array.isArray(obj.favoriteWallpapers)) root.favoriteWallpapers = obj.favoriteWallpapers;
+                        if (typeof obj.liveWallpaperEnabled === "boolean") root.liveWallpaperEnabled = obj.liveWallpaperEnabled;
+                        if (typeof obj.pauseWhenUnseen === "boolean") root.pauseWhenUnseen = obj.pauseWhenUnseen;
                         if (typeof obj.locked === "boolean") {
                             win.widgetsLocked = obj.locked;
                             root.widgetCfg.locked = obj.locked;
