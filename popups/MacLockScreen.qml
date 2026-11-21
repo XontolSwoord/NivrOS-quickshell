@@ -504,6 +504,24 @@ Scope {
                                 text = "";
                                 lockSurface.errorText = "";
                             }
+                            onTextEdited: {
+
+                                let len = text.length;
+
+                                let totalW = len > 0 ? (len * 9.5 + (len - 1) * 5.0) : 0;
+
+                                let targetX = len > 0
+
+                                    ? Math.min(dotsViewport.width - 4.75, totalW - 4.75)
+
+                                    : 4.75;
+
+                                let pt = dotsViewport.mapToItem(waterShader, targetX, dotsViewport.height * 0.5);
+
+                                lockSurface.spawnLiquidAt(pt.x, pt.y, 1.05);
+
+                            }
+
                             onTextChanged: {
                                 if (text.length > 0 && lockSurface.errorText !== "") {
                                     lockSurface.errorText = "";
@@ -544,14 +562,7 @@ Scope {
                                         width: 9.5
                                         height: 22
 
-                                        Component.onCompleted: {
-                                            dotAppearAnim.start();
-                                            Qt.callLater(() => {
-                                                if (!dotSlot) return;
-                                                let pt = dotSlot.mapToItem(waterShader, dotSlot.width * 0.5, dotSlot.height * 0.5);
-                                                lockSurface.spawnLiquidAt(pt.x, pt.y, 1.0);
-                                            });
-                                        }
+                                        Component.onCompleted: dotAppearAnim.start()
 
                                         Rectangle {
                                             id: dotGlyph
