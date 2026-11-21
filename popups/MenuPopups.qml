@@ -716,25 +716,68 @@ Item {
 
             Item {
                 id: spinnerWrap
-                width: 68
-                height: 68
+                width: 64
+                height: 64
                 anchors.horizontalCenter: parent.horizontalCenter
 
-                Image {
-                    id: powerAppleLogo
+                Canvas {
+                    id: powerCircleSpinner
                     anchors.centerIn: parent
                     width: 56
                     height: 56
-                    fillMode: Image.PreserveAspectFit
-                    source: Qt.resolvedUrl("../assets/apple-logo.png")
-                    rotation: 0
+                    antialiasing: true
+                    smooth: true
+
+                    property real arcSpan: 105
+                    onArcSpanChanged: requestPaint()
+                    Component.onCompleted: requestPaint()
+
+                    Connections {
+                        target: modRoot
+                        function onPowerExecutingChanged() {
+                            if (modRoot.powerExecuting) powerCircleSpinner.requestPaint();
+                        }
+                    }
+
+                    SequentialAnimation on arcSpan {
+                        running: modRoot.powerExecuting
+                        loops: Animation.Infinite
+                        NumberAnimation { from: 82; to: 148; duration: 760; easing.type: Easing.InOutSine }
+                        NumberAnimation { from: 148; to: 82; duration: 760; easing.type: Easing.InOutSine }
+                    }
 
                     RotationAnimation on rotation {
                         running: modRoot.powerExecuting
                         loops: Animation.Infinite
                         from: 0
                         to: 360
-                        duration: 750
+                        duration: 920
+                    }
+
+                    onPaint: {
+                        var ctx = getContext("2d");
+                        ctx.clearRect(0, 0, width, height);
+                        var cx = width * 0.5;
+                        var cy = height * 0.5;
+                        var lw = 6.2;
+                        var r = (Math.min(width, height) - lw) * 0.5;
+
+                        // Track cincin lingkaran putih transparan
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, r, 0, Math.PI * 2, false);
+                        ctx.strokeStyle = "rgba(255, 255, 255, 0.18)";
+                        ctx.lineWidth = lw;
+                        ctx.stroke();
+
+                        // Busur lingkaran putih berujung membulat
+                        var startRad = -Math.PI * 0.5;
+                        var endRad = startRad + (arcSpan * Math.PI / 180.0);
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, r, startRad, endRad, false);
+                        ctx.strokeStyle = "#FFFFFF";
+                        ctx.lineWidth = lw;
+                        ctx.lineCap = "round";
+                        ctx.stroke();
                     }
                 }
             }
