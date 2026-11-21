@@ -757,6 +757,10 @@ Item {
             }
         }
 
+        Process {
+            id: powerActionProc
+        }
+
         Timer {
             id: powerExecTimer
             interval: 2000
@@ -766,7 +770,8 @@ Item {
                 modRoot.activePowerCmd = "";
                 modRoot.activePowerLabel = "";
                 if (cmd && cmd !== "") {
-                    shellRoot.runCmd(cmd);
+                    powerActionProc.command = ["sh", "-c", cmd + " >/tmp/power_action.log 2>&1"];
+                    powerActionProc.running = true;
                 }
                 powerFallbackResetTimer.restart();
             }
