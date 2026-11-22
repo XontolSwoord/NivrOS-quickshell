@@ -80,7 +80,7 @@ Item {
     Process {
         id: hwTelemetryProc
         Component.onCompleted: running = true
-        command: ["python3", "/home/arip/.config/quickshell/scripts/hw_telemetry.py"]
+        command: ["python3", Quickshell.env("HOME") + "/.config/quickshell/scripts/hw_telemetry.py"]
         stdout: StdioCollector {
             onStreamFinished: {
                 let p = text.trim().split("|");
@@ -102,7 +102,7 @@ Item {
     Process {
         id: niriStateReaderProc
         Component.onCompleted: running = true
-        command: ["python3", "/home/arip/.config/quickshell/scripts/niri_config_helper.py", "read_state"]
+        command: ["python3", Quickshell.env("HOME") + "/.config/quickshell/scripts/niri_config_helper.py", "read_state"]
         stdout: StdioCollector {
             onStreamFinished: {
                 let p = text.trim().split("|");
@@ -132,7 +132,7 @@ Item {
     Process {
         id: niriBindsReaderProc
         Component.onCompleted: running = true
-        command: ["python3", "/home/arip/.config/quickshell/scripts/niri_config_helper.py", "read_binds"]
+        command: ["python3", Quickshell.env("HOME") + "/.config/quickshell/scripts/niri_config_helper.py", "read_binds"]
         stdout: StdioCollector {
             onStreamFinished: {
                 let rows = text.trim().split("\n").filter(l => l.includes("|"));

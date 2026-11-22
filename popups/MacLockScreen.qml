@@ -96,7 +96,7 @@ Scope {
 
             PamContext {
                 id: pam
-                configDirectory: "/home/arip/.config/quickshell/pam"
+                configDirectory: Quickshell.env("HOME") + "/.config/quickshell/pam"
                 config: "password"
                 user: lockSurface.userName
 
