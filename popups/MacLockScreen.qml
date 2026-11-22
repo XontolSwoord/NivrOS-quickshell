@@ -21,7 +21,7 @@ Scope {
             property bool authenticating: false
             property string errorText: ""
             property date nowDate: new Date()
-            property string userName: (Quickshell.env("USER") || "arip")
+            property string userName: (Quickshell.env("USER") || "User")
             property string displayName: userName.length > 0 ? (userName.charAt(0).toUpperCase() + userName.slice(1)) : "User"
             property string avatarPath: "/var/lib/AccountsService/icons/" + userName
 

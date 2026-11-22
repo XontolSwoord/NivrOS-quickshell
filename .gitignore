@@ -1,9 +1,10 @@
+__pycache__/
+*.py[cod]
 *.log
 *.bak
 *.old
 *.tmp
 *~
-__pycache__/
-*.pyc
 profile.json
 icon_map.json
+.backup_golden/
