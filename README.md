@@ -80,9 +80,16 @@ Default folders: `~/Pictures/Wallpapers`, `~/Pictures/Screenshots`, `~/Videos`.
 
 ## Credits
 
-- **Creator & Maintainer:** XontolSwoord
+- **Creator & Maintainer:** XontolSwoord (design direction, configuration, testing on real hardware)
+- **AI Collaborator:** Gemini (QML components, animations, keyboard and touchpad navigation, telemetry integration, bug fixing)
 - **Built with:** [Quickshell](https://quickshell.org) and [Niri](https://github.com/YaLTeR/niri)
+- **Icon theme:** [Mkos-Big-Sur](https://github.com/zayronxio/Mkos-Big-Sur) by zayronXIO (used for app icons, not bundled)
 - **Inspiration:** [iNiR](https://github.com/snowarch/iNiR) (visual reference and repo structure)
+
+## Status
+
+- Tested on **Fedora** with Niri. Arch and Debian/Ubuntu paths in `install.sh` are best-effort and **untested**.
+- Quickshell updates can break QML shells when Qt updates; if `qs` fails after a system upgrade, rebuild or update Quickshell.
 
 ## License
 

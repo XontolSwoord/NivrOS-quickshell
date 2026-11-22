@@ -25,10 +25,23 @@ install_deps() {
         fi
     elif command -v dnf >/dev/null 2>&1; then
         echo "[1/4] Fedora detected (dnf)"
-        sudo dnf install -y niri wf-recorder ffmpeg-free grim slurp wl-clipboard playerctl \
+        command -v niri >/dev/null 2>&1 || sudo dnf install -y niri || {
+            echo "      'niri' not in enabled repos, trying COPR yalter/niri"
+            sudo dnf install -y dnf-plugins-core
+            sudo dnf copr enable -y yalter/niri
+            sudo dnf install -y niri
+        }
+        sudo dnf install -y wf-recorder ffmpeg-free grim slurp wl-clipboard playerctl \
             brightnessctl libnotify NetworkManager bluez python3 pulseaudio-utils wireplumber \
             power-profiles-daemon jq alacritty qt6ct
-        command -v qs >/dev/null 2>&1 || echo "WARNING: 'qs' not found. Install 'quickshell' (Fedora repos or COPR)."
+        if ! command -v qs >/dev/null 2>&1; then
+            sudo dnf install -y quickshell || {
+                echo "      'quickshell' not in enabled repos, trying COPR errornointernet/quickshell"
+                sudo dnf install -y dnf-plugins-core
+                sudo dnf copr enable -y errornointernet/quickshell
+                sudo dnf install -y quickshell
+            }
+        fi
     elif command -v apt-get >/dev/null 2>&1; then
         echo "[1/4] Debian/Ubuntu detected (apt)"
         sudo apt-get update
