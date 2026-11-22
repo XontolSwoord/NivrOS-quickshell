@@ -422,13 +422,17 @@ Item {
 
                                 Rectangle {
                                     width: 26; height: 26; radius: 13
-                                    color: ThemeTokens.accent
-                                    Text {
+                                    color: "#000000"
+                                    border.width: 1
+                                    border.color: "#38FFFFFF"
+                                    Image {
                                         anchors.centerIn: parent
-                                        text: "XS"
-                                        color: "#FFFFFF"
-                                        font.pixelSize: 10
-                                        font.bold: true
+                                        source: "../assets/nos_logo.png"
+                                        width: 16
+                                        height: 16
+                                        fillMode: Image.PreserveAspectFit
+                                        smooth: true
+                                        mipmap: true
                                     }
                                 }
 

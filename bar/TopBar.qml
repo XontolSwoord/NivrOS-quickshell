@@ -410,7 +410,8 @@ PanelWindow {
                         anchors.centerIn: parent
                         width: 14
                         height: 14
-                        source: "../assets/apple-logo.png"
+                        source: "../assets/nos_logo.png"
+                        mipmap: true
                         fillMode: Image.PreserveAspectFit
                         smooth: true
                         visible: false
@@ -419,7 +420,7 @@ PanelWindow {
                         anchors.fill: appleLogoImg
                         source: appleLogoImg
                         colorization: 1.0
-                        colorizationColor: ThemeTokens.iconTint
+                        colorizationColor: "#FFFFFF"
                     }
 
                     MouseArea {
