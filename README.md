@@ -2,7 +2,7 @@
 
 A macOS-inspired desktop shell with a Liquid Glass look, built on **Quickshell** for the **Niri** Wayland compositor.
 
-![NivrOS desktop](docs/desktop.png)
+![NivrOS desktop](docs/screenshots/main.webp)
 
 ## Highlights
 
@@ -12,12 +12,26 @@ A macOS-inspired desktop shell with a Liquid Glass look, built on **Quickshell**
 - **Wallpaper Transitions**: crossfade wallpaper transitions.
 - **Portable & Auto-Save**: dynamic paths (`$HOME`), user preferences stored locally in `profile.json`.
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/1.webp" width="48%">
+  <img src="docs/screenshots/2.webp" width="48%">
+  <img src="docs/screenshots/3.webp" width="48%">
+  <img src="docs/screenshots/4.webp" width="48%">
+  <img src="docs/screenshots/5.webp" width="48%">
+  <img src="docs/screenshots/7.webp" width="48%">
+  <img src="docs/screenshots/8.webp" width="48%">
+</p>
+
 ## Project Structure
 
     assets/               # visual assets & NivrOS logo
     bar/                  # TopBar & Dynamic Island
+    config/               # example Niri & Alacritty configs
     core/                 # state singleton (ShellState), theme, utilities
     dock/                 # dock and related components
+    docs/                 # screenshots
     pam/                  # PAM config for the lock screen
     popups/               # Control Center, Settings, Lock Screen, About
     scripts/              # helper scripts: telemetry, Niri, automation
@@ -40,8 +54,8 @@ A macOS-inspired desktop shell with a Liquid Glass look, built on **Quickshell**
 
 Automatic (Arch, Fedora, Debian/Ubuntu):
 
-    git clone https://github.com/XontolSwoord/NivrOS-quickshell.git ~/.config/quickshell
-    cd ~/.config/quickshell
+    git clone https://github.com/XontolSwoord/NivrOS-quickshell.git ~/NivrOS-quickshell
+    cd ~/NivrOS-quickshell
     chmod +x install.sh
     ./install.sh
 
