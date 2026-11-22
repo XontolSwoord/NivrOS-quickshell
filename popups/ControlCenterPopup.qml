@@ -25,16 +25,23 @@ Item {
             anchors.rightMargin: 10
             width: 338
             height: 460
-            radius: 22
-            color: "transparent"
+            topLeftRadius: 22
+            topRightRadius: 22
+            bottomLeftRadius: 22
+            bottomRightRadius: 22
+            color: ShellState.isSolid ? ThemeTokens.windowBg : "transparent"
             Canvas {
-                anchors.fill: parent
+                                x: 0
+                y: 0
+                width: parent.width
+                height: parent.height
                 z: -1
+                visible: !ShellState.isSolid
                 property real dO: shellRoot.aeroOpacity
                 property real dR: shellRoot.aeroReflection
                 property real dF: shellRoot.glassFade
                 property string dW: shellRoot.activeGlassWall
-                property string dSt: shellRoot.glassStyle
+                property string dSt: ShellState.surfaceMode + "_" + ShellState.liquidVariant + "_" + ShellState.colorScheme
                 property real dTh: shellRoot.activeGlassDetail
                 onDOChanged: requestPaint()
                 onDRChanged: requestPaint()
@@ -42,15 +49,17 @@ Item {
                 onDWChanged: requestPaint()
                 onDStChanged: requestPaint()
                 onDThChanged: requestPaint()
+                onWidthChanged: requestPaint()
+                onHeightChanged: requestPaint()
                 onPaint: {
                     let sw = Screen.width || 1366;
-                    let sh = Screen.height || 768;
-                    let pos = parent.mapToItem(null, 0, 0);
-                    shellRoot.drawGlobalAeroGlass(getContext("2d"), width, height, parent.radius, pos.x, pos.y, sw, sh, false, false);
+                        let sh = Screen.height || 768;
+                        let pos = parent.mapToItem(null, 0, 0);
+                        shellRoot.drawGlobalAeroGlass(getContext("2d"), width, height, 22, pos.x, pos.y, sw, sh, false, false);
                 }
             }
             border.width: 1
-            border.color: "#38FFFFFF"
+            border.color: ThemeTokens.borderStrong
             visible: !shellRoot.preWarmDone || (shellRoot.activePopup === "cc" || opacity > 0.01)
 
             MouseArea { anchors.fill: parent; z: 0 }
@@ -115,9 +124,9 @@ Item {
                         width: 152
                         height: 154
                         radius: 18
-                        color: "#22FFFFFF"
+                        color: ThemeTokens.cardBg
                         border.width: 1
-                        border.color: "#1AFFFFFF"
+                        border.color: ThemeTokens.cardBg
 
                         Column {
                             x: 10
@@ -131,6 +140,9 @@ Item {
                                 height: 40
                                 radius: 11
                                 color: wifiRowM.containsMouse ? "#24FFFFFF" : "transparent"
+                                transformOrigin: Item.Center
+                                scale: wifiRowM.pressed ? 0.90 : (wifiRowM.containsMouse ? 1.015 : 1.0)
+                                Behavior on scale { SpringAnimation { mass: 0.72; spring: 9.0; damping: 0.40; epsilon: 0.001 } }
                                 Behavior on color { ColorAnimation { duration: 160 } }
 
                                 Rectangle {
@@ -156,9 +168,9 @@ Item {
                                     }
                                 }
 
-                                Text { x: 44; y: 4; width: 74; text: "Wi-Fi"; color: "#F5F5F7"; font.pixelSize: 12; font.bold: true }
-                                Text { x: 44; y: 20; width: 74; text: shellRoot.wifiName; color: "#AEAEB2"; font.pixelSize: 10; elide: Text.ElideRight }
-                                Text { x: 121; y: 12; text: "›"; color: "#8E8E93"; font.pixelSize: 13; font.bold: true }
+                                Text { x: 44; y: 4; width: 74; text: "Wi-Fi"; color: ThemeTokens.textPrimary; font.pixelSize: 12; font.bold: true }
+                                Text { x: 44; y: 20; width: 74; text: shellRoot.wifiName; color: ThemeTokens.textSecondary; font.pixelSize: 10; elide: Text.ElideRight }
+                                Text { x: 121; y: 12; text: "›"; color: ThemeTokens.textMuted; font.pixelSize: 13; font.bold: true }
 
                                 MouseArea {
                                     id: wifiRowM
@@ -180,6 +192,9 @@ Item {
                                 height: 40
                                 radius: 11
                                 color: btRowM.containsMouse ? "#24FFFFFF" : "transparent"
+                                transformOrigin: Item.Center
+                                scale: btRowM.pressed ? 0.90 : (btRowM.containsMouse ? 1.015 : 1.0)
+                                Behavior on scale { SpringAnimation { mass: 0.72; spring: 9.0; damping: 0.40; epsilon: 0.001 } }
                                 Behavior on color { ColorAnimation { duration: 160 } }
 
                                 Rectangle {
@@ -203,9 +218,9 @@ Item {
                                     }
                                 }
 
-                                Text { x: 44; y: 4; width: 74; text: "Bluetooth"; color: "#F5F5F7"; font.pixelSize: 12; font.bold: true }
-                                Text { x: 44; y: 20; width: 74; text: shellRoot.btEnabled ? (shellRoot.btDeviceName !== "" ? shellRoot.btDeviceName : "Aktif") : "Mati"; color: "#AEAEB2"; font.pixelSize: 10; elide: Text.ElideRight }
-                                Text { x: 121; y: 12; text: "›"; color: "#8E8E93"; font.pixelSize: 13; font.bold: true }
+                                Text { x: 44; y: 4; width: 74; text: "Bluetooth"; color: ThemeTokens.textPrimary; font.pixelSize: 12; font.bold: true }
+                                Text { x: 44; y: 20; width: 74; text: shellRoot.btEnabled ? (shellRoot.btDeviceName !== "" ? shellRoot.btDeviceName : "Aktif") : "Mati"; color: ThemeTokens.textSecondary; font.pixelSize: 10; elide: Text.ElideRight }
+                                Text { x: 121; y: 12; text: "›"; color: ThemeTokens.textMuted; font.pixelSize: 13; font.bold: true }
 
                                 MouseArea {
                                     id: btRowM
@@ -227,6 +242,9 @@ Item {
                                 height: 40
                                 radius: 11
                                 color: awakeRowM.containsMouse ? "#24FFFFFF" : "transparent"
+                                transformOrigin: Item.Center
+                                scale: awakeRowM.pressed ? 0.90 : (awakeRowM.containsMouse ? 1.015 : 1.0)
+                                Behavior on scale { SpringAnimation { mass: 0.72; spring: 9.0; damping: 0.40; epsilon: 0.001 } }
                                 Behavior on color { ColorAnimation { duration: 160 } }
 
                                 Rectangle {
@@ -247,8 +265,8 @@ Item {
                                     }
                                 }
 
-                                Text { x: 44; y: 4; width: 84; text: "Keep Awake"; color: "#F5F5F7"; font.pixelSize: 12; font.bold: true }
-                                Text { x: 44; y: 20; width: 84; text: shellRoot.keepAwake ? "Layar Terjaga" : "Normal"; color: "#AEAEB2"; font.pixelSize: 10; elide: Text.ElideRight }
+                                Text { x: 44; y: 4; width: 84; text: "Keep Awake"; color: ThemeTokens.textPrimary; font.pixelSize: 12; font.bold: true }
+                                Text { x: 44; y: 20; width: 84; text: shellRoot.keepAwake ? "Layar Terjaga" : "Normal"; color: ThemeTokens.textSecondary; font.pixelSize: 10; elide: Text.ElideRight }
 
                                 MouseArea {
                                     id: awakeRowM
@@ -272,8 +290,11 @@ Item {
                             height: 72
                             radius: 18
                             color: dndM.containsMouse ? "#30FFFFFF" : "#22FFFFFF"
+                            transformOrigin: Item.Center
+                            scale: dndM.pressed ? 0.90 : (dndM.containsMouse ? 1.015 : 1.0)
+                            Behavior on scale { SpringAnimation { mass: 0.72; spring: 9.0; damping: 0.40; epsilon: 0.001 } }
                             border.width: 1
-                            border.color: "#1AFFFFFF"
+                            border.color: ThemeTokens.cardBg
                             Behavior on color { ColorAnimation { duration: 160 } }
 
                             Rectangle {
@@ -297,8 +318,8 @@ Item {
                                 }
                             }
 
-                            Text { x: 56; y: 19; width: 86; text: "Focus"; color: "#F5F5F7"; font.pixelSize: 12; font.bold: true }
-                            Text { x: 56; y: 36; width: 86; text: shellRoot.dndEnabled ? "Do Not Disturb" : "Off"; color: "#AEAEB2"; font.pixelSize: 10; elide: Text.ElideRight }
+                            Text { x: 56; y: 19; width: 86; text: "Focus"; color: ThemeTokens.textPrimary; font.pixelSize: 12; font.bold: true }
+                            Text { x: 56; y: 36; width: 86; text: shellRoot.dndEnabled ? "Do Not Disturb" : "Off"; color: ThemeTokens.textSecondary; font.pixelSize: 10; elide: Text.ElideRight }
 
                             MouseArea {
                                 id: dndM
@@ -315,29 +336,86 @@ Item {
                             height: 72
                             spacing: 10
 
+                            // Tombol Night Light (Filter Cahaya Biru)
                             Rectangle {
                                 width: 71
                                 height: 72
                                 radius: 18
-                                color: ssTileM.containsMouse ? "#30FFFFFF" : "#22FFFFFF"
+                                color: ShellState.nightLightEnabled ? ThemeTokens.accentSoft : (nlTileM.containsMouse ? ThemeTokens.cardHoverBg : ThemeTokens.cardBg)
                                 border.width: 1
-                                border.color: "#1AFFFFFF"
-                                scale: ssTileM.pressed ? 0.94 : 1.0
+                                border.color: ShellState.nightLightEnabled ? ThemeTokens.accent : ThemeTokens.borderSubtle
+                                transformOrigin: Item.Center
+                                scale: nlTileM.pressed ? 0.89 : (nlTileM.containsMouse ? 1.02 : 1.0)
                                 Behavior on color { ColorAnimation { duration: 160 } }
                                 Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
                                 Canvas {
-                                    x: 25; y: 14
+                                    x: 25; y: 13
                                     width: 20; height: 18
+                                    property bool activeNl: ShellState.nightLightEnabled
+                                    property color fg: activeNl ? "#FF9F0A" : ThemeTokens.iconTint
+                                    onActiveNlChanged: requestPaint()
+                                    onFgChanged: requestPaint()
                                     onPaint: {
                                         let ctx = getContext("2d"); ctx.reset();
-                                        ctx.strokeStyle = "#F5F5F7"; ctx.lineWidth = 1.6;
-                                        ctx.strokeRect(2, 4, 16, 11);
-                                        ctx.beginPath(); ctx.arc(10, 9.5, 3, 0, Math.PI * 2); ctx.stroke();
+                                        ctx.strokeStyle = fg; ctx.fillStyle = fg; ctx.lineWidth = 1.5;
+                                        // Simbol Matahari Hangat + Filter
+                                        ctx.beginPath(); ctx.arc(10, 9, 4.2, 0, Math.PI * 2);
+                                        if (activeNl) ctx.fill(); else ctx.stroke();
+                                        for (let a = 0; a < 8; a++) {
+                                            let ang = a * Math.PI / 4;
+                                            ctx.beginPath();
+                                            ctx.moveTo(10 + Math.cos(ang) * 6.2, 9 + Math.sin(ang) * 6.2);
+                                            ctx.lineTo(10 + Math.cos(ang) * 8.2, 9 + Math.sin(ang) * 8.2);
+                                            ctx.stroke();
+                                        }
                                     }
                                 }
 
-                                Text { x: 4; y: 42; width: 63; horizontalAlignment: Text.AlignHCenter; text: "Capture"; color: "#F5F5F7"; font.pixelSize: 11; font.weight: Font.Medium }
+                                Text { x: 4; y: 37; width: 63; horizontalAlignment: Text.AlignHCenter; text: "Night Light"; color: ThemeTokens.textPrimary; font.pixelSize: 10; font.weight: Font.DemiBold }
+                                Text { x: 4; y: 51; width: 63; horizontalAlignment: Text.AlignHCenter; text: ShellState.nightLightEnabled ? (ShellState.nightLightTemp + "K") : "Off"; color: ThemeTokens.textSecondary; font.pixelSize: 9 }
+
+                                MouseArea {
+                                    id: nlTileM
+                                    anchors.fill: parent
+                                    z: 5
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: shellRoot.toggleNightLight()
+                                }
+                            }
+
+                            // Tombol Capture & Rekam Layar Terintegrasi
+                            Rectangle {
+                                width: 71
+                                height: 72
+                                radius: 18
+                                color: ShellState.isRecording ? "#33FF453A" : (ssTileM.containsMouse ? ThemeTokens.cardHoverBg : ThemeTokens.cardBg)
+                                border.width: 1
+                                border.color: ShellState.isRecording ? ThemeTokens.danger : ThemeTokens.borderSubtle
+                                transformOrigin: Item.Center
+                                scale: ssTileM.pressed ? 0.89 : (ssTileM.containsMouse ? 1.02 : 1.0)
+                                Behavior on color { ColorAnimation { duration: 160 } }
+                                Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
+
+                                Canvas {
+                                    x: 25; y: 13
+                                    width: 20; height: 18
+                                    property bool rec: ShellState.isRecording
+                                    property color fg: rec ? "#FF453A" : ThemeTokens.iconTint
+                                    onRecChanged: requestPaint()
+                                    onFgChanged: requestPaint()
+                                    onPaint: {
+                                        let ctx = getContext("2d"); ctx.reset();
+                                        ctx.strokeStyle = fg; ctx.fillStyle = fg; ctx.lineWidth = 1.6;
+                                        ctx.beginPath(); ctx.roundedRect(2, 4, 16, 11, 2.5, 2.5); ctx.stroke();
+                                        ctx.beginPath(); ctx.arc(10, 9.5, 3, 0, Math.PI * 2);
+                                        if (rec) ctx.fill(); else ctx.stroke();
+                                    }
+                                }
+
+                                Text { x: 4; y: 37; width: 63; horizontalAlignment: Text.AlignHCenter; text: ShellState.isRecording ? "Stop Rec" : "Capture"; color: ShellState.isRecording ? ThemeTokens.danger : ThemeTokens.textPrimary; font.pixelSize: 10; font.weight: Font.DemiBold }
+                                Text { x: 4; y: 51; width: 63; horizontalAlignment: Text.AlignHCenter; text: ShellState.isRecording ? "Merekam" : "Area / Rec"; color: ThemeTokens.textSecondary; font.pixelSize: 9 }
 
                                 MouseArea {
                                     id: ssTileM
@@ -345,47 +423,21 @@ Item {
                                     z: 5
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        shellRoot.closePopups();
-                                        screenshotDelayTimer.restart();
+                                    acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                    onClicked: (mouse) => {
+                                        if (ShellState.isRecording) {
+                                            shellRoot.toggleScreenRecord();
+                                        } else if (mouse.button === Qt.RightButton) {
+                                            shellRoot.closePopups();
+                                            shellRoot.toggleScreenRecord();
+                                        } else {
+                                            ccCaptureMenu.visible = !ccCaptureMenu.visible;
+                                        }
                                     }
-                                }
-                            }
-
-                            Rectangle {
-                                width: 71
-                                height: 72
-                                radius: 18
-                                color: wpTileM.containsMouse ? "#30FFFFFF" : "#22FFFFFF"
-                                border.width: 1
-                                border.color: "#1AFFFFFF"
-                                scale: wpTileM.pressed ? 0.94 : 1.0
-                                Behavior on color { ColorAnimation { duration: 160 } }
-                                Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
-
-                                Canvas {
-                                    x: 25; y: 14
-                                    width: 20; height: 18
-                                    onPaint: {
-                                        let ctx = getContext("2d"); ctx.reset();
-                                        ctx.strokeStyle = "#FF9F0A"; ctx.lineWidth = 1.6;
-                                        ctx.strokeRect(2, 3, 16, 12);
-                                        ctx.beginPath(); ctx.moveTo(3, 14); ctx.lineTo(8, 8); ctx.lineTo(12, 12); ctx.lineTo(14, 9); ctx.lineTo(17, 14); ctx.stroke();
-                                    }
-                                }
-
-                                Text { x: 4; y: 42; width: 63; horizontalAlignment: Text.AlignHCenter; text: "Wallpaper"; color: "#F5F5F7"; font.pixelSize: 11; font.weight: Font.Medium }
-
-                                MouseArea {
-                                    id: wpTileM
-                                    anchors.fill: parent
-                                    z: 5
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: shellRoot.pickRandomWallpaper()
                                 }
                             }
                         }
+
                     }
                 }
 
@@ -394,9 +446,9 @@ Item {
                     width: 314
                     height: 66
                     radius: 18
-                    color: "#22FFFFFF"
+                    color: ThemeTokens.cardBg
                     border.width: 1
-                    border.color: "#1AFFFFFF"
+                    border.color: ThemeTokens.cardBg
                     opacity: ccCard.stage >= 2 ? 1.0 : 0.0
                     transform: Translate {
                         y: ccCard.stage >= 2 ? 0 : 12
@@ -404,8 +456,8 @@ Item {
                     }
                     Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
-                    Text { x: 14; y: 10; text: "Display"; color: "#F5F5F7"; font.pixelSize: 11; font.bold: true }
-                    Text { anchors.right: parent.right; anchors.rightMargin: 14; y: 10; text: shellRoot.brightnessLevel + "%"; color: "#AEAEB2"; font.pixelSize: 11 }
+                    Text { x: 14; y: 10; text: "Display"; color: ThemeTokens.textPrimary; font.pixelSize: 11; font.bold: true }
+                    Text { anchors.right: parent.right; anchors.rightMargin: 14; y: 10; text: shellRoot.brightnessLevel + "%"; color: ThemeTokens.textSecondary; font.pixelSize: 11 }
 
                     Rectangle {
                         id: briTrack
@@ -413,14 +465,14 @@ Item {
                         width: 290
                         height: 24
                         radius: 12
-                        color: "#38000000"
+                        color: ThemeTokens.inputBg
                         clip: true
 
                         Rectangle {
                             width: Math.max(24, 290 * (shellRoot.brightnessLevel / 100))
                             height: 24
                             radius: 12
-                            color: "#F5F5F7"
+                            color: ThemeTokens.textPrimary
                             Behavior on width { NumberAnimation { duration: 110; easing.type: Easing.InOutCubic } }
                         }
 
@@ -449,9 +501,9 @@ Item {
                     width: 314
                     height: 66
                     radius: 18
-                    color: "#22FFFFFF"
+                    color: ThemeTokens.cardBg
                     border.width: 1
-                    border.color: "#1AFFFFFF"
+                    border.color: ThemeTokens.cardBg
                     opacity: ccCard.stage >= 3 ? 1.0 : 0.0
                     transform: Translate {
                         y: ccCard.stage >= 3 ? 0 : 12
@@ -459,7 +511,7 @@ Item {
                     }
                     Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
-                    Text { x: 14; y: 10; text: "Sound"; color: "#F5F5F7"; font.pixelSize: 11; font.bold: true }
+                    Text { x: 14; y: 10; text: "Sound"; color: ThemeTokens.textPrimary; font.pixelSize: 11; font.bold: true }
 
                     Text {
                         anchors.right: parent.right
@@ -483,14 +535,14 @@ Item {
                         width: 290
                         height: 24
                         radius: 12
-                        color: "#38000000"
+                        color: ThemeTokens.inputBg
                         clip: true
 
                         Rectangle {
                             width: shellRoot.volumeMuted ? 24 : Math.max(24, 290 * (shellRoot.volumeLevel / 100))
                             height: 24
                             radius: 12
-                            color: "#F5F5F7"
+                            color: ThemeTokens.textPrimary
                             Behavior on width { NumberAnimation { duration: 110; easing.type: Easing.InOutCubic } }
                         }
 
@@ -522,9 +574,9 @@ Item {
                     width: 314
                     height: 72
                     radius: 18
-                    color: "#22FFFFFF"
+                    color: ThemeTokens.cardBg
                     border.width: 1
-                    border.color: "#1AFFFFFF"
+                    border.color: ThemeTokens.cardBg
                     opacity: ccCard.stage >= 4 ? 1.0 : 0.0
                     transform: Translate {
                         y: ccCard.stage >= 4 ? 0 : 12
@@ -559,7 +611,7 @@ Item {
                         x: 70; y: 18
                         width: 134
                         text: (overlay.mediaPlayer && overlay.mediaPlayer.trackTitle) ? overlay.mediaPlayer.trackTitle : "Not Playing"
-                        color: "#F5F5F7"
+                        color: ThemeTokens.textPrimary
                         font.pixelSize: 12
                         font.bold: true
                         elide: Text.ElideRight
@@ -569,7 +621,7 @@ Item {
                         x: 70; y: 37
                         width: 134
                         text: (overlay.mediaPlayer && overlay.mediaPlayer.trackArtist) ? overlay.mediaPlayer.trackArtist : "MPRIS Audio"
-                        color: "#AEAEB2"
+                        color: ThemeTokens.textSecondary
                         font.pixelSize: 10
                         elide: Text.ElideRight
                     }
@@ -582,7 +634,7 @@ Item {
                             width: 28; height: 30; radius: 15
                             color: ccPrevM.containsMouse ? "#33FFFFFF" : "transparent"
                             Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
-                            Text { anchors.centerIn: parent; text: "|◀"; color: "#F5F5F7"; font.pixelSize: 10 }
+                            Text { anchors.centerIn: parent; text: "|◀"; color: ThemeTokens.textPrimary; font.pixelSize: 10 }
                             MouseArea {
                                 id: ccPrevM; anchors.fill: parent; z: 5; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                 onClicked: if (overlay.mediaPlayer) overlay.mediaPlayer.previous()
@@ -596,7 +648,7 @@ Item {
                             Text {
                                 anchors.centerIn: parent
                                 text: (overlay.mediaPlayer && overlay.mediaPlayer.isPlaying) ? "❚❚" : "▶"
-                                color: "#F5F5F7"
+                                color: ThemeTokens.textPrimary
                                 font.pixelSize: 11
                             }
                             MouseArea {
@@ -609,7 +661,7 @@ Item {
                             width: 28; height: 30; radius: 15
                             color: ccNextM.containsMouse ? "#33FFFFFF" : "transparent"
                             Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
-                            Text { anchors.centerIn: parent; text: "▶|"; color: "#F5F5F7"; font.pixelSize: 10 }
+                            Text { anchors.centerIn: parent; text: "▶|"; color: ThemeTokens.textPrimary; font.pixelSize: 10 }
                             MouseArea {
                                 id: ccNextM; anchors.fill: parent; z: 5; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                 onClicked: if (overlay.mediaPlayer) overlay.mediaPlayer.next()
@@ -634,9 +686,9 @@ Item {
                         width: 94
                         height: 38
                         radius: 13
-                        color: "#22FFFFFF"
+                        color: ThemeTokens.cardBg
                         border.width: 1
-                        border.color: "#1AFFFFFF"
+                        border.color: ThemeTokens.cardBg
 
                         Text {
                             anchors.centerIn: parent
@@ -653,10 +705,10 @@ Item {
                         radius: 13
                         color: ccEditM.containsMouse ? "#38FFFFFF" : "#22FFFFFF"
                         border.width: 1
-                        border.color: "#1AFFFFFF"
+                        border.color: ThemeTokens.cardBg
                         Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
 
-                        Text { anchors.centerIn: parent; text: "Atur Widget"; color: "#F5F5F7"; font.pixelSize: 11; font.bold: true }
+                        Text { anchors.centerIn: parent; text: "Atur Widget"; color: ThemeTokens.textPrimary; font.pixelSize: 11; font.bold: true }
 
                         MouseArea {
                             id: ccEditM; anchors.fill: parent; z: 5; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -674,10 +726,10 @@ Item {
                         radius: 13
                         color: ccSetM.containsMouse ? "#38FFFFFF" : "#22FFFFFF"
                         border.width: 1
-                        border.color: "#1AFFFFFF"
+                        border.color: ThemeTokens.cardBg
                         Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
 
-                        Text { anchors.centerIn: parent; text: "Settings"; color: "#F5F5F7"; font.pixelSize: 11; font.bold: true }
+                        Text { anchors.centerIn: parent; text: "Settings"; color: ThemeTokens.textPrimary; font.pixelSize: 11; font.bold: true }
 
                         MouseArea {
                             id: ccSetM; anchors.fill: parent; z: 5; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -691,10 +743,10 @@ Item {
                         radius: 13
                         color: ccLockM.containsMouse ? "#38FFFFFF" : "#22FFFFFF"
                         border.width: 1
-                        border.color: "#1AFFFFFF"
+                        border.color: ThemeTokens.cardBg
                         Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
 
-                        Text { anchors.centerIn: parent; text: "Lock"; color: "#F5F5F7"; font.pixelSize: 11; font.bold: true }
+                        Text { anchors.centerIn: parent; text: "Lock"; color: ThemeTokens.textPrimary; font.pixelSize: 11; font.bold: true }
 
                         MouseArea {
                             id: ccLockM; anchors.fill: parent; z: 5; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -707,4 +759,178 @@ Item {
                 }
             }
         }
+
+            // Sub-pilihan cepat Capture & Pengaturan Rekam Layar (Audio + Resolusi) — Topmost Z-Layer
+            Rectangle {
+                id: ccCaptureMenu
+                visible: false
+                z: 250
+                anchors.right: parent.right
+                anchors.rightMargin: 14
+                y: Math.min(232, Math.max(12, parent.height - height - 12))
+                width: 226
+                height: ccCapCol.implicitHeight + 16
+                radius: 15
+                color: ThemeTokens.isDark ? "#F51A1C24" : "#F8FFFFFF"
+                border.width: 1
+                border.color: ThemeTokens.borderStrong
+
+                // Penahan klik agar tidak tembus ke slider Display/Sound di bawahnya
+                MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onClicked: {}
+                }
+
+                Column {
+                    id: ccCapCol
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: 8
+                    spacing: 5
+
+                    Repeater {
+                        model: [
+                            { id: "area", label: "Screenshot Area" },
+                            { id: "full", label: "Layar Penuh" },
+                            { id: "rec",  label: "Mulai Rekam (MP4)" }
+                        ]
+                        Rectangle {
+                            width: ccCapCol.width
+                            height: 27
+                            radius: 8
+                            color: capOptM.containsMouse ? (modelData.id === "rec" ? "#28FF453A" : ThemeTokens.accentSoft) : "transparent"
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.left: parent.left
+                                anchors.leftMargin: 9
+                                text: modelData.label
+                                color: modelData.id === "rec" ? ThemeTokens.danger : ThemeTokens.textPrimary
+                                font.pixelSize: 11
+                                font.weight: Font.DemiBold
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.right: parent.right
+                                anchors.rightMargin: 9
+                                visible: modelData.id === "rec"
+                                text: (ShellState.recResolution === "native" ? "Asli" : (ShellState.recResolution === "1440" ? "2K" : (ShellState.recResolution === "2160" ? "4K" : ShellState.recResolution + "p")))
+                                color: ThemeTokens.textSecondary
+                                font.pixelSize: 9
+                                font.weight: Font.Bold
+                            }
+
+                            MouseArea {
+                                id: capOptM
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    ccCaptureMenu.visible = false;
+                                    shellRoot.closePopups();
+                                    if (modelData.id === "area") screenshotDelayTimer.restart();
+                                    else if (modelData.id === "full") shellRoot.captureFullscreen();
+                                    else shellRoot.toggleScreenRecord();
+                                }
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        width: ccCapCol.width
+                        height: 1
+                        color: ThemeTokens.dividerColor
+                    }
+
+                    Text {
+                        text: "Sumber Audio Rekam"
+                        color: ThemeTokens.textSecondary
+                        font.pixelSize: 9
+                        font.weight: Font.DemiBold
+                        leftPadding: 4
+                    }
+
+                    Row {
+                        width: ccCapCol.width
+                        spacing: 4
+                        Repeater {
+                            model: [
+                                { id: "none",    label: "Mati" },
+                                { id: "system",  label: "Sistem" },
+                                { id: "sys_mic", label: "Sis + Mic" }
+                            ]
+                            Rectangle {
+                                width: (ccCapCol.width - 8) / 3
+                                height: 24
+                                radius: 7
+                                property bool active: ShellState.recAudioMode === modelData.id
+                                color: active ? ThemeTokens.accent : ThemeTokens.inputBg
+                                border.width: 1
+                                border.color: active ? ThemeTokens.accent : ThemeTokens.borderSubtle
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: modelData.label
+                                    color: active ? "#FFFFFF" : ThemeTokens.textPrimary
+                                    font.pixelSize: 9
+                                    font.weight: Font.DemiBold
+                                }
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: ShellState.recAudioMode = modelData.id
+                                }
+                            }
+                        }
+                    }
+
+                    Text {
+                        text: "Resolusi Video"
+                        color: ThemeTokens.textSecondary
+                        font.pixelSize: 9
+                        font.weight: Font.DemiBold
+                        leftPadding: 4
+                    }
+
+                    Grid {
+                        width: ccCapCol.width
+                        columns: 3
+                        spacing: 4
+                        Repeater {
+                            model: [
+                                { id: "native", label: "Asli" },
+                                { id: "360",    label: "360p" },
+                                { id: "720",    label: "720p" },
+                                { id: "1080",   label: "1080p" },
+                                { id: "1440",   label: "2K" },
+                                { id: "2160",   label: "4K" }
+                            ]
+                            Rectangle {
+                                width: (ccCapCol.width - 8) / 3
+                                height: 24
+                                radius: 7
+                                property bool active: ShellState.recResolution === modelData.id
+                                color: active ? ThemeTokens.accent : ThemeTokens.inputBg
+                                border.width: 1
+                                border.color: active ? ThemeTokens.accent : ThemeTokens.borderSubtle
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: modelData.label
+                                    color: active ? "#FFFFFF" : ThemeTokens.textPrimary
+                                    font.pixelSize: 9
+                                    font.weight: Font.DemiBold
+                                }
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: ShellState.recResolution = modelData.id
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
 }

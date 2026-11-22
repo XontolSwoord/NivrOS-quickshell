@@ -19,8 +19,11 @@ Item {
             y: hostWin.getWidgetY("clock")
             width: 148
             height: 148
-            scale: hostWin.widgetScale
+            scale: hostWin.getWidgetScale("clock")
             transformOrigin: Item.TopLeft
+        Behavior on x { enabled: !dragArea.pressed; NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+        Behavior on y { enabled: !dragArea.pressed; NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+        Behavior on scale { enabled: !resizeArea.pressed; NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
             visible: hostWin.isWidgetOn("clock")
             opacity: shellRoot.bootStage >= 3 ? 1.0 : 0.0
             Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
@@ -31,7 +34,9 @@ Item {
                 property real dY: wClock.y
                 property real dO: shellRoot.aeroOpacity
                 property real dR: shellRoot.aeroReflection
-                property string dSt: shellRoot.glassStyle
+                property string dSt: ShellState.surfaceMode + "_" + ShellState.liquidVariant + "_" + ShellState.colorScheme
+                property bool dDark: ThemeTokens.isDark
+                onDDarkChanged: requestPaint()
                 property real dTh: shellRoot.activeGlassDetail
                 onDXChanged: requestPaint()
                 onDYChanged: requestPaint()
@@ -60,7 +65,7 @@ Item {
                         let ang = (i * 6 - 90) * Math.PI / 180;
                         let isMajor = i % 5 === 0;
                         let r1 = isMajor ? r - 9 : r - 4;
-                        ctx.strokeStyle = isMajor ? "rgba(255,255,255,0.88)" : "rgba(255,255,255,0.34)";
+                        ctx.strokeStyle = isMajor ? (ThemeTokens.isDark ? "rgba(255,255,255," : "rgba(24,24,28,") + "0.88)" : (ThemeTokens.isDark ? "rgba(255,255,255," : "rgba(24,24,28,") + "0.34)";
                         ctx.lineWidth = isMajor ? 1.8 : 1.0;
                         ctx.beginPath();
                         ctx.moveTo(cx + Math.cos(ang) * r1, cy + Math.sin(ang) * r1);
@@ -109,7 +114,7 @@ Item {
             }
             MouseArea {
                 anchors.fill: parent
-                z: 18
+                z: 1
                 acceptedButtons: Qt.RightButton
                 onClicked: (m) => {
                     let p = mapToItem(hostWin.contentItem, m.x, m.y);
@@ -121,9 +126,10 @@ Item {
                 anchors.fill: parent
                 z: 20
                 visible: hostWin.editMode && !hostWin.widgetsLocked
-                cursorShape: Qt.SizeAllCursor
+                id: dragArea
+            cursorShape: Qt.SizeAllCursor
                 property real sx: 0; property real sy: 0; property real ox: 0; property real oy: 0
-                onPressed: (m) => { let p = mapToItem(hostWin.contentItem, m.x, m.y); sx = p.x; sy = p.y; ox = wClock.x; oy = wClock.y; }
+                onPressed: (m) => { hostWin.bringWidgetToFront("clock"); let p = mapToItem(hostWin.contentItem, m.x, m.y); sx = p.x; sy = p.y; ox = wClock.x; oy = wClock.y; }
                 onPositionChanged: (m) => { if (pressed) { let p = mapToItem(hostWin.contentItem, m.x, m.y); hostWin.setWidgetPos("clock", ox + (p.x - sx), oy + (p.y - sy)); } }
                 onReleased: hostWin.saveLayout()
             }
@@ -131,10 +137,39 @@ Item {
             Rectangle {
                 anchors.top: parent.top; anchors.left: parent.left; anchors.margins: -4
                 z: 25; width: 22; height: 22; radius: 11
-                color: "#FF453A"; border.width: 1; border.color: "#FFFFFF"
+                color: "#FF453A"; border.width: 1; border.color: ThemeTokens.textPrimary
                 visible: hostWin.editMode
-                Text { anchors.centerIn: parent; text: "×"; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true }
+                Text { anchors.centerIn: parent; text: "×"; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.bold: true }
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: hostWin.setWidgetEnabled("clock", false) }
+            }
+
+            // Handle Ubah Ukuran Bebas (Sudut Kanan Bawah)
+            Rectangle {
+                anchors.bottom: parent.bottom; anchors.right: parent.right; anchors.margins: -5
+                z: 26; width: 20; height: 20; radius: 10
+                color: ThemeTokens.accent; border.width: 1.5; border.color: "#FFFFFF"
+                visible: hostWin.editMode && !hostWin.widgetsLocked
+                Text { anchors.centerIn: parent; text: "◢"; color: "#FFFFFF"; font.pixelSize: 9 }
+                MouseArea {
+                    anchors.fill: parent
+                    id: resizeArea
+                cursorShape: Qt.SizeFDiagCursor
+                    property real startX: 0
+                    property real startScale: 1.0
+                    onPressed: (m) => {
+                        let p = mapToItem(hostWin.contentItem, m.x, m.y);
+                        startX = p.x;
+                        startScale = hostWin.getWidgetScale("clock");
+                    }
+                    onPositionChanged: (m) => {
+                        if (pressed) {
+                            let p = mapToItem(hostWin.contentItem, m.x, m.y);
+                            let delta = (p.x - startX) / 226.0;
+                            hostWin.setWidgetScale("clock", startScale + delta);
+                        }
+                    }
+                    onReleased: hostWin.saveLayout()
+                }
             }
         }
 }

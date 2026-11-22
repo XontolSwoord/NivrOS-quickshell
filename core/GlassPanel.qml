@@ -12,7 +12,9 @@ Canvas {
 
     readonly property real _op: ShellState.aeroOpacity
     readonly property real _refl: ShellState.aeroReflection
-    readonly property string _style: ShellState.glassStyle
+    readonly property string _surf: ShellState.surfaceMode
+    readonly property string _var: ShellState.liquidVariant
+    readonly property string _scheme: ShellState.colorScheme
     readonly property real _detail: ShellState.activeGlassDetail
     readonly property real _w: width
     readonly property real _h: height
@@ -21,7 +23,9 @@ Canvas {
 
     on_OpChanged: requestPaint()
     on_ReflChanged: requestPaint()
-    on_StyleChanged: requestPaint()
+    on_SurfChanged: requestPaint()
+    on_VarChanged: requestPaint()
+    on_SchemeChanged: requestPaint()
     on_DetailChanged: requestPaint()
     on_WChanged: requestPaint()
     on_HChanged: requestPaint()

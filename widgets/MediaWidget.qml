@@ -19,8 +19,11 @@ Item {
             y: hostWin.getWidgetY("media")
             width: 226
             height: 296
-            scale: hostWin.widgetScale
+            scale: hostWin.getWidgetScale("media")
             transformOrigin: Item.TopLeft
+        Behavior on x { enabled: !dragArea.pressed; NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+        Behavior on y { enabled: !dragArea.pressed; NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+        Behavior on scale { enabled: !resizeArea.pressed; NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
             visible: hostWin.isWidgetOn("media")
             opacity: shellRoot.bootStage >= 2 ? 1.0 : 0.0
             Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
@@ -31,7 +34,7 @@ Item {
                 property real dY: wMedia.y
                 property real dO: shellRoot.aeroOpacity
                 property real dR: shellRoot.aeroReflection
-                property string dSt: shellRoot.glassStyle
+                property string dSt: ShellState.surfaceMode + "_" + ShellState.liquidVariant + "_" + ShellState.colorScheme
                 property real dTh: shellRoot.activeGlassDetail
                 onDXChanged: requestPaint()
                 onDYChanged: requestPaint()
@@ -53,9 +56,9 @@ Item {
 
                     Rectangle {
                         width: 64; height: 64; radius: 14
-                        color: "#28FFFFFF"
+                        color: ThemeTokens.inputBg
                         border.width: 1
-                        border.color: "#44FFFFFF"
+                        border.color: ThemeTokens.borderStrong
                         clip: true
                         Image {
                             anchors.fill: parent
@@ -79,7 +82,7 @@ Item {
                         spacing: 3
                         Text {
                             text: shellRoot.mediaTitle
-                            color: "#FFFFFF"
+                            color: ThemeTokens.textPrimary
                             font.pixelSize: 15
                             font.bold: true
                             elide: Text.ElideRight
@@ -102,7 +105,7 @@ Item {
                     spacing: 6
                     Rectangle {
                         Layout.fillWidth: true
-                        height: 4; radius: 2; color: "#2CFFFFFF"
+                        height: 4; radius: 2; color: ThemeTokens.inputBg
                         Rectangle {
                             width: shellRoot.mediaLength > 0 ? parent.width * Math.min(1, shellRoot.mediaPosition / shellRoot.mediaLength) : 0
                             height: 4; radius: 2; color: "#A1C6FF"
@@ -110,9 +113,9 @@ Item {
                     }
                     RowLayout {
                         Layout.fillWidth: true
-                        Text { text: shellRoot.formatTime(shellRoot.mediaPosition); color: "#8E8E93"; font.pixelSize: 10 }
+                        Text { text: shellRoot.formatTime(shellRoot.mediaPosition); color: ThemeTokens.textMuted; font.pixelSize: 10 }
                         Item { Layout.fillWidth: true }
-                        Text { text: shellRoot.formatTime(shellRoot.mediaLength); color: "#8E8E93"; font.pixelSize: 10 }
+                        Text { text: shellRoot.formatTime(shellRoot.mediaLength); color: ThemeTokens.textMuted; font.pixelSize: 10 }
                     }
                 }
 
@@ -122,7 +125,7 @@ Item {
 
                     Text {
                         text: "⏮"
-                        color: "#FFFFFF"
+                        color: ThemeTokens.textPrimary
                         font.pixelSize: 18
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.runCmd("playerctl previous") }
                     }
@@ -142,7 +145,7 @@ Item {
 
                     Text {
                         text: "⏭"
-                        color: "#FFFFFF"
+                        color: ThemeTokens.textPrimary
                         font.pixelSize: 18
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.runCmd("playerctl next") }
                     }
@@ -152,7 +155,7 @@ Item {
             // Drag Handle Saat Edit Mode (Tidak Aktif Jika Locked)
             MouseArea {
                 anchors.fill: parent
-                z: 18
+                z: 1
                 acceptedButtons: Qt.RightButton
                 onClicked: (m) => {
                     let p = mapToItem(hostWin.contentItem, m.x, m.y);
@@ -164,9 +167,10 @@ Item {
                 anchors.fill: parent
                 z: 20
                 visible: hostWin.editMode && !hostWin.widgetsLocked
-                cursorShape: Qt.SizeAllCursor
+                id: dragArea
+            cursorShape: Qt.SizeAllCursor
                 property real sx: 0; property real sy: 0; property real ox: 0; property real oy: 0
-                onPressed: (m) => { let p = mapToItem(hostWin.contentItem, m.x, m.y); sx = p.x; sy = p.y; ox = wMedia.x; oy = wMedia.y; }
+                onPressed: (m) => { hostWin.bringWidgetToFront("media"); let p = mapToItem(hostWin.contentItem, m.x, m.y); sx = p.x; sy = p.y; ox = wMedia.x; oy = wMedia.y; }
                 onPositionChanged: (m) => { if (pressed) { let p = mapToItem(hostWin.contentItem, m.x, m.y); hostWin.setWidgetPos("media", ox + (p.x - sx), oy + (p.y - sy)); } }
                 onReleased: hostWin.saveLayout()
             }
@@ -175,10 +179,39 @@ Item {
             Rectangle {
                 anchors.top: parent.top; anchors.left: parent.left; anchors.margins: -6
                 z: 25; width: 22; height: 22; radius: 11
-                color: "#FF453A"; border.width: 1; border.color: "#FFFFFF"
+                color: "#FF453A"; border.width: 1; border.color: ThemeTokens.textPrimary
                 visible: hostWin.editMode
-                Text { anchors.centerIn: parent; text: "×"; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true }
+                Text { anchors.centerIn: parent; text: "×"; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.bold: true }
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: hostWin.setWidgetEnabled("media", false) }
+            }
+
+            // Handle Ubah Ukuran Bebas (Sudut Kanan Bawah)
+            Rectangle {
+                anchors.bottom: parent.bottom; anchors.right: parent.right; anchors.margins: -5
+                z: 26; width: 20; height: 20; radius: 10
+                color: ThemeTokens.accent; border.width: 1.5; border.color: "#FFFFFF"
+                visible: hostWin.editMode && !hostWin.widgetsLocked
+                Text { anchors.centerIn: parent; text: "◢"; color: "#FFFFFF"; font.pixelSize: 9 }
+                MouseArea {
+                    anchors.fill: parent
+                    id: resizeArea
+                cursorShape: Qt.SizeFDiagCursor
+                    property real startX: 0
+                    property real startScale: 1.0
+                    onPressed: (m) => {
+                        let p = mapToItem(hostWin.contentItem, m.x, m.y);
+                        startX = p.x;
+                        startScale = hostWin.getWidgetScale("media");
+                    }
+                    onPositionChanged: (m) => {
+                        if (pressed) {
+                            let p = mapToItem(hostWin.contentItem, m.x, m.y);
+                            let delta = (p.x - startX) / 226.0;
+                            hostWin.setWidgetScale("media", startScale + delta);
+                        }
+                    }
+                    onReleased: hostWin.saveLayout()
+                }
             }
         }
 }

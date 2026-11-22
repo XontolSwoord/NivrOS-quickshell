@@ -24,16 +24,23 @@ Item {
             anchors.topMargin: 4
             width: 324
             height: 194
-            radius: 22
-            color: "transparent"
+            topLeftRadius: 22
+            topRightRadius: 22
+            bottomLeftRadius: 22
+            bottomRightRadius: 22
+            color: ShellState.isSolid ? ThemeTokens.windowBg : "transparent"
             Canvas {
-                anchors.fill: parent
+                                x: 0
+                y: 0
+                width: parent.width
+                height: parent.height
                 z: -1
+                visible: !ShellState.isSolid
                 property real dO: shellRoot.aeroOpacity
                 property real dR: shellRoot.aeroReflection
                 property real dF: shellRoot.glassFade
                 property string dW: shellRoot.activeGlassWall
-                property string dSt: shellRoot.glassStyle
+                property string dSt: ShellState.surfaceMode + "_" + ShellState.liquidVariant + "_" + ShellState.colorScheme
                 property real dTh: shellRoot.activeGlassDetail
                 onDOChanged: requestPaint()
                 onDRChanged: requestPaint()
@@ -41,15 +48,17 @@ Item {
                 onDWChanged: requestPaint()
                 onDStChanged: requestPaint()
                 onDThChanged: requestPaint()
+                onWidthChanged: requestPaint()
+                onHeightChanged: requestPaint()
                 onPaint: {
                     let sw = Screen.width || 1366;
-                    let sh = Screen.height || 768;
-                    let pos = parent.mapToItem(null, 0, 0);
-                    shellRoot.drawGlobalAeroGlass(getContext("2d"), width, height, parent.radius, pos.x, pos.y, sw, sh, false, false);
+                        let sh = Screen.height || 768;
+                        let pos = parent.mapToItem(null, 0, 0);
+                        shellRoot.drawGlobalAeroGlass(getContext("2d"), width, height, 22, pos.x, pos.y, sw, sh, false, false);
                 }
             }
             border.width: 1
-            border.color: "#38FFFFFF"
+            border.color: ThemeTokens.borderStrong
             visible: !shellRoot.preWarmDone || (shellRoot.activePopup === "music" || opacity > 0.01)
 
             MouseArea { anchors.fill: parent; z: 0 }
@@ -138,7 +147,7 @@ Item {
                             width: 214
                             text: (overlay.mediaPlayer && overlay.mediaPlayer.trackTitle)
                                   ? overlay.mediaPlayer.trackTitle : "Not Playing"
-                            color: "#F5F5F7"
+                            color: ThemeTokens.textPrimary
                             font.pixelSize: 14
                             font.bold: true
                             elide: Text.ElideRight
@@ -148,7 +157,7 @@ Item {
                             width: 214
                             text: (overlay.mediaPlayer && overlay.mediaPlayer.trackArtist)
                                   ? overlay.mediaPlayer.trackArtist : "MPRIS Media Player"
-                            color: "#AEAEB2"
+                            color: ThemeTokens.textSecondary
                             font.pixelSize: 11
                             elide: Text.ElideRight
                         }
@@ -178,7 +187,7 @@ Item {
                         width: 292
                         height: 5
                         radius: 2.5
-                        color: "#2CFFFFFF"
+                        color: ThemeTokens.inputBg
 
                         Rectangle {
                             width: {
@@ -197,13 +206,13 @@ Item {
                         width: 292
                         Text {
                             text: { let _ = hostWin.tick; return overlay.mediaPlayer ? shellRoot.formatTime(overlay.mediaPlayer.position) : "0:00"; }
-                            color: "#8E8E93"
+                            color: ThemeTokens.textMuted
                             font.pixelSize: 10
                         }
                         Item { Layout.fillWidth: true }
                         Text {
                             text: overlay.mediaPlayer ? shellRoot.formatTime(overlay.mediaPlayer.length) : "0:00"
-                            color: "#8E8E93"
+                            color: ThemeTokens.textMuted
                             font.pixelSize: 10
                         }
                     }
@@ -223,7 +232,7 @@ Item {
                         width: 38; height: 38; radius: 19
                         color: mpPrevM.containsMouse ? "#2EFFFFFF" : "#18FFFFFF"
                         Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
-                        Text { anchors.centerIn: parent; text: "|◀"; color: "#F5F5F7"; font.pixelSize: 12 }
+                        Text { anchors.centerIn: parent; text: "|◀"; color: ThemeTokens.textPrimary; font.pixelSize: 12 }
                         MouseArea {
                             id: mpPrevM; anchors.fill: parent; z: 5; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                             onClicked: if (overlay.mediaPlayer) overlay.mediaPlayer.previous()
@@ -238,7 +247,7 @@ Item {
                         Text {
                             anchors.centerIn: parent
                             text: (overlay.mediaPlayer && overlay.mediaPlayer.isPlaying) ? "❚❚" : "▶"
-                            color: "#141418"
+                            color: ThemeTokens.cardBg
                             font.pixelSize: 13
                             font.bold: true
                         }
@@ -252,7 +261,7 @@ Item {
                         width: 38; height: 38; radius: 19
                         color: mpNextM.containsMouse ? "#2EFFFFFF" : "#18FFFFFF"
                         Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
-                        Text { anchors.centerIn: parent; text: "▶|"; color: "#F5F5F7"; font.pixelSize: 12 }
+                        Text { anchors.centerIn: parent; text: "▶|"; color: ThemeTokens.textPrimary; font.pixelSize: 12 }
                         MouseArea {
                             id: mpNextM; anchors.fill: parent; z: 5; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                             onClicked: if (overlay.mediaPlayer) overlay.mediaPlayer.next()
@@ -261,6 +270,7 @@ Item {
                 }
             }
         }
+
         Rectangle {
             id: calCard
             z: 10
@@ -270,16 +280,23 @@ Item {
             anchors.rightMargin: 10
             width: 288
             height: calCol.implicitHeight + 24
-            radius: 20
-            color: "transparent"
+            topLeftRadius: 20
+            topRightRadius: 20
+            bottomLeftRadius: 20
+            bottomRightRadius: 20
+            color: ShellState.isSolid ? ThemeTokens.windowBg : "transparent"
             Canvas {
-                anchors.fill: parent
+                                x: 0
+                y: 0
+                width: parent.width
+                height: parent.height
                 z: -1
+                visible: !ShellState.isSolid
                 property real dO: shellRoot.aeroOpacity
                 property real dR: shellRoot.aeroReflection
                 property real dF: shellRoot.glassFade
                 property string dW: shellRoot.activeGlassWall
-                property string dSt: shellRoot.glassStyle
+                property string dSt: ShellState.surfaceMode + "_" + ShellState.liquidVariant + "_" + ShellState.colorScheme
                 property real dTh: shellRoot.activeGlassDetail
                 onDOChanged: requestPaint()
                 onDRChanged: requestPaint()
@@ -287,15 +304,17 @@ Item {
                 onDWChanged: requestPaint()
                 onDStChanged: requestPaint()
                 onDThChanged: requestPaint()
+                onWidthChanged: requestPaint()
+                onHeightChanged: requestPaint()
                 onPaint: {
                     let sw = Screen.width || 1366;
-                    let sh = Screen.height || 768;
-                    let pos = parent.mapToItem(null, 0, 0);
-                    shellRoot.drawGlobalAeroGlass(getContext("2d"), width, height, parent.radius, pos.x, pos.y, sw, sh, false, false);
+                        let sh = Screen.height || 768;
+                        let pos = parent.mapToItem(null, 0, 0);
+                        shellRoot.drawGlobalAeroGlass(getContext("2d"), width, height, 20, pos.x, pos.y, sw, sh, false, false);
                 }
             }
             border.width: 1
-            border.color: "#38FFFFFF"
+            border.color: ThemeTokens.borderStrong
             visible: !shellRoot.preWarmDone || (shellRoot.activePopup === "calendar" || opacity > 0.01)
 
             MouseArea { anchors.fill: parent; z: 0 }
@@ -376,13 +395,13 @@ Item {
                     }
                     Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
 
-                    Text { text: calCard.monthTitle(); color: "#F5F5F7"; font.pixelSize: 14; font.bold: true }
+                    Text { text: calCard.monthTitle(); color: ThemeTokens.textPrimary; font.pixelSize: 14; font.bold: true }
                     Item { Layout.fillWidth: true }
 
                     Rectangle {
                         width: 24; height: 24; radius: 12
                         color: prevMoM.containsMouse ? "#2EFFFFFF" : "#1AFFFFFF"
-                        Text { anchors.centerIn: parent; text: "‹"; color: "#F5F5F7"; font.pixelSize: 14; font.bold: true }
+                        Text { anchors.centerIn: parent; text: "‹"; color: ThemeTokens.textPrimary; font.pixelSize: 14; font.bold: true }
                         MouseArea {
                             id: prevMoM; anchors.fill: parent; z: 5; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                             onClicked: {
@@ -396,7 +415,7 @@ Item {
                     Rectangle {
                         width: 44; height: 24; radius: 12
                         color: todayMoM.containsMouse ? "#2EFFFFFF" : "#1AFFFFFF"
-                        Text { anchors.centerIn: parent; text: "Today"; color: "#F5F5F7"; font.pixelSize: 10; font.bold: true }
+                        Text { anchors.centerIn: parent; text: "Today"; color: ThemeTokens.textPrimary; font.pixelSize: 10; font.bold: true }
                         MouseArea {
                             id: todayMoM; anchors.fill: parent; z: 5; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                             onClicked: {
@@ -411,7 +430,7 @@ Item {
                     Rectangle {
                         width: 24; height: 24; radius: 12
                         color: nextMoM.containsMouse ? "#2EFFFFFF" : "#1AFFFFFF"
-                        Text { anchors.centerIn: parent; text: "›"; color: "#F5F5F7"; font.pixelSize: 14; font.bold: true }
+                        Text { anchors.centerIn: parent; text: "›"; color: ThemeTokens.textPrimary; font.pixelSize: 14; font.bold: true }
                         MouseArea {
                             id: nextMoM; anchors.fill: parent; z: 5; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                             onClicked: {
@@ -484,7 +503,7 @@ Item {
                         anchors.leftMargin: 10
                         anchors.rightMargin: 10
 
-                        Text { text: "Niri 26.04 • ThinkPad AMD"; color: "#AEAEB2"; font.pixelSize: 10 }
+                        Text { text: "Niri 26.04 • ThinkPad AMD"; color: ThemeTokens.textSecondary; font.pixelSize: 10 }
                         Item { Layout.fillWidth: true }
                         Text { text: shellRoot.batteryPercent >= 0 ? ("BAT " + shellRoot.batteryPercent + "%") : ""; color: "#32D74B"; font.pixelSize: 10; font.bold: true }
                     }

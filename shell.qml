@@ -16,6 +16,46 @@ import "popups"
 import "widgets"
 
 ShellRoot {
+    
+    Process {
+        id: iconMapLoadProc
+        running: true
+        command: ["sh", "-c", "cat ~/.config/quickshell/icon_map.json 2>/dev/null || echo '{}'"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    ShellState.iconMap = JSON.parse(text.trim() || "{}");
+                } catch (e) {}
+            }
+        }
+    }
+
+    Process {
+        id: profileLoadProc
+        running: true
+        command: ["sh", "-c", "cat ~/.config/quickshell/profile.json 2>/dev/null || echo '{}'"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    let obj = JSON.parse(text.trim() || "{}");
+                    if (obj.name) ShellState.profileName = String(obj.name);
+                    if (obj.avatar !== undefined) ShellState.profileAvatar = String(obj.avatar);
+                    if (obj.language === "id" || obj.language === "en") ShellState.setLanguage(obj.language);
+                    if (obj.surfaceMode === "solid" || obj.surfaceMode === "liquid") ShellState.surfaceMode = obj.surfaceMode;
+                    if (obj.liquidVariant === "mac" || obj.liquidVariant === "aero" || obj.liquidVariant === "liquid") ShellState.liquidVariant = obj.liquidVariant;
+                    if (obj.colorScheme === "dark" || obj.colorScheme === "light") ShellState.colorScheme = obj.colorScheme;
+                    if (obj.islandLayoutMode === "floating" || obj.islandLayoutMode === "merged") ShellState.setIslandLayoutMode(obj.islandLayoutMode);
+                    if (typeof obj.islandEnabled === "boolean") ShellState.islandEnabled = obj.islandEnabled;
+                    if (typeof obj.islandMusicHover === "boolean") ShellState.islandMusicHover = obj.islandMusicHover;
+                    if (obj.islandBehaviorMode === "compact" || obj.islandBehaviorMode === "adaptive" || obj.islandBehaviorMode === "expanded") ShellState.islandBehaviorMode = obj.islandBehaviorMode;
+                    if (typeof obj.notifDurationSec === "number") ShellState.notifDurationSec = obj.notifDurationSec;
+                    if (obj.recAudioMode === "none" || obj.recAudioMode === "system" || obj.recAudioMode === "sys_mic") ShellState.recAudioMode = obj.recAudioMode;
+                    if (["native","360","720","1080","1440","2160"].indexOf(String(obj.recResolution)) !== -1) ShellState.recResolution = String(obj.recResolution);
+                } catch (e) {}
+            }
+        }
+    }
+
     id: root
 
     function formatTime(sec) {
@@ -149,7 +189,21 @@ ShellRoot {
 
     // ── State Popup Bertahap & Bergantian (Anti-Flicker) ────────────────
     property string activePopup: "" // "", "apple", "window", "desktop", "cc", "wifi", "bt", "music", "calendar", "launchpad", "spotlight"
+    property string surfaceMode: "liquid"        // "solid" | "liquid"
+    property string liquidVariant: "liquid"         // "mac" | "aero" | "liquid"
+    property string colorScheme: "dark"          // "dark" | "light"
+    property string chromeLayoutMode: "floating" // "floating" | "merged"
     property string glassStyle: "mac"
+    onLiquidVariantChanged: {
+        if (liquidVariant === "mac" || liquidVariant === "aero" || liquidVariant === "liquid") {
+            if (glassStyle !== liquidVariant) glassStyle = liquidVariant;
+        }
+    }
+    onGlassStyleChanged: {
+        if ((glassStyle === "mac" || glassStyle === "aero" || glassStyle === "liquid") && liquidVariant !== glassStyle) {
+            liquidVariant = glassStyle;
+        }
+    }
     property string mediaTitle: "No Media"
     property string mediaArtist: "Idle"
     property string mediaArtUrl: ""
@@ -226,13 +280,14 @@ ShellRoot {
     }
     property var widgetCfg: ({
         locked: false,
-        noteText: "Catatan Kairo:
+        noteText: "Catatan NivrOS:
 • Cek tugas & riset
 • Atur widget dari menu Settings",
         items: {
             media:   { enabled: true,  x: 24,  y: 44 },
             clock:   { enabled: true,  x: 262, y: 44 },
             weather: { enabled: true,  x: 262, y: 204 },
+                calendar: { enabled: true, x: 24,  y: 204 },
             battery: { enabled: true,  x: 24,  y: 352 },
             sysmon:  { enabled: true,  x: 262, y: 352 },
             notes:   { enabled: false, x: 422, y: 44 }
@@ -242,23 +297,28 @@ ShellRoot {
     property int ramUsagePct: 24
     property string ramUsageText: "3.6 / 15.0 GB"
     property int cpuTempC: 46
-    property real macOpacity: 0.33
-    property real macFrost: 0.42
-    property real aeroBaseOpacity: 0.30
-    property real aeroSheenBright: 0.46
-    property real aeroSheenWidth: 0.48
-    property real liquidOpacity: 0.28
-    property real liquidRefraction: 0.64
-    property real liquidFringing: 0.45
-    property real aeroOpacity: glassStyle === "aero" ? aeroBaseOpacity : (glassStyle === "liquid" ? liquidOpacity : macOpacity)
-    property real aeroReflection: glassStyle === "aero" ? aeroSheenBright : (glassStyle === "liquid" ? liquidRefraction : macFrost)
-    property real activeGlassDetail: glassStyle === "liquid" ? liquidFringing : aeroSheenWidth
+    property real macOpacity: 0.41
+    property real macFrost: 0.09
+    property real aeroBaseOpacity: 0.42
+    property real aeroSheenBright: 0.12
+    property real aeroSheenWidth: 0.58
+    property real liquidOpacity: 0.18
+    property real liquidRefraction: 0.79
+    property real liquidFringing: 0.41
+    property real aeroOpacity: surfaceMode === "solid" ? 1.0 : (liquidVariant === "aero" ? aeroBaseOpacity : (liquidVariant === "liquid" ? liquidOpacity : macOpacity))
+    property real aeroReflection: surfaceMode === "solid" ? 0.0 : (liquidVariant === "aero" ? aeroSheenBright : (liquidVariant === "liquid" ? liquidRefraction : macFrost))
+    property real activeGlassDetail: surfaceMode === "solid" ? 0.0 : (liquidVariant === "liquid" ? liquidFringing : aeroSheenWidth)
 
     Item {
         id: coreStateBridge
         Component.onCompleted: {
+            ShellState.surfaceMode = root.surfaceMode;
+            ShellState.liquidVariant = root.liquidVariant;
+            ShellState.colorScheme = root.colorScheme;
+            ShellState.chromeLayoutMode = root.chromeLayoutMode;
             ShellState.glassStyle = root.glassStyle;
             ShellState.dockHideMode = root.dockHideMode;
+            ShellState.dndEnabled = root.dndEnabled;
             ShellState.macOpacity = root.macOpacity;
             ShellState.macFrost = root.macFrost;
             ShellState.aeroBaseOpacity = root.aeroBaseOpacity;
@@ -269,103 +329,141 @@ ShellRoot {
             ShellState.liquidFringing = root.liquidFringing;
             ShellState.activePopup = root.activePopup;
             ShellState.editMode = root.desktopEditMode;
-        ShellState.batteryPercent = root.batteryPercent;
-        ShellState.batteryStatus = root.batteryStatus;
-        ShellState.bootStage = root.bootStage;
-        ShellState.focusedAppName = root.focusedAppName;
-        ShellState.musicPreviewVisible = root.musicPreviewVisible;
-        ShellState.wifiConnected = root.wifiConnected;
+            ShellState.batteryPercent = root.batteryPercent;
+            ShellState.batteryStatus = root.batteryStatus;
+            ShellState.bootStage = root.bootStage;
+            ShellState.focusedAppName = root.focusedAppName;
+            ShellState.musicPreviewVisible = root.musicPreviewVisible;
+            ShellState.wifiConnected = root.wifiConnected;
             ShellState.switchPopupHandler = function(name) { root.switchPopup(name); };
             ShellState.runCmdHandler = function(cmd) { root.runCmd(cmd); };
             ShellState.saveLayoutHandler = function() { if (typeof win !== "undefined" && win.saveLayout) win.saveLayout(); };
         }
-    
+
+        Timer {
+            id: liveGlassSyncTimer
+            interval: 75
+            repeat: false
+            onTriggered: if (typeof win !== "undefined" && win.syncNiriLiquidGlass) win.syncNiriLiquidGlass()
+        }
+
         Connections {
             target: root
-            function onGlassStyleChanged() { if (ShellState.glassStyle !== root.glassStyle) ShellState.glassStyle = root.glassStyle; }
-            function onDockHideModeChanged() { if (ShellState.dockHideMode !== root.dockHideMode) ShellState.dockHideMode = root.dockHideMode; }
-            function onMacOpacityChanged() { if (ShellState.macOpacity !== root.macOpacity) ShellState.macOpacity = root.macOpacity; }
-            function onMacFrostChanged() { if (ShellState.macFrost !== root.macFrost) ShellState.macFrost = root.macFrost; }
-            function onAeroBaseOpacityChanged() { if (ShellState.aeroBaseOpacity !== root.aeroBaseOpacity) ShellState.aeroBaseOpacity = root.aeroBaseOpacity; }
-            function onAeroSheenBrightChanged() { if (ShellState.aeroSheenBright !== root.aeroSheenBright) ShellState.aeroSheenBright = root.aeroSheenBright; }
-            function onAeroSheenWidthChanged() { if (ShellState.aeroSheenWidth !== root.aeroSheenWidth) ShellState.aeroSheenWidth = root.aeroSheenWidth; }
-            function onLiquidOpacityChanged() { if (ShellState.liquidOpacity !== root.liquidOpacity) ShellState.liquidOpacity = root.liquidOpacity; }
-            function onLiquidRefractionChanged() { if (ShellState.liquidRefraction !== root.liquidRefraction) ShellState.liquidRefraction = root.liquidRefraction; }
-            function onLiquidFringingChanged() { if (ShellState.liquidFringing !== root.liquidFringing) ShellState.liquidFringing = root.liquidFringing; }
-            function onActivePopupChanged() { if (ShellState.activePopup !== root.activePopup) ShellState.activePopup = root.activePopup; }
-            function onDesktopEditModeChanged() { if (ShellState.editMode !== root.desktopEditMode) ShellState.editMode = root.desktopEditMode; }
-        function onBatteryPercentChanged() { if (ShellState.batteryPercent !== root.batteryPercent) ShellState.batteryPercent = root.batteryPercent; }
-        function onBatteryStatusChanged() { if (ShellState.batteryStatus !== root.batteryStatus) ShellState.batteryStatus = root.batteryStatus; }
-        function onBootStageChanged() { if (ShellState.bootStage !== root.bootStage) ShellState.bootStage = root.bootStage; }
-        function onFocusedAppNameChanged() { if (ShellState.focusedAppName !== root.focusedAppName) ShellState.focusedAppName = root.focusedAppName; }
-        function onMusicPreviewVisibleChanged() { if (ShellState.musicPreviewVisible !== root.musicPreviewVisible) ShellState.musicPreviewVisible = root.musicPreviewVisible; }
-        function onWifiConnectedChanged() { if (ShellState.wifiConnected !== root.wifiConnected) ShellState.wifiConnected = root.wifiConnected; }
+            function onSurfaceModeChanged() { if (ShellState.surfaceMode !== root.surfaceMode) ShellState.surfaceMode = root.surfaceMode; liveGlassSyncTimer.restart(); }
+            function onLiquidVariantChanged() { if (ShellState.liquidVariant !== root.liquidVariant) ShellState.liquidVariant = root.liquidVariant; liveGlassSyncTimer.restart(); }
+            function onColorSchemeChanged() { if (ShellState.colorScheme !== root.colorScheme) ShellState.colorScheme = root.colorScheme; liveGlassSyncTimer.restart(); }
+            function onMacOpacityChanged() { ShellState.macOpacity = root.macOpacity; liveGlassSyncTimer.restart(); }
+            function onMacFrostChanged() { ShellState.macFrost = root.macFrost; liveGlassSyncTimer.restart(); }
+            function onAeroBaseOpacityChanged() { ShellState.aeroBaseOpacity = root.aeroBaseOpacity; liveGlassSyncTimer.restart(); }
+            function onAeroSheenBrightChanged() { ShellState.aeroSheenBright = root.aeroSheenBright; liveGlassSyncTimer.restart(); }
+            function onAeroSheenWidthChanged() { ShellState.aeroSheenWidth = root.aeroSheenWidth; liveGlassSyncTimer.restart(); }
+            function onLiquidOpacityChanged() { ShellState.liquidOpacity = root.liquidOpacity; liveGlassSyncTimer.restart(); }
+            function onLiquidRefractionChanged() { ShellState.liquidRefraction = root.liquidRefraction; liveGlassSyncTimer.restart(); }
+            function onLiquidFringingChanged() { ShellState.liquidFringing = root.liquidFringing; liveGlassSyncTimer.restart(); }
         }
-    
+
         Connections {
             target: ShellState
-            function onEditModeChanged() {
-                if (typeof win !== "undefined" && win.editMode !== ShellState.editMode) {
-                    win.editMode = ShellState.editMode;
+            function onSurfaceModeChanged() { if (root.surfaceMode !== ShellState.surfaceMode) root.surfaceMode = ShellState.surfaceMode; }
+            function onLiquidVariantChanged() { if (root.liquidVariant !== ShellState.liquidVariant) root.liquidVariant = ShellState.liquidVariant; }
+            function onColorSchemeChanged() { if (root.colorScheme !== ShellState.colorScheme) root.colorScheme = root.colorScheme; }
+        }
+    }
+
+
+    // ── Helper Night Light, Screen Capture/Record, Adaptive Accent, & Niri Workspaces ──
+    function applyNightLight() {
+        runCmd("pkill -x wlsunset 2>/dev/null; pkill -x gammastep 2>/dev/null; true");
+        if (ShellState.nightLightEnabled) {
+            let t = ShellState.nightLightTemp || 4200;
+            runCmd("nohup wlsunset -t " + t + " -T " + (t + 100) + " >/dev/null 2>&1 || nohup gammastep -O " + t + " >/dev/null 2>&1 &");
+        }
+    }
+
+    function toggleNightLight() {
+        ShellState.nightLightEnabled = !ShellState.nightLightEnabled;
+        applyNightLight();
+    }
+
+    function captureFullscreen() {
+        runCmd("mkdir -p ~/Pictures/Screenshots && grim ~/Pictures/Screenshots/NivrOS_$(date +%Y%m%d_%H%M%S).png && notify-send 'NivrOS Capture' 'Tangkapan layar penuh disimpan'");
+    }
+
+    Timer {
+        id: recSecondsTicker
+        interval: 1000
+        running: ShellState.isRecording
+        repeat: true
+        onTriggered: ShellState.recordingSeconds += 1
+    }
+
+    function toggleScreenRecord() {
+        if (ShellState.isRecording) {
+            runCmd("pkill -INT -x wf-recorder 2>/dev/null || pkill -INT -x wl-screenrec 2>/dev/null");
+            ShellState.isRecording = false;
+            runCmd("notify-send 'NivrOS Screen Recorder' 'Rekaman layar disimpan ke ~/Videos'");
+        } else {
+            ShellState.recordingSeconds = 0;
+            ShellState.isRecording = true;
+            runCmd("nohup ~/.config/quickshell/scripts/nivros_record.sh " + ShellState.recAudioMode + " " + ShellState.recResolution + " >/tmp/nivros_rec.log 2>&1 &");
+        }
+    }
+
+    function focusNiriWorkspace(idx) {
+        runCmd("niri msg action focus-workspace " + idx);
+        niriWsPollProc.running = true;
+    }
+
+        Process {
+        id: accentExtractProc
+        property string targetPath: ""
+        command: ["python3", Quickshell.env("HOME") + "/.config/quickshell/scripts/extract_accent.py", targetPath]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let hex = text.trim();
+                if (hex.startsWith("#") && hex.length === 7) {
+                    ShellState.extractedAccent = hex;
                 }
             }
         }
     }
-    property string activeGlassWall: ""
-    property string prevGlassWall: ""
-    property real glassFade: 1.0
 
-    NumberAnimation {
-        id: rootGlassFadeAnim
-        target: root
-        property: "glassFade"
-        from: 0.0
-        to: 1.0
-        duration: 950
-        easing.type: Easing.InOutCubic
-    }
-
-    Image {
-        id: rootGlassCurImg
-        visible: false
-        source: root.currentWallpaper
-        sourceSize: Qt.size(96, 54)
-        smooth: true
-        asynchronous: true
-        onStatusChanged: {
-            if (status === Image.Ready && String(source) !== "" && root.activeGlassWall !== String(source)) {
-                root.prevGlassWall = root.activeGlassWall;
-                root.activeGlassWall = String(source);
-                if (root.prevGlassWall !== "") {
-                    root.glassFade = 0.0;
-                    rootGlassFadeAnim.restart();
-                } else {
-                    root.glassFade = 1.0;
-                }
-            }
+    function extractWallpaperAccent() {
+        let wp = String(root.currentWallpaper || "").trim();
+        if (wp.startsWith("file://")) wp = decodeURIComponent(wp.slice(7));
+        if (wp !== "") {
+            accentExtractProc.targetPath = wp;
+            accentExtractProc.running = false;
+            accentExtractProc.running = true;
         }
     }
 
-    Image {
-        id: rootGlassPrevImg
-        visible: false
-        source: root.prevGlassWall
-        sourceSize: Qt.size(96, 54)
-        smooth: true
-        asynchronous: true
+    onCurrentWallpaperChanged: {
+        if (ShellState.adaptiveAccent) extractWallpaperAccent();
     }
 
-    function drawWallLayerGlobal(ctx, imgItem, offX, offY, scrW, scrH) {
-        if (!imgItem || imgItem.status !== Image.Ready || imgItem.implicitWidth <= 0 || imgItem.implicitHeight <= 0) return;
-        let iw = imgItem.implicitWidth;
-        let ih = imgItem.implicitHeight;
-        let sc = Math.max(scrW / iw, scrH / ih);
-        let dw = iw * sc;
-        let dh = ih * sc;
-        let dx = (scrW - dw) * 0.5 - offX;
-        let dy = (scrH - dh) * 0.5 - offY;
-        ctx.drawImage(imgItem, dx, dy, dw, dh);
+    Process {
+        id: niriWsPollProc
+        running: true
+        command: ["python3", Quickshell.env("HOME") + "/.config/quickshell/scripts/niri_workspaces.py"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    let arr = JSON.parse(text.trim() || "[]");
+                    if (arr.length > 0) ShellState.niriWorkspaces = arr;
+                } catch (e) {}
+            }
+        }
     }
+    Timer {
+        interval: 900
+        running: true
+        repeat: true
+        onTriggered: niriWsPollProc.running = true
+    }
+
+    readonly property string activeGlassWall: root.currentWallpaper
+    readonly property real glassFade: 1.0
 
     function drawGlobalAeroGlass(ctx, w, h, rad, offX, offY, scrW, scrH, isCircular, drawRim) {
         GlassEngine.drawGlobalAeroGlass(ctx, w, h, rad, offX, offY, scrW, scrH, isCircular, drawRim);
@@ -850,7 +948,8 @@ ShellRoot {
     // ── Proses Pembaca Status Latar Belakang (LC_ALL=C) ─────────────────
     Process {
         id: scanWallProc
-        command: ["sh", "-c", "find \"$HOME/Pictures/Wallpapers\" -maxdepth 3 -type f \\( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \\) 2>/dev/null | sort"]
+        command: ["sh", "-c", "primary=\"$HOME/Pictures/Wallpapers $HOME/Wallpapers\"; [ -n \"$CUSTOM_WALL_DIR\" ] && primary=\"$CUSTOM_WALL_DIR $primary\"; found=\"\"; for d in $primary; do if [ -d \"$d\" ]; then out=$(find \"$d\" -maxdepth 3 -type f \\( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \\) 2>/dev/null); [ -n \"$out\" ] && found=\"$found\n$out\"; fi; done; if [ -z \"$(echo \"$found\" | tr -d '[:space:]')\" ]; then for fb in /usr/share/backgrounds /usr/share/wallpapers; do [ -d \"$fb\" ] && find \"$fb\" -maxdepth 3 -type f \\( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \\) 2>/dev/null; done; else printf '%s\n' \"$found\"; fi | sed '/^$/d' | awk '!seen[$0]++' | sort"]
+        environment: ({ "CUSTOM_WALL_DIR": root.customWallpaperDir || "" })
         stdout: StdioCollector {
             onStreamFinished: {
                 let lines = text.trim().split("\n").filter(l => l.length > 0);
@@ -1018,7 +1117,7 @@ ShellRoot {
     Timer {
         id: wpAutoCycleTimer
         interval: root.autoCycleMinutes > 0 ? root.autoCycleMinutes * 60 * 1000 : 60000
-        running: root.autoCycleMinutes > 0 && (!root.pauseWhenUnseen || !root.hasWindowOnActiveWs || root.activePopup !== "")
+        running: root.autoCycleMinutes > 0
         repeat: true
         onTriggered: root.cycleWallpaper()
     }
@@ -1039,6 +1138,13 @@ ShellRoot {
         function onCurrentWallpaperChanged() { root.syncLiveWallpaperProcess(); }
         function onLiveWallpaperEnabledChanged() { root.syncLiveWallpaperProcess(); }
         function onLiveWallpaperPausedChanged() { root.syncLiveWallpaperProcess(); }
+    }
+
+    IpcHandler {
+        target: "shell"
+        function toggleKeybinds(): void {
+            root.switchPopup("keybinds");
+        }
     }
 
     IpcHandler {
@@ -1321,7 +1427,7 @@ ShellRoot {
         id: popupOverlayWin
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.namespace: "macos-popups-overlay"
-        WlrLayershell.keyboardFocus: (root.wifiPasswordTarget !== "" || root.activePopup === "launchpad" || (root.activePopup === "spotlight" || (root.activePopup === "about" || root.activePopup === "settings"))) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+        WlrLayershell.keyboardFocus: (root.wifiPasswordTarget !== "" || root.activePopup === "launchpad" || (root.activePopup === "spotlight" || ((root.activePopup === "about" || root.activePopup === "keybinds") || root.activePopup === "settings"))) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
         exclusionMode: ExclusionMode.Ignore
 
         visible: !root.preWarmDone || root.activePopup !== ""
@@ -1339,13 +1445,19 @@ ShellRoot {
 
         property var mediaPlayer: Mpris.players.values.length > 0 ? Mpris.players.values[0] : null
 
-        MouseArea {
-            id: backdropMouse
+        Rectangle {
+            id: backdropHitSurface
             anchors.fill: parent
             z: 0
-            enabled: !root.menuModalActive
-            acceptedButtons: Qt.LeftButton | Qt.RightButton
-            onClicked: root.closePopups()
+            color: Qt.rgba(0, 0, 0, 0.002)
+            visible: root.activePopup !== "" && !root.menuModalActive
+
+            MouseArea {
+                id: backdropMouse
+                anchors.fill: parent
+                acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+                onPressed: root.closePopups()
+            }
         }
 
         Loader {
@@ -1529,14 +1641,14 @@ ShellRoot {
             id: aboutPopupLoader
             anchors.fill: parent
             property bool holdAlive: false
-            active: (root.activePopup === "about") || holdAlive
+            active: ((root.activePopup === "about" || root.activePopup === "keybinds")) || holdAlive
             onActiveChanged: {
-                if (active && !(root.activePopup === "about")) holdAlive = false;
+                if (active && !((root.activePopup === "about" || root.activePopup === "keybinds"))) holdAlive = false;
             }
             Connections {
                 target: root
                 function onActivePopupChanged() {
-                    if ((root.activePopup === "about")) {
+                    if (((root.activePopup === "about" || root.activePopup === "keybinds"))) {
                         aboutPopupHoldTimer.stop();
                         aboutPopupLoader.holdAlive = true;
                     } else if (aboutPopupLoader.active) {
@@ -1549,7 +1661,7 @@ ShellRoot {
                 interval: 620
                 repeat: false
                 onTriggered: {
-                    if (!(root.activePopup === "about")) {
+                    if (!((root.activePopup === "about" || root.activePopup === "keybinds"))) {
                         aboutPopupLoader.holdAlive = false;
                     }
                 }
@@ -1607,7 +1719,7 @@ ShellRoot {
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: WlrLayer.Bottom
         WlrLayershell.namespace: "quickshell-widgets"
-        WlrLayershell.keyboardFocus: (win.editMode || (notesWidgetLoader.item && notesWidgetLoader.item.noteFocused)) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+        WlrLayershell.keyboardFocus: widgetGalleryOpen ? WlrKeyboardFocus.Exclusive : ((win.editMode || (notesWidgetLoader.item && notesWidgetLoader.item.noteFocused)) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None)
         color: "transparent"
 
         property bool editMode: false
@@ -1631,6 +1743,7 @@ ShellRoot {
         }
         property real posX: 24
         property real posY: 44
+        property bool widgetGalleryOpen: false
         property real widgetScale: 1.0
         property real glassOpacity: root.aeroOpacity
         property real glassReflection: root.aeroReflection
@@ -1640,12 +1753,84 @@ ShellRoot {
 
         function defaultItems() {
             return {
-                media:   { enabled: true,  x: 24,  y: 44 },
-                clock:   { enabled: true,  x: 262, y: 44 },
-                weather: { enabled: true,  x: 262, y: 204 },
-                battery: { enabled: true,  x: 24,  y: 352 },
-                sysmon:  { enabled: true,  x: 262, y: 352 },
-                notes:   { enabled: false, x: 422, y: 44 }
+                media:      { enabled: true,  x: 24,  y: 44,  scale: 1.0 },
+                sysmon:     { enabled: true,  x: 24,  y: 376, scale: 1.0 },
+                clock:      { enabled: true,  x: 274, y: 64,  scale: 1.0 },
+                calendar:   { enabled: false, x: 274, y: 256, scale: 1.0 },
+                weather:    { enabled: false, x: 520, y: 44,  scale: 1.0 },
+                battery:    { enabled: false, x: 520, y: 214, scale: 1.0 },
+                notes:      { enabled: false, x: 520, y: 376, scale: 1.0 },
+                analog:     { enabled: false, x: 766, y: 44,  scale: 1.0 },
+                storage:    { enabled: false, x: 766, y: 232, scale: 1.0 },
+                network:    { enabled: false, x: 766, y: 344, scale: 1.0 },
+                pomodoro:   { enabled: false, x: 766, y: 432, scale: 1.0 },
+                quote:      { enabled: false, x: 274, y: 468, scale: 1.0 },
+                worldclock: { enabled: false, x: 520, y: 44,  scale: 1.0 },
+                reminders:  { enabled: false, x: 520, y: 226, scale: 1.0 },
+                photo:      { enabled: false, x: 766, y: 44,  scale: 1.0 },
+                shortcuts:  { enabled: false, x: 766, y: 248, scale: 1.0 }
+            };
+        }
+
+        property string focusedWidgetKey: ""
+        readonly property var widgetBaseSizes: ({
+            clock: [226, 146], media: [226, 312], sysmon: [226, 142],
+            calendar: [226, 196], weather: [226, 150], battery: [226, 142],
+            notes: [226, 176], analog: [186, 186], storage: [226, 98],
+            network: [226, 76], pomodoro: [186, 186], quote: [226, 118],
+            worldclock: [226, 166], reminders: [226, 148], photo: [186, 186],
+            shortcuts: [186, 142]
+        })
+
+        function bringWidgetToFront(key) {
+            focusedWidgetKey = key;
+        }
+
+        function rectsOverlap(x1, y1, w1, h1, x2, y2, w2, h2, pad) {
+            return (x1 - pad < x2 + w2) && (x1 + w1 + pad > x2) &&
+                   (y1 - pad < y2 + h2) && (y1 + h1 + pad > y2);
+        }
+
+        function findFreeWidgetPos(targetKey, prefX, prefY) {
+            let base = widgetBaseSizes[targetKey] || [226, 150];
+            let sc = getWidgetScale(targetKey);
+            let tw = base[0] * sc;
+            let th = base[1] * sc;
+            let minX = 24;
+            let maxX = Math.max(240, (win.width > 0 ? win.width : 1920) - tw - 24);
+            let minY = 44;
+            let maxY = Math.max(220, (win.height > 0 ? win.height : 1080) - th - 92);
+
+            let items = (root.widgetCfg && root.widgetCfg.items) ? root.widgetCfg.items : {};
+            let isSpotFree = function(cx, cy) {
+                if (cx < minX || cx > maxX || cy < minY || cy > maxY) return false;
+                for (let k in items) {
+                    if (k !== targetKey && isWidgetOn(k)) {
+                        let ox = getWidgetX(k);
+                        let oy = getWidgetY(k);
+                        let ob = widgetBaseSizes[k] || [226, 150];
+                        let osc = getWidgetScale(k);
+                        if (rectsOverlap(cx, cy, tw, th, ox, oy, ob[0] * osc, ob[1] * osc, 16)) {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            };
+
+            if (isSpotFree(prefX, prefY)) return { x: prefX, y: prefY };
+
+            for (let colX = minX; colX <= maxX; colX += 246) {
+                for (let rowY = minY; rowY <= maxY; rowY += 24) {
+                    if (isSpotFree(colX, rowY)) return { x: colX, y: rowY };
+                }
+            }
+
+            let activeCount = 0;
+            for (let k in items) { if (isWidgetOn(k)) activeCount++; }
+            return {
+                x: Math.min(maxX, minX + (activeCount % 6) * 28),
+                y: Math.min(maxY, minY + (activeCount % 6) * 28)
             };
         }
 
@@ -1655,15 +1840,35 @@ ShellRoot {
 
         function getWidgetX(key) {
             let d = defaultItems();
-            return widgetStates && widgetStates[key] && typeof widgetStates[key].x === "number" ? widgetStates[key].x : d[key].x;
+            return widgetStates && widgetStates[key] && typeof widgetStates[key].x === "number" ? widgetStates[key].x : (d[key] ? d[key].x : 24);
         }
 
         function getWidgetY(key) {
             let d = defaultItems();
-            return widgetStates && widgetStates[key] && typeof widgetStates[key].y === "number" ? widgetStates[key].y : d[key].y;
+            return widgetStates && widgetStates[key] && typeof widgetStates[key].y === "number" ? widgetStates[key].y : (d[key] ? d[key].y : 44);
         }
 
+        function getWidgetScale(key) {
+            if (widgetStates && widgetStates[key] && typeof widgetStates[key].scale === "number") {
+                return widgetStates[key].scale;
+            }
+            return widgetScale || 1.0;
+        }
+
+        function setWidgetScale(key, sc) {
+            let clamped = Number(Math.max(0.65, Math.min(1.75, sc)).toFixed(2));
+            let next = JSON.parse(JSON.stringify(widgetStates));
+            if (!next[key]) next[key] = defaultItems()[key] || { enabled: true, x: 24, y: 44, scale: 1.0 };
+            next[key].scale = clamped;
+            widgetStates = next;
+            root.widgetCfg.items = next;
+        }
         function setWidgetEnabled(key, val) {
+            if (val) {
+                let freeSlot = findFreeWidgetPos(key, getWidgetX(key), getWidgetY(key));
+                setWidgetPos(key, freeSlot.x, freeSlot.y);
+                bringWidgetToFront(key);
+            }
             let next = JSON.parse(JSON.stringify(widgetStates));
             if (!next[key]) next[key] = defaultItems()[key];
             next[key].enabled = val;
@@ -1701,7 +1906,7 @@ ShellRoot {
         }
 
         function syncNiriLiquidGlass() {
-            let mode = root.glassStyle;
+            let mode = (root.surfaceMode === "solid") ? "solid" : root.liquidVariant;
             let p1 = "0", p2 = "0", p3 = "0", p4 = "0", p5 = "0";
             if (mode === "mac") {
                 p1 = String(Number(root.macOpacity.toFixed(2)));
@@ -1720,8 +1925,8 @@ ShellRoot {
             }
             niriGlassProc.command = [
                 "sh", "-c",
-                "python3 \"$HOME/.config/quickshell/sync_niri_glass.py\" \"$1\" \"$2\" \"$3\" \"$4\" \"$5\" \"$6\"",
-                "sh", mode, p1, p2, p3, p4, p5
+                "python3 \"$HOME/.config/quickshell/sync_niri_glass.py\" \"$1\" \"$2\" \"$3\" \"$4\" \"$5\" \"$6\" \"$7\"",
+                "sh", mode, p1, p2, p3, p4, p5, root.colorScheme
             ];
             niriGlassProc.running = false;
             niriGlassProc.running = true;
@@ -1745,7 +1950,11 @@ ShellRoot {
                 pauseWhenUnseen: root.pauseWhenUnseen,
                 noteText: quickNoteText,
                 items: widgetStates,
-                glassStyle: root.glassStyle,
+                surfaceMode: root.surfaceMode,
+                liquidVariant: root.liquidVariant,
+                colorScheme: root.colorScheme,
+                chromeLayoutMode: root.chromeLayoutMode,
+                glassStyle: root.liquidVariant,
                 macOpacity: Number(root.macOpacity.toFixed(2)),
                 macFrost: Number(root.macFrost.toFixed(2)),
                 aeroBaseOpacity: Number(root.aeroBaseOpacity.toFixed(2)),
@@ -1807,12 +2016,23 @@ ShellRoot {
                                     merged[k].enabled = !!obj.items[k].enabled;
                                     if (typeof obj.items[k].x === "number") merged[k].x = obj.items[k].x;
                                     if (typeof obj.items[k].y === "number") merged[k].y = obj.items[k].y;
+                                    if (typeof obj.items[k].scale === "number") merged[k].scale = Math.max(0.65, Math.min(1.75, obj.items[k].scale));
                                 }
                             }
                             win.widgetStates = merged;
                             root.widgetCfg.items = merged;
                         }
-                        if (obj.glassStyle === "mac" || obj.glassStyle === "aero" || obj.glassStyle === "liquid") root.glassStyle = obj.glassStyle;
+                        if (obj.glassStyle === "mac" || obj.glassStyle === "aero" || obj.glassStyle === "liquid") {
+                            root.glassStyle = obj.glassStyle;
+                            root.liquidVariant = obj.glassStyle;
+                        }
+                        if (obj.surfaceMode === "solid" || obj.surfaceMode === "liquid") root.surfaceMode = obj.surfaceMode;
+                        if (obj.liquidVariant === "mac" || obj.liquidVariant === "aero" || obj.liquidVariant === "liquid") {
+                            root.liquidVariant = obj.liquidVariant;
+                            root.glassStyle = obj.liquidVariant;
+                        }
+                        if (obj.colorScheme === "dark" || obj.colorScheme === "light") root.colorScheme = obj.colorScheme;
+                        if (obj.chromeLayoutMode === "floating" || obj.chromeLayoutMode === "merged") root.chromeLayoutMode = obj.chromeLayoutMode;
                         if (typeof obj.liquidOpacity === "number") root.liquidOpacity = Math.max(0.10, Math.min(0.85, obj.liquidOpacity));
                         if (typeof obj.liquidRefraction === "number") root.liquidRefraction = Math.max(0.0, Math.min(1.0, obj.liquidRefraction));
                         if (typeof obj.liquidFringing === "number") root.liquidFringing = Math.max(0.0, Math.min(1.0, obj.liquidFringing));
@@ -1933,6 +2153,16 @@ ShellRoot {
         // ====================================================================
         // WIDGET 6: CALENDAR & INTERACTIVE QUICK NOTES (BISA LANGSUNG DIISI)
         Loader {
+            id: calendarWidgetLoader
+            anchors.fill: parent
+            active: win.isWidgetOn("calendar")
+            sourceComponent: CalendarWidget {
+                shellRoot: root
+                hostWin: win
+            }
+        }
+
+        Loader {
             id: notesWidgetLoader
             anchors.fill: parent
             active: win.isWidgetOn("notes")
@@ -1940,6 +2170,141 @@ ShellRoot {
                 shellRoot: root
                 hostWin: win
             }
+        }
+        Loader {
+            id: loader_analog
+            anchors.fill: parent
+            z: win.focusedWidgetKey === "analog" ? 12 : 2
+            property bool targetOn: win.isWidgetOn("analog")
+            property bool keepAlive: false
+            onTargetOnChanged: {
+                if (targetOn) { keepAlive = true; unload_analog.stop(); }
+                else { unload_analog.restart(); }
+            }
+            Component.onCompleted: keepAlive = targetOn
+            Timer { id: unload_analog; interval: 240; repeat: false; onTriggered: loader_analog.keepAlive = false }
+            active: targetOn || keepAlive
+            sourceComponent: AnalogClockWidget { shellRoot: root; hostWin: win }
+        }
+        Loader {
+            id: loader_storage
+            anchors.fill: parent
+            z: win.focusedWidgetKey === "storage" ? 12 : 2
+            property bool targetOn: win.isWidgetOn("storage")
+            property bool keepAlive: false
+            onTargetOnChanged: {
+                if (targetOn) { keepAlive = true; unload_storage.stop(); }
+                else { unload_storage.restart(); }
+            }
+            Component.onCompleted: keepAlive = targetOn
+            Timer { id: unload_storage; interval: 240; repeat: false; onTriggered: loader_storage.keepAlive = false }
+            active: targetOn || keepAlive
+            sourceComponent: StorageWidget { shellRoot: root; hostWin: win }
+        }
+        Loader {
+            id: loader_network
+            anchors.fill: parent
+            z: win.focusedWidgetKey === "network" ? 12 : 2
+            property bool targetOn: win.isWidgetOn("network")
+            property bool keepAlive: false
+            onTargetOnChanged: {
+                if (targetOn) { keepAlive = true; unload_network.stop(); }
+                else { unload_network.restart(); }
+            }
+            Component.onCompleted: keepAlive = targetOn
+            Timer { id: unload_network; interval: 240; repeat: false; onTriggered: loader_network.keepAlive = false }
+            active: targetOn || keepAlive
+            sourceComponent: NetworkWidget { shellRoot: root; hostWin: win }
+        }
+        Loader {
+            id: loader_pomodoro
+            anchors.fill: parent
+            z: win.focusedWidgetKey === "pomodoro" ? 12 : 2
+            property bool targetOn: win.isWidgetOn("pomodoro")
+            property bool keepAlive: false
+            onTargetOnChanged: {
+                if (targetOn) { keepAlive = true; unload_pomodoro.stop(); }
+                else { unload_pomodoro.restart(); }
+            }
+            Component.onCompleted: keepAlive = targetOn
+            Timer { id: unload_pomodoro; interval: 240; repeat: false; onTriggered: loader_pomodoro.keepAlive = false }
+            active: targetOn || keepAlive
+            sourceComponent: PomodoroWidget { shellRoot: root; hostWin: win }
+        }
+        Loader {
+            id: loader_quote
+            anchors.fill: parent
+            z: win.focusedWidgetKey === "quote" ? 12 : 2
+            property bool targetOn: win.isWidgetOn("quote")
+            property bool keepAlive: false
+            onTargetOnChanged: {
+                if (targetOn) { keepAlive = true; unload_quote.stop(); }
+                else { unload_quote.restart(); }
+            }
+            Component.onCompleted: keepAlive = targetOn
+            Timer { id: unload_quote; interval: 240; repeat: false; onTriggered: loader_quote.keepAlive = false }
+            active: targetOn || keepAlive
+            sourceComponent: QuoteWidget { shellRoot: root; hostWin: win }
+        }
+        Loader {
+            id: loader_worldclock
+            anchors.fill: parent
+            z: win.focusedWidgetKey === "worldclock" ? 12 : 2
+            property bool targetOn: win.isWidgetOn("worldclock")
+            property bool keepAlive: false
+            onTargetOnChanged: {
+                if (targetOn) { keepAlive = true; unload_worldclock.stop(); }
+                else { unload_worldclock.restart(); }
+            }
+            Component.onCompleted: keepAlive = targetOn
+            Timer { id: unload_worldclock; interval: 240; repeat: false; onTriggered: loader_worldclock.keepAlive = false }
+            active: targetOn || keepAlive
+            sourceComponent: WorldClockWidget { shellRoot: root; hostWin: win }
+        }
+        Loader {
+            id: loader_reminders
+            anchors.fill: parent
+            z: win.focusedWidgetKey === "reminders" ? 12 : 2
+            property bool targetOn: win.isWidgetOn("reminders")
+            property bool keepAlive: false
+            onTargetOnChanged: {
+                if (targetOn) { keepAlive = true; unload_reminders.stop(); }
+                else { unload_reminders.restart(); }
+            }
+            Component.onCompleted: keepAlive = targetOn
+            Timer { id: unload_reminders; interval: 240; repeat: false; onTriggered: loader_reminders.keepAlive = false }
+            active: targetOn || keepAlive
+            sourceComponent: RemindersWidget { shellRoot: root; hostWin: win }
+        }
+        Loader {
+            id: loader_photo
+            anchors.fill: parent
+            z: win.focusedWidgetKey === "photo" ? 12 : 2
+            property bool targetOn: win.isWidgetOn("photo")
+            property bool keepAlive: false
+            onTargetOnChanged: {
+                if (targetOn) { keepAlive = true; unload_photo.stop(); }
+                else { unload_photo.restart(); }
+            }
+            Component.onCompleted: keepAlive = targetOn
+            Timer { id: unload_photo; interval: 240; repeat: false; onTriggered: loader_photo.keepAlive = false }
+            active: targetOn || keepAlive
+            sourceComponent: PhotoWidget { shellRoot: root; hostWin: win }
+        }
+        Loader {
+            id: loader_shortcuts
+            anchors.fill: parent
+            z: win.focusedWidgetKey === "shortcuts" ? 12 : 2
+            property bool targetOn: win.isWidgetOn("shortcuts")
+            property bool keepAlive: false
+            onTargetOnChanged: {
+                if (targetOn) { keepAlive = true; unload_shortcuts.stop(); }
+                else { unload_shortcuts.restart(); }
+            }
+            Component.onCompleted: keepAlive = targetOn
+            Timer { id: unload_shortcuts; interval: 240; repeat: false; onTriggered: loader_shortcuts.keepAlive = false }
+            active: targetOn || keepAlive
+            sourceComponent: ShortcutsWidget { shellRoot: root; hostWin: win }
         }
     }
 

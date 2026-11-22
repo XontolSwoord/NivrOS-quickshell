@@ -14,9 +14,10 @@ Item {
     anchors.fill: parent
     required property var shellRoot
     required property var hostWin
-    readonly property bool anyVisible: (appleCard.opacity > 0.01 || winCard.opacity > 0.01 || deskCard.opacity > 0.01 || powerConfirmOverlay.opacity > 0.01 || powerBlackoutOverlay.opacity > 0.01 || phoneScreenOffOverlay.opacity > 0.01 || modRoot.powerConfirmClosingForCancel || modRoot.powerConfirmClosingForExec || modRoot.powerConfirmOpen || modRoot.powerExecuting || modRoot.screenOffActive)
-    onAnyVisibleChanged: shellRoot.menuModalActive = anyVisible
-    Component.onCompleted: shellRoot.menuModalActive = anyVisible
+    readonly property bool isPowerModal: (powerConfirmOverlay.opacity > 0.01 || powerBlackoutOverlay.opacity > 0.01 || phoneScreenOffOverlay.opacity > 0.01 || modRoot.powerConfirmClosingForCancel || modRoot.powerConfirmClosingForExec || modRoot.powerConfirmOpen || modRoot.powerExecuting || modRoot.screenOffActive)
+    readonly property bool anyVisible: (appleCard.opacity > 0.01 || winCard.opacity > 0.01 || deskCard.opacity > 0.01 || isPowerModal)
+    onIsPowerModalChanged: shellRoot.menuModalActive = isPowerModal
+    Component.onCompleted: shellRoot.menuModalActive = isPowerModal
     Component.onDestruction: shellRoot.menuModalActive = false
 
     property string pendingPowerCmd: ""
@@ -50,16 +51,23 @@ Item {
             anchors.leftMargin: 10
             width: 220
             height: appleCol.implicitHeight + 12
-            radius: 14
-            color: "transparent"
+            topLeftRadius: 14
+            topRightRadius: 14
+            bottomLeftRadius: 14
+            bottomRightRadius: 14
+            color: ShellState.isSolid ? ThemeTokens.windowBg : "transparent"
             Canvas {
-                anchors.fill: parent
+                                x: 0
+                y: 0
+                width: parent.width
+                height: parent.height
                 z: -1
+                visible: !ShellState.isSolid
                 property real dO: shellRoot.aeroOpacity
                 property real dR: shellRoot.aeroReflection
                 property real dF: shellRoot.glassFade
                 property string dW: shellRoot.activeGlassWall
-                property string dSt: shellRoot.glassStyle
+                property string dSt: ShellState.surfaceMode + "_" + ShellState.liquidVariant + "_" + ShellState.colorScheme
                 property real dTh: shellRoot.activeGlassDetail
                 onDOChanged: requestPaint()
                 onDRChanged: requestPaint()
@@ -67,15 +75,17 @@ Item {
                 onDWChanged: requestPaint()
                 onDStChanged: requestPaint()
                 onDThChanged: requestPaint()
+                onWidthChanged: requestPaint()
+                onHeightChanged: requestPaint()
                 onPaint: {
                     let sw = Screen.width || 1366;
-                    let sh = Screen.height || 768;
-                    let pos = parent.mapToItem(null, 0, 0);
-                    shellRoot.drawGlobalAeroGlass(getContext("2d"), width, height, parent.radius, pos.x, pos.y, sw, sh, false, false);
+                        let sh = Screen.height || 768;
+                        let pos = parent.mapToItem(null, 0, 0);
+                        shellRoot.drawGlobalAeroGlass(getContext("2d"), width, height, 14, pos.x, pos.y, sw, sh, false, false);
                 }
             }
             border.width: 1
-            border.color: "#38FFFFFF"
+            border.color: ThemeTokens.borderStrong
             visible: !shellRoot.preWarmDone || (shellRoot.activePopup === "apple" || opacity > 0.01)
 
 
@@ -145,7 +155,7 @@ Item {
                                 anchors.leftMargin: 10
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: modelData.label
-                                color: "#F5F5F7"
+                                color: ThemeTokens.textPrimary
                                 font.pixelSize: 12
                                 font.weight: Font.Medium
                             }
@@ -180,13 +190,14 @@ Item {
                             width: appleCol.width - 16
                             anchors.horizontalCenter: parent.horizontalCenter
                             height: 1
-                            color: "#22FFFFFF"
+                            color: ThemeTokens.dividerColor
                             visible: modelData.sep
                         }
                     }
                 }
             }
         }
+
         Rectangle {
             id: winCard
             z: 10
@@ -196,16 +207,23 @@ Item {
             anchors.leftMargin: 96
             width: 210
             height: winMenuCol.implicitHeight + 12
-            radius: 14
-            color: "transparent"
+            topLeftRadius: 14
+            topRightRadius: 14
+            bottomLeftRadius: 14
+            bottomRightRadius: 14
+            color: ShellState.isSolid ? ThemeTokens.windowBg : "transparent"
             Canvas {
-                anchors.fill: parent
+                                x: 0
+                y: 0
+                width: parent.width
+                height: parent.height
                 z: -1
+                visible: !ShellState.isSolid
                 property real dO: shellRoot.aeroOpacity
                 property real dR: shellRoot.aeroReflection
                 property real dF: shellRoot.glassFade
                 property string dW: shellRoot.activeGlassWall
-                property string dSt: shellRoot.glassStyle
+                property string dSt: ShellState.surfaceMode + "_" + ShellState.liquidVariant + "_" + ShellState.colorScheme
                 property real dTh: shellRoot.activeGlassDetail
                 onDOChanged: requestPaint()
                 onDRChanged: requestPaint()
@@ -213,15 +231,17 @@ Item {
                 onDWChanged: requestPaint()
                 onDStChanged: requestPaint()
                 onDThChanged: requestPaint()
+                onWidthChanged: requestPaint()
+                onHeightChanged: requestPaint()
                 onPaint: {
                     let sw = Screen.width || 1366;
-                    let sh = Screen.height || 768;
-                    let pos = parent.mapToItem(null, 0, 0);
-                    shellRoot.drawGlobalAeroGlass(getContext("2d"), width, height, parent.radius, pos.x, pos.y, sw, sh, false, false);
+                        let sh = Screen.height || 768;
+                        let pos = parent.mapToItem(null, 0, 0);
+                        shellRoot.drawGlobalAeroGlass(getContext("2d"), width, height, 14, pos.x, pos.y, sw, sh, false, false);
                 }
             }
             border.width: 1
-            border.color: "#38FFFFFF"
+            border.color: ThemeTokens.borderStrong
             visible: !shellRoot.preWarmDone || (shellRoot.activePopup === "window" || opacity > 0.01)
 
 
@@ -261,10 +281,10 @@ Item {
 
                 Repeater {
                     model: [
-                        { label: "Toggle Overview", cmd: "niri msg action toggle-overview" },
-                        { label: "Toggle Fullscreen", cmd: "niri msg action fullscreen-window" },
-                        { label: "Center Focused Column", cmd: "niri msg action center-column" },
-                        { label: "Close Focused Window", cmd: "niri msg action close-window" }
+                        { label: LocaleStrings.actToggleOverview, cmd: "niri msg action toggle-overview" },
+                        { label: LocaleStrings.actToggleFullscreen, cmd: "niri msg action fullscreen-window" },
+                        { label: LocaleStrings.actCenterColumn, cmd: "niri msg action center-column" },
+                        { label: LocaleStrings.actCloseWindow, cmd: "niri msg action close-window" }
                     ]
 
                     Rectangle {
@@ -285,7 +305,7 @@ Item {
                             anchors.leftMargin: 10
                             anchors.verticalCenter: parent.verticalCenter
                             text: modelData.label
-                            color: "#F5F5F7"
+                            color: ThemeTokens.textPrimary
                             font.pixelSize: 12
                             font.weight: Font.Medium
                         }
@@ -305,6 +325,7 @@ Item {
                 }
             }
         }
+
         Rectangle {
             id: deskCard
             z: 10
@@ -314,16 +335,23 @@ Item {
             anchors.leftMargin: 162
             width: 220
             height: deskMenuCol.implicitHeight + 12
-            radius: 14
-            color: "transparent"
+            topLeftRadius: 14
+            topRightRadius: 14
+            bottomLeftRadius: 14
+            bottomRightRadius: 14
+            color: ShellState.isSolid ? ThemeTokens.windowBg : "transparent"
             Canvas {
-                anchors.fill: parent
+                                x: 0
+                y: 0
+                width: parent.width
+                height: parent.height
                 z: -1
+                visible: !ShellState.isSolid
                 property real dO: shellRoot.aeroOpacity
                 property real dR: shellRoot.aeroReflection
                 property real dF: shellRoot.glassFade
                 property string dW: shellRoot.activeGlassWall
-                property string dSt: shellRoot.glassStyle
+                property string dSt: ShellState.surfaceMode + "_" + ShellState.liquidVariant + "_" + ShellState.colorScheme
                 property real dTh: shellRoot.activeGlassDetail
                 onDOChanged: requestPaint()
                 onDRChanged: requestPaint()
@@ -331,15 +359,17 @@ Item {
                 onDWChanged: requestPaint()
                 onDStChanged: requestPaint()
                 onDThChanged: requestPaint()
+                onWidthChanged: requestPaint()
+                onHeightChanged: requestPaint()
                 onPaint: {
                     let sw = Screen.width || 1366;
-                    let sh = Screen.height || 768;
-                    let pos = parent.mapToItem(null, 0, 0);
-                    shellRoot.drawGlobalAeroGlass(getContext("2d"), width, height, parent.radius, pos.x, pos.y, sw, sh, false, false);
+                        let sh = Screen.height || 768;
+                        let pos = parent.mapToItem(null, 0, 0);
+                        shellRoot.drawGlobalAeroGlass(getContext("2d"), width, height, 14, pos.x, pos.y, sw, sh, false, false);
                 }
             }
             border.width: 1
-            border.color: "#38FFFFFF"
+            border.color: ThemeTokens.borderStrong
             visible: !shellRoot.preWarmDone || (shellRoot.activePopup === "desktop" || opacity > 0.01)
 
 
@@ -379,10 +409,10 @@ Item {
 
                 Repeater {
                     model: [
-                        { label: "Next Wallpaper (Shader)", action: "wp" },
-                        { label: "Take Screenshot...", action: "ss" },
-                        { label: "Atur Posisi & Ukuran Widget", action: "edit" },
-                        { label: "Reset Layout Widget", action: "reset" }
+                        { label: LocaleStrings.actNextWallpaper, action: "wp" },
+                        { label: LocaleStrings.actScreenshot, action: "ss" },
+                        { label: LocaleStrings.actEditWidgets, action: "edit" },
+                        { label: LocaleStrings.actResetWidgets, action: "reset" }
                     ]
 
                     Rectangle {
@@ -403,7 +433,7 @@ Item {
                             anchors.leftMargin: 10
                             anchors.verticalCenter: parent.verticalCenter
                             text: modelData.label
-                            color: "#F5F5F7"
+                            color: ThemeTokens.textPrimary
                             font.pixelSize: 12
                             font.weight: Font.Medium
                         }
@@ -487,26 +517,6 @@ Item {
             color: "#99000000"
         }
 
-        ShaderEffectSource {
-            id: bgBlurSource
-            anchors.fill: parent
-            sourceItem: null
-            sourceRect: Qt.rect(0, 0, width, height)
-            visible: false
-            live: powerConfirmOverlay.visible
-            hideSource: false
-        }
-
-        MultiEffect {
-            anchors.fill: parent
-            source: bgBlurSource
-            blurEnabled: false
-            blur: 0.72
-            blurMax: 32
-            opacity: powerConfirmOverlay.shown ? 0.9 : 0.0
-            Behavior on opacity { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
-        }
-
         MouseArea {
             anchors.fill: parent
             z: 1
@@ -528,7 +538,7 @@ Item {
             anchors.centerIn: parent
             color: "transparent"
             border.width: 1
-            border.color: "#44FFFFFF"
+            border.color: ThemeTokens.borderStrong
 
             opacity: powerConfirmOverlay.shown ? 1.0 : 0.0
             scale: powerConfirmOverlay.shown ? 1.0 : 0.78
@@ -546,7 +556,7 @@ Item {
                 property real dR: shellRoot.aeroReflection
                 property real dF: shellRoot.glassFade
                 property string dW: shellRoot.activeGlassWall
-                property string dSt: shellRoot.glassStyle
+                property string dSt: ShellState.surfaceMode + "_" + ShellState.liquidVariant + "_" + ShellState.colorScheme
                 property real dTh: shellRoot.activeGlassDetail
                 onDOChanged: requestPaint()
                 onDRChanged: requestPaint()
@@ -583,7 +593,7 @@ Item {
                         Layout.fillWidth: true
                         horizontalAlignment: Text.AlignHCenter
                         text: "Konfirmasi " + (modRoot.pendingPowerLabel || "Tindakan").replace("...", "")
-                        color: "#FFFFFF"
+                        color: ThemeTokens.textPrimary
                         font.pixelSize: 16
                         font.bold: true
                     }
@@ -593,7 +603,7 @@ Item {
                         horizontalAlignment: Text.AlignHCenter
                         wrapMode: Text.WordWrap
                         text: "Apakah kamu yakin ingin melanjutkan " + (modRoot.pendingPowerLabel || "perintah ini").replace("...", "").toLowerCase() + "?"
-                        color: "#E5E5EA"
+                        color: ThemeTokens.textPrimary
                         font.pixelSize: 12
                     }
                 }
@@ -624,7 +634,7 @@ Item {
                         Text {
                             anchors.centerIn: parent
                             text: "OK"
-                            color: "#FFFFFF"
+                            color: ThemeTokens.textPrimary
                             font.pixelSize: 13
                             font.bold: true
                         }
@@ -660,7 +670,7 @@ Item {
                         Text {
                             anchors.centerIn: parent
                             text: "Tidak"
-                            color: "#FFFFFF"
+                            color: ThemeTokens.textPrimary
                             font.pixelSize: 13
                             font.bold: true
                         }
@@ -785,7 +795,7 @@ Item {
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: (modRoot.activePowerLabel || "Memproses").replace("...", "") + "..."
-                color: "#F5F5F7"
+                color: ThemeTokens.textPrimary
                 font.pixelSize: 14
                 font.weight: Font.Medium
             }
@@ -893,12 +903,6 @@ Item {
             height: parent.height
             color: "#E8F4FF"
             opacity: phoneScreenOffOverlay.beamOpacity
-            transform: Scale {
-                origin.x: phoneScreenOffOverlay.width * 0.5
-                origin.y: phoneScreenOffOverlay.height * 0.5
-                xScale: phoneScreenOffOverlay.beamScaleX
-                yScale: phoneScreenOffOverlay.beamScaleY
-            }
         }
 
         Column {
@@ -916,7 +920,7 @@ Item {
                 radius: 29
                 color: "#1EFFFFFF"
                 border.width: 1
-                border.color: "#3CFFFFFF"
+                border.color: ThemeTokens.inputBg
 
                 Text {
                     anchors.centerIn: parent
@@ -930,7 +934,7 @@ Item {
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: modRoot.screenOffMode === "sleep" ? "Sleep..." : "Screen Locked"
-                color: "#E5E5EA"
+                color: ThemeTokens.textPrimary
                 font.pixelSize: 13
                 font.weight: Font.Medium
             }

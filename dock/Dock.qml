@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Window
 import Quickshell
 import Quickshell.Wayland
-import Quickshell.Io
 import "../core"
 
 PanelWindow {
@@ -19,13 +18,118 @@ PanelWindow {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     color: "transparent"
 
-    property bool dwellTriggered: false
-    property bool startupPeek: false
-    property bool shuttingDown: false
-    property var runningList: []
+    readonly property string hideMode: (macDockWin.shellRoot ? macDockWin.shellRoot.dockHideMode : ShellState.dockHideMode) || "smart"
+    readonly property bool editActive: !!(macDockWin.shellRoot ? macDockWin.shellRoot.desktopEditMode : ShellState.editMode)
+    readonly property var windowsList: (macDockWin.shellRoot && Array.isArray(macDockWin.shellRoot.runningWindows))
+                                       ? macDockWin.shellRoot.runningWindows : []
 
-    readonly property bool isDockOpen: !(macDockWin.shellRoot ? macDockWin.shellRoot.desktopEditMode : false) && (dwellTriggered || startupPeek)
-    readonly property bool pointerInsideDock: dockInputHandler.hovered || macDockPill.hoveredSlots > 0
+    property bool dwellTriggered: false
+    property bool startupPeek: hideMode === "smart"
+    property var dockItems: []
+
+    readonly property bool isDockOpen: !editActive
+                                       && hideMode !== "always"
+                                       && (hideMode === "never" || dwellTriggered || startupPeek)
+    property bool pointerInPillZone: false
+    readonly property bool pointerInsideDock: pointerInPillZone
+
+    readonly property var pinnedSpecs: [
+        {
+            name: "Finder",
+            icon: "system-file-manager",
+            glyph: "F",
+            bg: "#1E88E5",
+            cmd: "command -v thunar >/dev/null 2>&1 && thunar || xdg-open \"$HOME\"",
+            matches: ["thunar", "nautilus", "dolphin", "nemo", "pcmanfm", "org.gnome.nautilus"],
+            hasDivider: false
+        },
+        {
+            name: "Launchpad",
+            icon: "view-app-grid-symbolic",
+            glyph: "::",
+            bg: "#5E5CE6",
+            cmd: "",
+            matches: [],
+            hasDivider: false
+        },
+        {
+            name: "Firefox",
+            icon: "firefox",
+            glyph: "FF",
+            bg: "#FF7139",
+            cmd: "firefox",
+            matches: ["firefox", "zen", "chromium", "brave"],
+            hasDivider: false
+        },
+        {
+            name: "Terminal",
+            icon: "Alacritty",
+            glyph: ">_",
+            bg: "#1C1C1E",
+            cmd: "command -v ghostty >/dev/null 2>&1 && ghostty || alacritty",
+            matches: ["alacritty", "ghostty", "kitty", "foot", "wezterm"],
+            hasDivider: false
+        }
+    ]
+
+    function rebuildDockItems() {
+        let items = [];
+        let pinnedKeys = [];
+
+        for (let i = 0; i < pinnedSpecs.length; i++) {
+            let p = pinnedSpecs[i];
+            items.push(p);
+            for (let m = 0; m < p.matches.length; m++) {
+                pinnedKeys.push(p.matches[m]);
+            }
+        }
+
+        let seenDynamic = {};
+        let wins = macDockWin.windowsList;
+        for (let j = 0; j < wins.length; j++) {
+            let rawId = (wins[j].app_id || "").trim();
+            if (!rawId) continue;
+            let lowId = rawId.toLowerCase();
+
+            let isPinned = false;
+            for (let k = 0; k < pinnedKeys.length; k++) {
+                if (lowId.includes(pinnedKeys[k])) {
+                    isPinned = true;
+                    break;
+                }
+            }
+            if (isPinned || seenDynamic[lowId]) continue;
+            seenDynamic[lowId] = true;
+
+            let label = (macDockWin.shellRoot && macDockWin.shellRoot.formatAppName)
+                        ? macDockWin.shellRoot.formatAppName(rawId)
+                        : rawId;
+            items.push({
+                name: label,
+                icon: rawId,
+                glyph: label.slice(0, 2).toUpperCase(),
+                bg: "#3A3A3C",
+                cmd: "",
+                matches: [lowId],
+                hasDivider: false
+            });
+        }
+
+        items.push({
+            name: "Settings",
+            icon: "preferences-system",
+            glyph: "S",
+            bg: "#8E8E93",
+            cmd: "",
+            matches: [],
+            hasDivider: true
+        });
+
+        macDockWin.dockItems = items;
+    }
+
+    onWindowsListChanged: rebuildDockItems()
+    Component.onCompleted: rebuildDockItems()
 
     mask: Region {
         item: macDockMaskItem
@@ -35,17 +139,21 @@ PanelWindow {
         id: macDockMaskItem
         readonly property real targetPillW: Math.max(220, macDockPill.width)
         readonly property real targetPillX: (macDockWin.width - targetPillW) * 0.5
-        readonly property real activeCoverH: macDockWin.isDockOpen ? 108 : Math.max(4, Math.round(108 - macDockPill.slideY * 1.25))
+        readonly property real activeCoverH: macDockWin.isDockOpen ? 76 : 6
         readonly property bool visuallyActive: macDockWin.isDockOpen || macDockPill.opacity > 0.05
+        readonly property bool disableMask: macDockWin.editActive || macDockWin.hideMode === "always"
 
-        x: (macDockWin.shellRoot ? macDockWin.shellRoot.desktopEditMode : false) ? 0 : Math.max(0, targetPillX - (visuallyActive ? 24 : 4))
-        y: (macDockWin.shellRoot ? macDockWin.shellRoot.desktopEditMode : false) ? macDockWin.height : (macDockWin.height - activeCoverH)
-        width: (macDockWin.shellRoot ? macDockWin.shellRoot.desktopEditMode : false) ? 0 : Math.min(macDockWin.width, targetPillW + (visuallyActive ? 48 : 8))
-        height: (macDockWin.shellRoot ? macDockWin.shellRoot.desktopEditMode : false) ? 0 : activeCoverH
+        readonly property real closedTriggerW: Math.min(macDockWin.width, targetPillW + 24)
+        readonly property real closedTriggerX: Math.max(0, (macDockWin.width - closedTriggerW) * 0.5)
+
+        x: disableMask ? 0 : (visuallyActive ? Math.max(0, targetPillX - 4) : closedTriggerX)
+        y: disableMask ? macDockWin.height : (macDockWin.height - activeCoverH)
+        width: disableMask ? 0 : (visuallyActive ? Math.min(macDockWin.width, targetPillW + 8) : closedTriggerW)
+        height: disableMask ? 0 : activeCoverH
     }
 
     onPointerInsideDockChanged: {
-        if ((macDockWin.shellRoot ? macDockWin.shellRoot.desktopEditMode : false)) return;
+        if (editActive) return;
         if (pointerInsideDock) {
             macDockHideTimer.stop();
             if (!isDockOpen && !macDockDwellTimer.running) {
@@ -55,7 +163,7 @@ PanelWindow {
             macDockDwellTimer.stop();
             macDockPill.pointerActive = false;
             macDockPill.pointerScreenX = -1000;
-            if (isDockOpen) {
+            if (isDockOpen && hideMode === "smart") {
                 macDockHideTimer.restart();
             }
         }
@@ -71,32 +179,29 @@ PanelWindow {
         }
     }
 
-    Connections {
-        target: ShellState
-        function onEditModeChanged() {
-            if ((macDockWin.shellRoot ? macDockWin.shellRoot.desktopEditMode : false)) {
-                macDockDwellTimer.stop();
-                macDockHideTimer.stop();
-                macDockWin.dwellTriggered = false;
-                macDockWin.startupPeek = false;
-            }
+    onEditActiveChanged: {
+        if (editActive) {
+            macDockDwellTimer.stop();
+            macDockHideTimer.stop();
+            macDockWin.dwellTriggered = false;
+            macDockWin.startupPeek = false;
         }
     }
 
     Timer {
         id: macDockStartupTimer
         interval: 1500
-        running: true
+        running: macDockWin.startupPeek
         repeat: false
         onTriggered: macDockWin.startupPeek = false
     }
 
     Timer {
         id: macDockDwellTimer
-        interval: 110
+        interval: 95
         repeat: false
         onTriggered: {
-            if (!(macDockWin.shellRoot ? macDockWin.shellRoot.desktopEditMode : false) && macDockWin.pointerInsideDock) {
+            if (!macDockWin.editActive && macDockWin.pointerInsideDock) {
                 macDockWin.dwellTriggered = true;
                 if (dockInputHandler.hovered) {
                     macDockPill.pointerActive = true;
@@ -108,71 +213,49 @@ PanelWindow {
 
     Timer {
         id: macDockHideTimer
-        interval: 280
+        interval: 160
         repeat: false
         onTriggered: {
-            if (!macDockWin.pointerInsideDock) {
+            if (!macDockWin.pointerInsideDock && macDockWin.hideMode === "smart") {
                 macDockWin.dwellTriggered = false;
                 macDockWin.startupPeek = false;
             }
         }
     }
 
-    function findRunningWinId(matchKey) {
-        if (!matchKey || matchKey === "") return -1;
-        let key = matchKey.toLowerCase();
+    Timer {
+        id: macDockPointerWatchdog
+        interval: 90
+        repeat: true
+        running: macDockWin.isDockOpen && macDockWin.hideMode === "smart"
+        onTriggered: {
+            if (!dockInputHandler.hovered) {
+                macDockWin.pointerInPillZone = false;
+                macDockPill.pointerActive = false;
+                macDockPill.pointerScreenX = -1000;
+                macDockPill.hoveredSlots = 0;
+                if (!macDockHideTimer.running) macDockHideTimer.restart();
+            }
+        }
+    }
+
+    function findRunningWinId(matchKeys) {
+        if (!Array.isArray(matchKeys) || matchKeys.length === 0) return -1;
+        let wins = macDockWin.windowsList;
         let fallbackId = -1;
-        for (let i = runningList.length - 1; i >= 0; i--) {
-            let w = runningList[i];
+        for (let i = wins.length - 1; i >= 0; i--) {
+            let w = wins[i];
             let appId = (w.app_id || "").toLowerCase();
-            if (appId.includes(key)) {
-                if (w.is_focused) return w.id;
-                if (fallbackId < 0) fallbackId = w.id;
+            if (!appId) continue;
+            for (let m = 0; m < matchKeys.length; m++) {
+                if (appId.includes(matchKeys[m])) {
+                    if (w.is_focused) return w.id;
+                    if (fallbackId < 0) fallbackId = w.id;
+                    break;
+                }
             }
         }
         return fallbackId;
-    }
-
-    Process {
-        id: macDockEventStream
-        command: ["niri", "msg", "-j", "event-stream"]
-        running: true
-        stdout: SplitParser {
-            onRead: line => {
-                let s = line.trim();
-                if (!s) return;
-                try {
-                    let ev = JSON.parse(s);
-                    if (ev.WindowsChanged && Array.isArray(ev.WindowsChanged.windows)) {
-                        macDockWin.runningList = ev.WindowsChanged.windows;
-                    } else if (ev.WindowOpenedOrChanged && ev.WindowOpenedOrChanged.window) {
-                        let w = ev.WindowOpenedOrChanged.window;
-                        let next = macDockWin.runningList.filter(item => item.id !== w.id);
-                        next.push(w);
-                        macDockWin.runningList = next;
-                    } else if (ev.WindowClosed && typeof ev.WindowClosed.id === "number") {
-                        let closedId = ev.WindowClosed.id;
-                        macDockWin.runningList = macDockWin.runningList.filter(item => item.id !== closedId);
-                    }
-                } catch (e) {}
-            }
-        }
-        onExited: (code, status) => {
-            if (!macDockWin.shuttingDown) macDockStreamRestart.restart();
-        }
-    }
-
-    Timer {
-        id: macDockStreamRestart
-        interval: 1500
-        repeat: false
-        onTriggered: if (!macDockWin.shuttingDown) macDockEventStream.running = true
-    }
-
-    Component.onDestruction: {
-        macDockWin.shuttingDown = true;
-        macDockStreamRestart.stop();
-        macDockEventStream.running = false;
     }
 
     Item {
@@ -181,14 +264,42 @@ PanelWindow {
 
         HoverHandler {
             id: dockInputHandler
-            enabled: !(macDockWin.shellRoot ? macDockWin.shellRoot.desktopEditMode : false)
+            enabled: !macDockWin.editActive
+            onHoveredChanged: {
+                if (!hovered) {
+                    macDockWin.pointerInPillZone = false;
+                    macDockPill.pointerActive = false;
+                    macDockPill.pointerScreenX = -1000;
+                    macDockPill.hoveredSlots = 0;
+                }
+            }
             onPointChanged: {
-                if (!hovered) return;
+                if (!hovered) {
+                    macDockWin.pointerInPillZone = false;
+                    macDockPill.pointerActive = false;
+                    macDockPill.pointerScreenX = -1000;
+                    return;
+                }
+                let px = point.position.x;
+                let py = point.position.y;
                 if (macDockWin.isDockOpen) {
-                    macDockPill.pointerActive = true;
-                    macDockPill.pointerScreenX = point.position.x;
-                } else if (!macDockDwellTimer.running) {
-                    macDockDwellTimer.restart();
+                    let inPillX = (px >= macDockPill.x - 2) && (px <= macDockPill.x + macDockPill.width + 2);
+                    let inPillY = (py >= macDockPill.y - 12) && (py <= macDockPill.y + macDockPill.height + 8);
+                    macDockWin.pointerInPillZone = (inPillX && inPillY);
+                    if (macDockWin.pointerInPillZone) {
+                        macDockPill.pointerActive = true;
+                        macDockPill.pointerScreenX = px;
+                    } else {
+                        macDockPill.pointerActive = false;
+                        macDockPill.pointerScreenX = -1000;
+                    }
+                } else {
+                    let inTriggerX = (px >= macDockMaskItem.x) && (px <= macDockMaskItem.x + macDockMaskItem.width);
+                    let inTriggerY = (py >= macDockWin.height - 8);
+                    macDockWin.pointerInPillZone = (inTriggerX && inTriggerY);
+                    if (macDockWin.pointerInPillZone && !macDockDwellTimer.running) {
+                        macDockDwellTimer.restart();
+                    }
                 }
             }
         }
@@ -201,7 +312,7 @@ PanelWindow {
             height: 58
             width: Math.round(macDockRow.width + 24)
             radius: 19
-            color: "transparent"
+            color: ShellState.isSolid ? ThemeTokens.dockBg : "transparent"
 
             property bool pointerActive: false
             property real pointerScreenX: -1000
@@ -248,7 +359,7 @@ PanelWindow {
                 z: 0
                 radius: parent.radius
                 screenX: macDockPill.x
-                screenY: ((macDockWin.screen ? macDockWin.screen.height : Screen.height) || 768) - height - 8
+                screenY: ((macDockWin.screen ? macDockWin.screen.height : Screen.height) || 864) - height - 8
                 circular: false
                 drawRim: true
             }
@@ -258,7 +369,7 @@ PanelWindow {
                 radius: parent.radius
                 color: "transparent"
                 border.width: 1
-                border.color: "#3AFFFFFF"
+                border.color: ThemeTokens.borderStrong
                 z: 1
 
                 Rectangle {
@@ -267,7 +378,8 @@ PanelWindow {
                     anchors.horizontalCenter: parent.horizontalCenter
                     width: Math.max(0, parent.width - 28)
                     height: 1
-                    color: "#2CFFFFFF"
+                    color: ThemeTokens.borderSubtle
+                    visible: !ShellState.isSolid
                 }
             }
 
@@ -280,22 +392,16 @@ PanelWindow {
 
                 Repeater {
                     id: macDockRepeater
-                    model: [
-                        { name: "Finder", icon: "system-file-manager", glyph: "F", bg: "#1E88E5", cmd: "command -v thunar >/dev/null 2>&1 && thunar || xdg-open \"$HOME\"", match: "thunar" },
-                        { name: "Launchpad", icon: "view-app-grid-symbolic", glyph: "::", bg: "#5E5CE6", cmd: "", match: "" },
-                        { name: "Firefox", icon: "firefox", glyph: "FF", bg: "#FF7139", cmd: "firefox", match: "firefox" },
-                        { name: "Terminal", icon: "Alacritty", glyph: ">_", bg: "#1C1C1E", cmd: "alacritty", match: "alacritty" },
-                        { name: "Settings", icon: "preferences-system", glyph: "S", bg: "#8E8E93", cmd: "", match: "" }
-                    ]
+                    model: macDockWin.dockItems
 
                     Item {
                         id: macDockSlot
-                        readonly property bool hasDivider: index > 0 && modelData.name === "Settings"
+                        readonly property bool hasDivider: index > 0 && !!modelData.hasDivider
                         readonly property real targetMag: macDockPill.calcMag(index, hasDivider)
                         property real smoothMag: 1.0
                         property real bounceY: 0
                         property bool launching: false
-                        readonly property int winId: macDockWin.findRunningWinId(modelData.match)
+                        readonly property int winId: macDockWin.findRunningWinId(modelData.matches)
                         readonly property bool isRunning: winId >= 0
 
                         onIsRunningChanged: {
@@ -340,7 +446,7 @@ PanelWindow {
                             width: 1
                             height: 34
                             radius: 0.5
-                            color: "#38FFFFFF"
+                            color: ThemeTokens.dividerColor
                         }
 
                         SequentialAnimation {
@@ -373,7 +479,7 @@ PanelWindow {
                                 id: macTipTxt
                                 anchors.centerIn: parent
                                 text: modelData.name
-                                color: "#F5F5F7"
+                                color: ThemeTokens.textPrimary
                                 font.pixelSize: 11
                                 font.weight: Font.Medium
                             }
@@ -393,7 +499,7 @@ PanelWindow {
                             Image {
                                 id: macAppImg
                                 anchors.fill: parent
-                                source: modelData.icon !== "" ? Quickshell.iconPath(modelData.icon, true) : ""
+                                source: modelData.icon !== "" ? ShellState.resolveIcon(modelData.icon) : ""
                                 sourceSize: Qt.size(128, 128)
                                 smooth: true
                                 mipmap: true
@@ -425,25 +531,32 @@ PanelWindow {
                             id: macSlotMouse
                             anchors.fill: parent
                             enabled: macDockWin.isDockOpen
+                            acceptedButtons: Qt.LeftButton | Qt.MiddleButton
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onContainsMouseChanged: {
                                 macDockPill.hoveredSlots = Math.max(0, macDockPill.hoveredSlots + (containsMouse ? 1 : -1));
                             }
-                            onClicked: {
+                            onClicked: (mouse) => {
+                                let execFn = macDockWin.shellRoot ? macDockWin.shellRoot.runCmd : ShellState.runCmd;
+                                let popupFn = macDockWin.shellRoot ? macDockWin.shellRoot.switchPopup : ShellState.switchPopup;
+
                                 if (modelData.name === "Launchpad") {
                                     macDockBounce.restart();
-                                    (macDockWin.shellRoot ? macDockWin.shellRoot.switchPopup : ShellState.switchPopup)("launchpad");
+                                    popupFn("launchpad");
                                 } else if (modelData.name === "Settings") {
                                     macDockBounce.restart();
-                                    (macDockWin.shellRoot ? macDockWin.shellRoot.switchPopup : ShellState.switchPopup)("settings");
+                                    popupFn("settings");
+                                } else if (mouse.button === Qt.MiddleButton && modelData.cmd && modelData.cmd !== "") {
+                                    macDockBounce.restart();
+                                    execFn(modelData.cmd);
                                 } else if (macDockSlot.winId >= 0) {
-                                    (macDockWin.shellRoot ? macDockWin.shellRoot.runCmd : ShellState.runCmd)("niri msg action focus-window --id " + macDockSlot.winId);
+                                    execFn("niri msg action focus-window --id " + macDockSlot.winId);
                                 } else if (modelData.cmd && modelData.cmd !== "" && !macDockSlot.launching) {
                                     macDockSlot.launching = true;
                                     launchGuard.restart();
                                     macDockBounce.restart();
-                                    (macDockWin.shellRoot ? macDockWin.shellRoot.runCmd : ShellState.runCmd)(modelData.cmd);
+                                    execFn(modelData.cmd);
                                 }
                             }
                         }

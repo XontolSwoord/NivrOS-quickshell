@@ -1,3 +1,8 @@
 singleton ShellState 1.0 ShellState.qml
+singleton ThemeTokens 1.0 ThemeTokens.qml
+singleton MotionEngine 1.0 MotionEngine.qml
 singleton GlassEngine 1.0 GlassEngine.qml
 GlassPanel 1.0 GlassPanel.qml
+JellyPhysics 1.0 JellyPhysics.qml
+SlimePhysics 1.0 SlimePhysics.qml
+singleton LocaleStrings 1.0 LocaleStrings.qml

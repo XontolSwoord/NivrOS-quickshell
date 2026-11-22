@@ -67,15 +67,16 @@ Item {
             width: shellRoot.activePopup === "spotlight" ? 560 : 720
             height: shellRoot.activePopup === "spotlight" ? 410 : 470
             radius: 26
-            color: "transparent"
+            color: ShellState.isSolid ? ThemeTokens.windowBg : "transparent"
             Canvas {
                 anchors.fill: parent
                 z: -1
+                visible: !ShellState.isSolid
                 property real dO: shellRoot.aeroOpacity
                 property real dR: shellRoot.aeroReflection
                 property real dF: shellRoot.glassFade
                 property string dW: shellRoot.activeGlassWall
-                property string dSt: shellRoot.glassStyle
+                property string dSt: ShellState.surfaceMode + "_" + ShellState.liquidVariant + "_" + ShellState.colorScheme
                 property real dTh: shellRoot.activeGlassDetail
                 onDOChanged: requestPaint()
                 onDRChanged: requestPaint()
@@ -91,10 +92,10 @@ Item {
                 }
             }
             border.width: 1
-            border.color: "#3CFFFFFF"
+            border.color: ThemeTokens.borderStrong
             visible: !shellRoot.preWarmDone || ((shellRoot.activePopup === "launchpad" || shellRoot.activePopup === "spotlight") || opacity > 0.01)
 
-            MouseArea { anchors.fill: parent; z: 0 }
+            MouseArea { anchors.fill: parent; z: 0; onPressed: (m) => { launcherSearchInput.forceActiveFocus(); m.accepted = false; } }
 
 
 
@@ -110,6 +111,8 @@ Item {
             onIsOpenChanged: {
                 if (isOpen) {
                     launcherSearchInput.text = "";
+                    appGridView.currentIndex = 0;
+                    appGridView.contentY = 0;
                     launcherSearchInput.forceActiveFocus();
 // Scan cukup saat startup & timer agar buka langsung tidak tertahan
                 }
@@ -138,9 +141,9 @@ Item {
                     Layout.fillWidth: true
                     height: 44
                     radius: 14
-                    color: "#26FFFFFF"
+                    color: ThemeTokens.inputBg
                     border.width: 1
-                    border.color: launcherSearchInput.activeFocus ? "#77A1C6FF" : "#28FFFFFF"
+                    border.color: launcherSearchInput.activeFocus ? ThemeTokens.accent : ThemeTokens.borderSubtle
 
                     RowLayout {
                         anchors.fill: parent
@@ -150,22 +153,53 @@ Item {
 
                         Text {
                             text: "⌕"
-                            color: "#AEAEB2"
+                            color: ThemeTokens.textSecondary
                             font.pixelSize: 18
                         }
 
                         TextInput {
                             id: launcherSearchInput
                             Layout.fillWidth: true
-                            color: "#F5F5F7"
+                            color: ThemeTokens.textPrimary
                             font.pixelSize: 15
                             selectionColor: "#0A84FF"
                             clip: true
-                            onTextChanged: shellRoot.launcherSearchText = text
+                            onTextChanged: { shellRoot.launcherSearchText = text; appGridView.currentIndex = 0; }
                             Keys.onEscapePressed: shellRoot.closePopups()
+                            Keys.onLeftPressed: (e) => {
+                                if (appGridView.count > 0) {
+                                    appGridView.currentIndex = Math.max(0, appGridView.currentIndex - 1);
+                                    appGridView.positionViewAtIndex(appGridView.currentIndex, GridView.Contain);
+                                    e.accepted = true;
+                                }
+                            }
+                            Keys.onRightPressed: (e) => {
+                                if (appGridView.count > 0) {
+                                    appGridView.currentIndex = Math.min(appGridView.count - 1, appGridView.currentIndex + 1);
+                                    appGridView.positionViewAtIndex(appGridView.currentIndex, GridView.Contain);
+                                    e.accepted = true;
+                                }
+                            }
+                            Keys.onUpPressed: (e) => {
+                                if (appGridView.count > 0) {
+                                    let cols = shellRoot.activePopup === "spotlight" ? 5 : 6;
+                                    appGridView.currentIndex = Math.max(0, appGridView.currentIndex - cols);
+                                    appGridView.positionViewAtIndex(appGridView.currentIndex, GridView.Contain);
+                                    e.accepted = true;
+                                }
+                            }
+                            Keys.onDownPressed: (e) => {
+                                if (appGridView.count > 0) {
+                                    let cols = shellRoot.activePopup === "spotlight" ? 5 : 6;
+                                    appGridView.currentIndex = Math.min(appGridView.count - 1, appGridView.currentIndex + cols);
+                                    appGridView.positionViewAtIndex(appGridView.currentIndex, GridView.Contain);
+                                    e.accepted = true;
+                                }
+                            }
                             Keys.onReturnPressed: {
                                 if (launcherCard.filteredApps.length > 0) {
-                                    let chosen = launcherCard.filteredApps[0];
+                                    let idx = Math.max(0, Math.min(launcherCard.filteredApps.length - 1, appGridView.currentIndex));
+                                    let chosen = launcherCard.filteredApps[idx];
                                     shellRoot.closePopups();
                                     shellRoot.runCmd(chosen.cmd);
                                 }
@@ -174,8 +208,8 @@ Item {
                             Text {
                                 anchors.fill: parent
                                 verticalAlignment: Text.AlignVCenter
-                                text: shellRoot.activePopup === "spotlight" ? "Spotlight Search — Ketik nama aplikasi..." : "Cari Aplikasi di Launchpad..."
-                                color: "#8E8E93"
+                                text: shellRoot.activePopup === "spotlight" ? LocaleStrings.t("Spotlight — Ketik nama aplikasi...", "Spotlight — Type an app name...") : LocaleStrings.t("Cari Aplikasi di Launchpad...", "Search Launchpad Apps...")
+                                color: ThemeTokens.textMuted
                                 font.pixelSize: 14
                                 visible: launcherSearchInput.text === ""
                             }
@@ -185,11 +219,11 @@ Item {
                             width: 52
                             height: 22
                             radius: 6
-                            color: "#22FFFFFF"
+                            color: ThemeTokens.cardBg
                             Text {
                                 anchors.centerIn: parent
                                 text: shellRoot.activePopup === "spotlight" ? "Spotlight" : "Launchpad"
-                                color: "#AEAEB2"
+                                color: ThemeTokens.textSecondary
                                 font.pixelSize: 10
                                 font.bold: true
                             }
@@ -203,20 +237,50 @@ Item {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     clip: true
+                    cacheBuffer: 640
+                    flickDeceleration: 3400
+                    maximumFlickVelocity: 4600
+                    boundsBehavior: Flickable.DragAndOvershootBounds
+                    currentIndex: 0
                     cellWidth: Math.floor(width / (shellRoot.activePopup === "spotlight" ? 5 : 6))
                     cellHeight: 96
                     model: launcherCard.filteredApps
+
+                    NumberAnimation {
+                        id: gridWheelAnim
+                        target: appGridView
+                        property: "contentY"
+                        duration: 135
+                        easing.type: Easing.OutCubic
+                    }
+
+                    WheelHandler {
+                        onWheel: (ev) => {
+                            let maxY = Math.max(0, appGridView.contentHeight - appGridView.height);
+                            let step = ev.pixelDelta.y !== 0 ? -ev.pixelDelta.y : (-ev.angleDelta.y * 0.75);
+                            let base = gridWheelAnim.running ? gridWheelAnim.to : appGridView.contentY;
+                            let dest = Math.max(0, Math.min(maxY, base + step));
+                            gridWheelAnim.stop();
+                            gridWheelAnim.from = appGridView.contentY;
+                            gridWheelAnim.to = dest;
+                            gridWheelAnim.start();
+                        }
+                    }
 
                     delegate: Item {
                         width: appGridView.cellWidth
                         height: appGridView.cellHeight
 
                         Rectangle {
+                            id: appCardRect
+                            property bool isSelected: GridView.isCurrentItem
                             anchors.fill: parent
                             anchors.margins: 4
                             radius: 16
-                            color: gridItemM.containsMouse ? "#26FFFFFF" : "transparent"
-                            scale: gridItemM.pressed ? 0.92 : (gridItemM.containsMouse ? 1.05 : 1.0)
+                            color: (gridItemM.containsMouse || isSelected) ? ThemeTokens.cardHoverBg : "transparent"
+                            border.width: isSelected ? 1.5 : 0
+                            border.color: isSelected ? ThemeTokens.accent : "transparent"
+                            scale: gridItemM.pressed ? 0.92 : ((gridItemM.containsMouse || isSelected) ? 1.05 : 1.0)
                             Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
                             Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
@@ -235,7 +299,7 @@ Item {
                                     Image {
                                         id: gridIconImg
                                         anchors.fill: parent
-                                        source: modelData.icon !== "" ? Quickshell.iconPath(modelData.icon, true) : ""
+                                        source: modelData.icon !== "" ? ShellState.resolveIcon(modelData.icon) : ""
                                         sourceSize: Qt.size(96, 96)
                                         smooth: true
                                         mipmap: true
@@ -245,7 +309,7 @@ Item {
                                     Text {
                                         anchors.centerIn: parent
                                         text: modelData.glyph
-                                        color: "#FFFFFF"
+                                        color: ThemeTokens.textPrimary
                                         font.pixelSize: 16
                                         font.bold: true
                                         visible: gridIconImg.status !== Image.Ready
@@ -256,7 +320,7 @@ Item {
                                     width: parent.width
                                     horizontalAlignment: Text.AlignHCenter
                                     text: modelData.name
-                                    color: "#F5F5F7"
+                                    color: ThemeTokens.textPrimary
                                     font.pixelSize: 11
                                     font.weight: Font.Medium
                                     elide: Text.ElideRight

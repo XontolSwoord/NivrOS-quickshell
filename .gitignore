@@ -1,3 +1,3 @@
-.backups/
-*.tmp
-*.bak_*
+*.log
+*.bak
+__pycache__/

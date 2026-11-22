@@ -6,3 +6,4 @@ MediaCalendarPopups 1.0 MediaCalendarPopups.qml
 LauncherPopup 1.0 LauncherPopup.qml
 AboutPopup 1.0 AboutPopup.qml
 MacLockScreen 1.0 MacLockScreen.qml
+KeybindsPopup 1.0 KeybindsPopup.qml

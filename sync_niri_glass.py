@@ -1,68 +1,125 @@
-import os, re, sys, subprocess, tempfile
+import fcntl
+import os
+import re
+import subprocess
+import sys
+import tempfile
 
 if len(sys.argv) < 7:
     sys.exit(0)
 
-mode, p1, p2, p3, p4, p5 = sys.argv[1:7]
-cfg_path = os.path.expanduser("~/.config/niri/config.kdl")
-alacritty_path = os.path.expanduser("~/.config/alacritty/alacritty.toml")
+LOCK_PATH = "/tmp/kairo_niri_glass.lock"
 
-def atomic_write(target_path, content):
-    d = os.path.dirname(target_path)
-    fd, tmp_path = tempfile.mkstemp(prefix=".kairo_tmp_", dir=d)
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            f.write(content)
-        os.replace(tmp_path, target_path)
-    finally:
-        if os.path.exists(tmp_path):
-            os.remove(tmp_path)
+with open(LOCK_PATH, "w") as lock_fp:
+    fcntl.flock(lock_fp, fcntl.LOCK_EX)
 
-def set_alacritty_opacity(val):
-    if not os.path.exists(alacritty_path):
-        return
-    atxt = open(alacritty_path, encoding="utf-8").read()
-    atxt = re.sub(r"\n?# BEGIN KAIRO LIQUID OPACITY[\s\S]*?# END KAIRO LIQUID OPACITY\n?", "", atxt)
-    if val is not None:
-        atxt = atxt.rstrip() + f"\n\n# BEGIN KAIRO LIQUID OPACITY\n[window]\nopacity = {val}\n# END KAIRO LIQUID OPACITY\n"
-    atomic_write(alacritty_path, atxt)
+    mode, p1, p2, p3, p4, p5 = sys.argv[1:7]
+    scheme = sys.argv[7] if len(sys.argv) > 7 else "dark"
+    is_dark = (scheme == "dark")
 
-if not os.path.exists(cfg_path):
-    sys.exit(0)
+    cfg_path = os.path.expanduser("~/.config/niri/config.kdl")
+    alacritty_path = os.path.expanduser("~/.config/alacritty/alacritty.toml")
 
-orig = open(cfg_path, encoding="utf-8").read()
-base = re.sub(r"\n?// BEGIN KAIRO GLASS ENGINE[\s\S]*?// END KAIRO GLASS ENGINE\n?", "", orig)
-base = re.sub(r"\n?// BEGIN KAIRO LIQUID GLASS[\s\S]*?// END KAIRO LIQUID GLASS\n?", "", base)
+    def atomic_write(target_path, content):
+        d = os.path.dirname(target_path)
+        os.makedirs(d, exist_ok=True)
+        fd, tmp_path = tempfile.mkstemp(prefix=".kairo_tmp_", dir=d)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(content)
+            os.replace(tmp_path, target_path)
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
 
-has_top_blur = bool(re.search(r"(?m)^\s*blur\s*\{", base))
+    def set_alacritty_opacity(val):
+        if not os.path.exists(alacritty_path):
+            return
+        atxt = open(alacritty_path, encoding="utf-8").read()
+        atxt = re.sub(r"\n?# BEGIN KAIRO LIQUID OPACITY[\s\S]*?# END KAIRO LIQUID OPACITY\n?", "", atxt)
+        if val is not None:
+            atxt = atxt.rstrip() + f"\n\n# BEGIN KAIRO LIQUID OPACITY\n[window]\nopacity = {val}\n# END KAIRO LIQUID OPACITY\n"
+        atomic_write(alacritty_path, atxt)
 
-if mode == "mac":
-    op_val = round(max(0.68, min(0.96, 0.72 + float(p1) * 0.24)), 2)
-    set_alacritty_opacity(op_val)
-    block = """
+    if not os.path.exists(cfg_path):
+        sys.exit(0)
+
+    orig = open(cfg_path, encoding="utf-8").read()
+    base = re.sub(r"\n?// BEGIN KAIRO GLASS ENGINE[\s\S]*?// END KAIRO GLASS ENGINE\n?", "", orig)
+    base = re.sub(r"\n?// BEGIN KAIRO LIQUID GLASS[\s\S]*?// END KAIRO LIQUID GLASS\n?", "", base)
+
+    # Kelola blok blur utama niri-glass secara dinamis agar slider Frost / Transparansi berdampak nyata
+    def apply_blur_block(kdl_text, passes, offset, noise, saturation):
+        new_blur = f"blur {{\n    passes {passes}\n    offset {offset}\n    noise {noise:.3f}\n    saturation {saturation:.2f}\n}}"
+        if re.search(r"(?m)^\s*blur\s*\{[^}]*\}", kdl_text):
+            return re.sub(r"(?m)^\s*blur\s*\{[^}]*\}", new_blur, kdl_text, count=1)
+        return new_blur + "\n\n" + kdl_text
+
+    if mode == "solid":
+        set_alacritty_opacity(1.0)
+        block = """
 // BEGIN KAIRO GLASS ENGINE
 window-rule {
     match app-id=".*"
-    geometry-corner-radius 14
+    geometry-corner-radius 12
     clip-to-geometry true
 }
 // END KAIRO GLASS ENGINE
 """
-elif mode == "aero":
-    op_val = round(max(0.35, min(0.78, 0.38 + float(p1) * 0.36)), 2)
-    set_alacritty_opacity(op_val)
-    blur_hdr = "" if has_top_blur else "blur {\n    on\n    noise 0\n    saturation 1.05\n    passes 2\n}\n"
-    block = f"""
+    elif mode == "mac":
+        # Opsi 1: Clean Glass (Soft Clear Frosted Blur seperti gambar 3, tanpa kilau berlebih)
+        mac_op = float(p1)     # 0.10 .. 0.88 (semakin besar = semakin pekat)
+        mac_frost = float(p2)  # 0.00 .. 1.00 (semakin besar = blur semakin lembut/tebal)
+        op_val = round(max(0.42, min(0.95, 0.36 + mac_op * 0.62)), 2)
+        set_alacritty_opacity(op_val)
+
+        b_passes = max(2, min(5, int(round(2 + mac_frost * 3))))
+        b_offset = max(2, min(6, int(round(2 + mac_frost * 4))))
+        base = apply_blur_block(base, b_passes, b_offset, 0.015, 1.06)
+
+        rim_col = "#ffffff28" if is_dark else "#0000001e"
+        block = f"""
 // BEGIN KAIRO GLASS ENGINE
-{blur_hdr}window-rule {{
+window-rule {{
     match app-id=".*"
     geometry-corner-radius 14
     clip-to-geometry true
     border {{
         on
         width 1
-        active-color "#ffffff66"
-        inactive-color "#ffffff28"
+        active-color "{rim_col}"
+        inactive-color "{rim_col}"
+    }}
+    background-effect {{
+        blur true
+        xray false
+    }}
+}}
+// END KAIRO GLASS ENGINE
+"""
+    elif mode == "aero":
+        # Opsi 2: Aero Glass Windows 7 (Kaca jernih kristal + warna hidup + bingkai mengilap seperti gambar 4)
+        aero_op = float(p1)
+        aero_bright = float(p2)
+        aero_width = float(p3)
+        op_val = round(max(0.28, min(0.84, 0.24 + aero_op * 0.62)), 2)
+        set_alacritty_opacity(op_val)
+
+        b_passes = 2 if aero_width < 0.5 else 3
+        base = apply_blur_block(base, b_passes, 3, 0.0, 1.24)
+
+        rim_alpha = format(int(min(255, max(65, round((0.36 + aero_bright * 0.50) * 255)))), "02x")
+        block = f"""
+// BEGIN KAIRO GLASS ENGINE
+window-rule {{
+    match app-id=".*"
+    geometry-corner-radius 12
+    clip-to-geometry true
+    border {{
+        on
+        width 1
+        active-color "#ffffff{rim_alpha}"
+        inactive-color "#ffffff36"
     }}
     background-effect {{
         blur true
@@ -71,21 +128,22 @@ elif mode == "aero":
 }}
 // END KAIRO GLASS ENGINE
 """
-else:
-    # OPSI 3: 100% PARAMETER DEFAULT & SCREENSHOT ZAROUTT/NIRI-GLASS
-    # p1=refr(0.8..4.2), p2=fringe(0.0..1.0), p3=edge_lighting(0.4..1.2), p4=lens_dist(0.0..0.5), p5=opacity(0.0..1.0)
-    refr = round(float(p1), 2)
-    fringe = round(float(p2), 2)
-    edge_l = round(float(p3), 2)
-    lens_d = round(float(p4), 2)
-    # Default slider Transparansi tinggi -> Alacritty opacity 0.00 (bening air 100% seperti SS GitHub)
-    op_val = round(max(0.0, min(0.35, max(0.0, float(p5) - 0.22) * 0.55)), 2)
-    set_alacritty_opacity(op_val)
-    block = f"""
+    else:
+        # Opsi 3: Apple Liquid Glass (Blur ringan + pembengkokan latar & cahaya tipis lembut di pinggir)
+        refr = round(max(0.95, min(2.25, 0.65 + float(p1) * 0.42)), 2)
+        fringe = round(min(0.42, float(p2) * 0.42), 2)
+        edge_l = round(max(0.22, min(0.45, 0.16 + float(p3) * 0.24)), 2)
+        liq_op = float(p5)
+
+        op_val = round(max(0.14, min(0.66, 0.12 + liq_op * 0.52)), 2)
+        set_alacritty_opacity(op_val)
+
+        # Blur ringan agar gambar latar tetap terbaca & lengkungannya terlihat jelas
+        block = f"""
 // BEGIN KAIRO GLASS ENGINE
 window-rule {{
     match app-id=".*"
-    geometry-corner-radius 20
+    geometry-corner-radius 24
     clip-to-geometry true
     draw-border-with-background false
     focus-ring {{
@@ -96,38 +154,38 @@ window-rule {{
     }}
     shadow {{
         on
-        softness 28
+        softness 30
         spread 3
         offset x=0 y=8
-        color "#00000066"
+        color "#00000070"
     }}
     background-effect {{
         blur false
         xray true
         liquid-glass {{
             refraction-strength {refr}
-            power-factor 3.0
-            refraction-a 0.04
-            refraction-b 5.0
-            refraction-c 5.0
-            refraction-d 8.0
-            refraction-power 0.65
-            edge-thickness 0.16
+            power-factor 5.5
+            refraction-a 0.02
+            refraction-b 3.5
+            refraction-c 3.5
+            refraction-d 6.0
+            refraction-power 0.62
+            edge-thickness 0.048
             edge-padding 0.0
-            glow-weight 0.08
+            glow-weight 0.035
             glow-bias 0.0
-            glow-edge0 0.3
-            glow-edge1 0.9
+            glow-edge0 0.30
+            glow-edge1 0.96
             edge-lighting {edge_l}
             fringing {fringe}
             physical-refraction 0.0
-            lens-distortion {lens_d}
-            brightness 1.0
-            contrast 1.0
-            saturation 0.95
-            vibrancy 0.15
+            lens-distortion 0.0
+            brightness 1.05
+            contrast 1.03
+            saturation 1.12
+            vibrancy 0.32
             adaptive-dim 0.0
-            adaptive-boost 0.0
+            adaptive-boost 0.12
             refraction-dilute 0.0
         }}
     }}
@@ -135,19 +193,20 @@ window-rule {{
 // END KAIRO GLASS ENGINE
 """
 
-cand = base.rstrip() + "\n" + block
-bin_path = "/usr/local/bin/niri-glass" if os.path.exists("/usr/local/bin/niri-glass") else "niri"
+    cand = base.rstrip() + "\n" + block
+    bin_path = "/usr/local/bin/niri-glass" if os.path.exists("/usr/local/bin/niri-glass") else "niri"
 
-with tempfile.NamedTemporaryFile("w", suffix=".kdl", delete=False, encoding="utf-8") as tf:
-    tf.write(cand)
-    tmp_check = tf.name
+    with tempfile.NamedTemporaryFile("w", suffix=".kdl", delete=False, encoding="utf-8") as tf:
+        tf.write(cand)
+        tmp_check = tf.name
 
-try:
-    res = subprocess.run([bin_path, "validate", "-c", tmp_check], capture_output=True, text=True)
-    if res.returncode == 0:
-        atomic_write(cfg_path, cand)
-    else:
-        print("VALIDATE FAILED:", res.stderr.strip(), file=sys.stderr)
-finally:
-    if os.path.exists(tmp_check):
-        os.remove(tmp_check)
+    try:
+        res = subprocess.run([bin_path, "validate", "-c", tmp_check], capture_output=True, text=True)
+        if res.returncode == 0:
+            atomic_write(cfg_path, cand)
+            subprocess.run([bin_path, "msg", "action", "load-config-file"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        else:
+            print("VALIDATE FAILED:", res.stderr.strip(), file=sys.stderr)
+    finally:
+        if os.path.exists(tmp_check):
+            os.remove(tmp_check)

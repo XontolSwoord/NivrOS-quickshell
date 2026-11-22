@@ -7,671 +7,1536 @@ import Quickshell.Io
 import "../core"
 
 Item {
-    property bool showSourcePanel: false
-    property bool showMediaFavPanel: false
     id: settingsScope
     anchors.fill: parent
     required property var shellRoot
     required property var hostWin
     readonly property real cardOpacity: settingsCard.opacity
 
-        // ── 4K. KAIRO SYSTEM SETTINGS (HARMONYOS LIQUID GLASS PILLS & ORBS) ──
-        Process {
-            id: settingsExtraProc
-            Component.onCompleted: running = true
-            command: ["sh", "-c", "ip_addr=$(hostname -I 2>/dev/null | awk '{print $1}'); [ -z \"$ip_addr\" ] && ip_addr='Offline'; pprof=$(powerprofilesctl get 2>/dev/null || echo 'balanced'); printf '%s|%s\n' \"$ip_addr\" \"$pprof\""]
-            stdout: StdioCollector {
-                onStreamFinished: {
-                    let p = text.trim().split("|");
-                    if (p.length >= 2) {
-                        shellRoot.localIpAddr = p[0];
-                        shellRoot.powerProfile = p[1];
-                    }
+    property bool showWallpaperAdvanced: false
+
+    Process {
+        id: settingsExtraProc
+        Component.onCompleted: running = true
+        command: ["sh", "-c", "ip_addr=$(hostname -I 2>/dev/null | awk '{print $1}'); [ -z \"$ip_addr\" ] && ip_addr='Offline'; pprof=$(powerprofilesctl get 2>/dev/null || echo 'balanced'); printf '%s|%s\n' \"$ip_addr\" \"$pprof\""]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let p = text.trim().split("|");
+                if (p.length >= 2) {
+                    shellRoot.localIpAddr = p[0];
+                    shellRoot.powerProfile = p[1];
                 }
             }
         }
+    }
 
-        function setPowerProfile(prof) {
-            shellRoot.powerProfile = prof;
-            shellRoot.runCmd("powerprofilesctl set " + prof + " 2>/dev/null || true");
+    property int batHealthPct: 98
+    property int batCycleCount: 0
+    property string batTech: "Li-ion"
+    property string lowPowerPolicy: "battery"
+    property string batChartRange: "24h"
+    property var batHistory24h: [78,76,74,72,70,68,65,62,59,56,54,52,49,46,43,40,38,35,52,74,91,96,94,92]
+    property var batHistory10d: [88,82,91,76,84,79,93,85,81,89]
+    property var screenHistory24h: [0,0,0,0,0,0,12,28,45,52,38,41,55,60,48,35,22,44,58,50,36,29,18,14]
+    property var screenHistory10d: [310,285,340,260,390,325,410,295,350,240]
+    property string screenOnSummary: "4j 32m sesi aktif"
+
+    property real storageTotalGb: 256.0
+    property real storageUsedGb: 94.0
+    property real storageSysGb: 38.0
+    property real storageAppsGb: 26.0
+    property real storageMediaGb: 30.0
+
+    property bool tpNaturalScroll: true
+    property bool tpTapToClick: true
+    property bool tpDisableWhileTyping: true
+    property bool tpLeftHanded: false
+    property real tpAccelSpeed: 0.20
+    property string tpAccelProfile: "adaptive"
+    property real tpScrollFactor: 1.0
+
+    property real msAccelSpeed: 0.0
+    property string msAccelProfile: "flat"
+    property bool msNaturalScroll: false
+    property bool msLeftHanded: false
+    property bool msMiddleEmulation: false
+    property real msScrollFactor: 1.0
+
+    property int kbRepeatDelay: 300
+    property int kbRepeatRate: 35
+    property bool niriFocusFollowsMouse: false
+    property bool niriWarpMouseToFocus: false
+    property string niriInputFeedback: ""
+    property var niriBindsList: []
+    property string newBindCombo: ""
+    property string newBindCmd: ""
+
+    property bool islandEnabled: true
+    property bool islandMusicHover: true
+    property string islandMode: "adaptive"
+    property int notifDurationSec: 4
+    property string notifTestBanner: ""
+
+    Process {
+        id: hwTelemetryProc
+        Component.onCompleted: running = true
+        command: ["python3", "/home/arip/.config/quickshell/scripts/hw_telemetry.py"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let p = text.trim().split("|");
+                if (p.length >= 9) {
+                    settingsScope.batHealthPct = parseInt(p[0]) || 98;
+                    settingsScope.batCycleCount = parseInt(p[1]) || 0;
+                    settingsScope.batTech = p[2] || "Li-ion";
+                    settingsScope.screenOnSummary = p[3] || "2j 15m sesi aktif";
+                    settingsScope.storageTotalGb = parseFloat(p[4]) || 256.0;
+                    settingsScope.storageUsedGb = parseFloat(p[5]) || 94.0;
+                    settingsScope.storageSysGb = parseFloat(p[6]) || 38.0;
+                    settingsScope.storageAppsGb = parseFloat(p[7]) || 26.0;
+                    settingsScope.storageMediaGb = parseFloat(p[8]) || 30.0;
+                }
+            }
+        }
+    }
+
+    Process {
+        id: niriStateReaderProc
+        Component.onCompleted: running = true
+        command: ["python3", "/home/arip/.config/quickshell/scripts/niri_config_helper.py", "read_state"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let p = text.trim().split("|");
+                if (p.length >= 17) {
+                    settingsScope.tpTapToClick = (p[0] === "1");
+                    settingsScope.tpNaturalScroll = (p[1] === "1");
+                    settingsScope.tpDisableWhileTyping = (p[2] === "1");
+                    settingsScope.tpLeftHanded = (p[3] === "1");
+                    settingsScope.tpAccelSpeed = parseFloat(p[4]) || 0.2;
+                    settingsScope.tpAccelProfile = p[5] || "adaptive";
+                    settingsScope.tpScrollFactor = parseFloat(p[6]) || 1.0;
+                    settingsScope.msAccelSpeed = parseFloat(p[7]) || 0.0;
+                    settingsScope.msAccelProfile = p[8] || "flat";
+                    settingsScope.msNaturalScroll = (p[9] === "1");
+                    settingsScope.msLeftHanded = (p[10] === "1");
+                    settingsScope.msMiddleEmulation = (p[11] === "1");
+                    settingsScope.msScrollFactor = parseFloat(p[12]) || 1.0;
+                    settingsScope.kbRepeatDelay = parseInt(p[13]) || 300;
+                    settingsScope.kbRepeatRate = parseInt(p[14]) || 35;
+                    settingsScope.niriFocusFollowsMouse = (p[15] === "1");
+                    settingsScope.niriWarpMouseToFocus = (p[16] === "1");
+                }
+            }
+        }
+    }
+
+    Process {
+        id: niriBindsReaderProc
+        Component.onCompleted: running = true
+        command: ["python3", "/home/arip/.config/quickshell/scripts/niri_config_helper.py", "read_binds"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let rows = text.trim().split("\n").filter(l => l.includes("|"));
+                let arr = [];
+                for (let i = 0; i < rows.length; i++) {
+                    let parts = rows[i].split("|");
+                    arr.push({ combo: parts[0], action: parts.slice(1).join("|") });
+                }
+                settingsScope.niriBindsList = arr;
+            }
+        }
+    }
+
+    property string pendingGlassVariant: ShellState.liquidVariant
+    property real pendingGlassAlpha: ShellState.glassAlpha
+
+    Timer {
+        id: glassSyncDebounce
+        interval: 120
+        repeat: false
+        onTriggered: {
+            let pct = Math.round(settingsScope.pendingGlassAlpha * 100);
+            let solidFlag = ShellState.isSolid ? "1" : "0";
+            let darkFlag = ThemeTokens.isDark ? "1" : "0";
+            shellRoot.runCmd("python3 ~/.config/quickshell/scripts/sync_liquid_variant.py " + settingsScope.pendingGlassVariant + " " + pct + " " + solidFlag + " " + darkFlag);
+        }
+    }
+
+    function syncExternalGlass(variantId, alphaVal) {
+        pendingGlassVariant = variantId || ShellState.liquidVariant;
+        pendingGlassAlpha = (alphaVal !== undefined ? alphaVal : ShellState.glassAlpha);
+        glassSyncDebounce.restart();
+    }
+
+    function applyNiriInputConfig() {
+        let args = [
+            tpTapToClick ? "1" : "0",
+            tpNaturalScroll ? "1" : "0",
+            tpDisableWhileTyping ? "1" : "0",
+            tpLeftHanded ? "1" : "0",
+            tpAccelSpeed.toFixed(2),
+            tpAccelProfile,
+            tpScrollFactor.toFixed(2),
+            msAccelSpeed.toFixed(2),
+            msAccelProfile,
+            msNaturalScroll ? "1" : "0",
+            msLeftHanded ? "1" : "0",
+            msMiddleEmulation ? "1" : "0",
+            msScrollFactor.toFixed(2),
+            String(Math.round(kbRepeatDelay)),
+            String(Math.round(kbRepeatRate)),
+            niriFocusFollowsMouse ? "1" : "0",
+            niriWarpMouseToFocus ? "1" : "0"
+        ];
+        shellRoot.runCmd("python3 ~/.config/quickshell/scripts/niri_config_helper.py set_full " + args.join(" "));
+        niriInputFeedback = "Tersimpan ke ~/.config/niri/config.kdl";
+        niriFeedbackClearTimer.restart();
+    }
+
+    function addNiriCustomBind() {
+        let c = newBindCombo.trim().replace(/'/g, "");
+        let a = newBindCmd.trim().replace(/'/g, "");
+        if (c === "" || a === "") return;
+        shellRoot.runCmd("python3 ~/.config/quickshell/scripts/niri_config_helper.py add_bind '" + c + "' '" + a + "'");
+        newBindCombo = "";
+        newBindCmd = "";
+        niriBindsReaderProc.running = false;
+        niriBindsReaderProc.running = true;
+    }
+
+    Timer {
+        id: niriFeedbackClearTimer
+        interval: 2600
+        repeat: false
+        onTriggered: settingsScope.niriInputFeedback = ""
+    }
+
+    Timer {
+        id: notifBannerClearTimer
+        interval: Math.max(1500, settingsScope.notifDurationSec * 1000)
+        repeat: false
+        onTriggered: settingsScope.notifTestBanner = ""
+    }
+
+    function setPowerProfile(prof) {
+        shellRoot.powerProfile = prof;
+        shellRoot.runCmd("powerprofilesctl set " + prof + " 2>/dev/null || true");
+    }
+
+    // Komponen Switch macOS Clean
+    component MacSwitch: Rectangle {
+        id: swRoot
+        property bool checked: false
+        signal toggled()
+
+        width: 42
+        height: 24
+        radius: 12
+        color: checked ? ThemeTokens.accent : (ThemeTokens.isDark ? "#3A3A3C" : "#D1D1D6")
+        Behavior on color { ColorAnimation { duration: 220; easing.type: Easing.OutCubic } }
+
+        Rectangle {
+            width: 20
+            height: 20
+            radius: 10
+            y: 2
+            x: swRoot.checked ? 20 : 2
+            color: "#FFFFFF"
+            Behavior on x { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: swRoot.toggled()
+        }
+    }
+
+    // Komponen Slider macOS Clean (Presisi Keyboard & Anti-Lepas Touchpad/Mousepad)
+    component MacSlider: Item {
+        id: slRoot
+        property real value: 0.5
+        property real minVal: 0.0
+        property real maxVal: 1.0
+        property real keyStep: 0
+        property bool enabledControl: true
+        property bool dragging: slMouse.pressed
+        signal moved(real newValue)
+
+        implicitHeight: 28
+        opacity: enabledControl ? 1.0 : 0.45
+
+        readonly property real ratio: Math.max(0.0, Math.min(1.0, (value - minVal) / Math.max(0.0001, maxVal - minVal)))
+
+        Rectangle {
+            id: track
+            anchors.verticalCenter: parent.verticalCenter
+            width: parent.width
+            height: 5
+            radius: 2.5
+            color: ThemeTokens.isDark ? "#3A3A3C" : "#D1D1D6"
+
+            Rectangle {
+                width: track.width * slRoot.ratio
+                height: parent.height
+                radius: 2.5
+                color: ThemeTokens.accent
+                Behavior on width { enabled: !slRoot.dragging; NumberAnimation { duration: 90; easing.type: Easing.OutCubic } }
+            }
         }
 
         Rectangle {
-            id: settingsCard
-            z: 17
-            anchors.centerIn: parent
-            width: 840
-            height: 628
-            radius: 36
-            color: "#A612141E"
-            border.width: 1.2
-            border.color: "#4CFFFFFF"
-            clip: true
-            visible: !shellRoot.preWarmDone || (shellRoot.activePopup === "settings" || opacity > 0.01)
+            width: slRoot.dragging ? 18 : 16
+            height: slRoot.dragging ? 18 : 16
+            radius: width * 0.5
+            anchors.verticalCenter: parent.verticalCenter
+            x: Math.max(0, Math.min(track.width - width, track.width * slRoot.ratio - width * 0.5))
+            color: "#FFFFFF"
+            border.width: 1
+            border.color: slRoot.dragging ? ThemeTokens.accent : (ThemeTokens.isDark ? "#48484A" : "#C7C7CC")
+            Behavior on x { enabled: !slRoot.dragging; NumberAnimation { duration: 90; easing.type: Easing.OutCubic } }
+        }
 
-            MouseArea { anchors.fill: parent; z: 0 }
-
-            // Lapisan Windows 7 Aero + iOS Liquid Glass Real-Time
-            Canvas {
-                anchors.fill: parent
-                z: 0
-                property real dO: shellRoot.aeroOpacity
-                property real dR: shellRoot.aeroReflection
-                property real dF: shellRoot.glassFade
-                property string dW: shellRoot.activeGlassWall
-                property string dSt: shellRoot.glassStyle
-                property real dTh: shellRoot.activeGlassDetail
-                onDOChanged: requestPaint()
-                onDRChanged: requestPaint()
-                onDFChanged: requestPaint()
-                onDWChanged: requestPaint()
-                onDStChanged: requestPaint()
-                onDThChanged: requestPaint()
-                onPaint: {
-                    let sw = Screen.width || 1366;
-                    let sh = Screen.height || 768;
-                    shellRoot.drawGlobalAeroGlass(getContext("2d"), width, height, 36, (sw - width) * 0.5, (sh - height) * 0.5, sw, sh, false, false);
+        MouseArea {
+            id: slMouse
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            height: 36
+            enabled: slRoot.enabledControl
+            preventStealing: true
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            function updateFromX(mx) {
+                let pad = 8;
+                let usable = Math.max(1, width - pad * 2);
+                let r = Math.max(0.0, Math.min(1.0, (mx - pad) / usable));
+                slRoot.moved(slRoot.minVal + r * (slRoot.maxVal - slRoot.minVal));
+            }
+            onPressed: (m) => {
+                m.accepted = true;
+                updateFromX(m.x);
+            }
+            onPositionChanged: (m) => {
+                if (pressed) {
+                    m.accepted = true;
+                    updateFromX(m.x);
                 }
             }
+        }
+    }
 
-            // Inner Specular Rim Kaca
-            Rectangle {
-                anchors.fill: parent
-                anchors.margins: 1
-                radius: 35
-                color: "transparent"
-                border.width: 1
-                border.color: "#28FFFFFF"
+    // Komponen Grup Kartu macOS Settings
+    component SettingsGroup: Rectangle {
+        default property alias groupContent: innerCol.data
+        Layout.fillWidth: true
+        implicitHeight: innerCol.implicitHeight + 24
+        radius: 14
+        color: ThemeTokens.cardBg
+        border.width: 1
+        border.color: ThemeTokens.borderSubtle
+
+        ColumnLayout {
+            id: innerCol
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.margins: 12
+            spacing: 10
+        }
+    }
+
+    Rectangle {
+        id: settingsCard
+        z: 17
+        anchors.centerIn: parent
+        width: 820
+        height: 610
+        radius: 22
+        color: ThemeTokens.windowBg
+        border.width: 1
+        border.color: ThemeTokens.borderStrong
+        clip: true
+        visible: !shellRoot.preWarmDone || (shellRoot.activePopup === "settings" || opacity > 0.01)
+
+        MouseArea { anchors.fill: parent; z: 0 }
+
+        // Canvas latar aktif saat mode Liquid; tidak dirender berlebihan saat Solid
+        GlassPanel {
+            anchors.fill: parent
+            z: 0
+            radius: 22
+            visible: !ShellState.isSolid
+            drawRim: false
+        }
+
+        property bool _mounted: false
+        Timer { interval: 1; running: true; repeat: false; onTriggered: parent._mounted = true }
+        property bool isOpen: _mounted && (shellRoot.activePopup === "settings")
+
+        onIsOpenChanged: {
+            if (isOpen) {
+                rightCol.tabDir = 1;
+                hyperTabAnim.restart();
+                settingsKeyCatcher.forceActiveFocus();
             }
+        }
 
+        property string activeNavPane: "left"
+        property int rightFocusIdx: 0
+        property var rightControls: []
+        readonly property var navTabOrder: ["appearance", "wallpaper", "display_sound", "input_shortcuts", "notifications_island", "wifi", "bluetooth", "power", "language_profile"]
 
+        function isSwitchControl(item) {
+            return item && typeof item.checked === "boolean" && typeof item.toggled === "function";
+        }
 
-            property bool _mounted: false
-            Timer { interval: 1; running: true; repeat: false; onTriggered: parent._mounted = true }
-            property bool isOpen: _mounted && (shellRoot.activePopup === "settings")
-            property int stage: 0
+        function isSliderControl(item) {
+            return item && typeof item.minVal === "number" && typeof item.maxVal === "number" && typeof item.value === "number";
+        }
 
-            onIsOpenChanged: {
-                if (isOpen) {
-                    stage = 1;
-                    settingsStaggerTimer.restart();
-                    settingsKeyCatcher.forceActiveFocus();
+        function findClickableMouseArea(item) {
+            if (!item || !item.children) return null;
+            for (let i = 0; i < item.children.length; i++) {
+                let c = item.children[i];
+                if (c && String(c).indexOf("MouseArea") !== -1 && c.enabled && c.visible) {
+                    return c;
+                }
+            }
+            return null;
+        }
+
+        function collectVisibleControls(item, out) {
+            if (!item || !item.visible || item.opacity <= 0.05) return;
+            if (isSwitchControl(item) || isSliderControl(item)) {
+                if (item.width >= 32 && item.height >= 18) {
+                    out.push(item);
+                    return;
+                }
+            }
+            let ma = findClickableMouseArea(item);
+            if (ma && item.width >= 40 && item.height >= 22 && item.height <= 96) {
+                out.push(item);
+                return;
+            }
+            if (item.children) {
+                for (let i = 0; i < item.children.length; i++) {
+                    collectVisibleControls(item.children[i], out);
+                }
+            }
+        }
+
+        function refreshRightControls() {
+            let list = [];
+            collectVisibleControls(rightCol, list);
+            rightControls = list;
+            if (rightFocusIdx >= list.length) rightFocusIdx = Math.max(0, list.length - 1);
+            updateFocusRing();
+        }
+
+        function updateFocusRing() {
+            if (activeNavPane !== "right" || rightControls.length === 0) {
+                rightFocusRing.visible = false;
+                return;
+            }
+            let target = rightControls[Math.max(0, Math.min(rightControls.length - 1, rightFocusIdx))];
+            if (!target) { rightFocusRing.visible = false; return; }
+            let pos = target.mapToItem(rightScroll.contentItem, 0, 0);
+            let padX = isSliderControl(target) ? 8 : 5;
+            let padY = isSliderControl(target) ? 3 : 5;
+            rightFocusRing.targetX = pos.x - padX;
+            rightFocusRing.targetY = pos.y - padY;
+            rightFocusRing.targetW = target.width + padX * 2;
+            rightFocusRing.targetH = target.height + padY * 2;
+            rightFocusRing.targetR = Math.min(14, Math.round((target.height + padY * 2) / 2));
+            rightFocusRing.visible = true;
+
+            let viewTop = rightScroll.contentY;
+            let viewBot = viewTop + rightScroll.height;
+            let itemTop = pos.y - 24;
+            let itemBot = pos.y + target.height + 24;
+            let maxY = Math.max(0, rightScroll.contentHeight - rightScroll.height);
+            if (itemTop < viewTop) {
+                rightScrollAnim.stop();
+                rightScrollAnim.from = rightScroll.contentY;
+                rightScrollAnim.to = Math.max(0, itemTop);
+                rightScrollAnim.start();
+            } else if (itemBot > viewBot) {
+                rightScrollAnim.stop();
+                rightScrollAnim.from = rightScroll.contentY;
+                rightScrollAnim.to = Math.min(maxY, itemBot - rightScroll.height);
+                rightScrollAnim.start();
+            }
+        }
+
+        function activateCurrentRightControl(stepDir) {
+            if (rightControls.length === 0) return;
+            let target = rightControls[Math.max(0, Math.min(rightControls.length - 1, rightFocusIdx))];
+            if (!target) return;
+            if (isSliderControl(target) && stepDir !== 0) {
+                let span = Math.abs(target.maxVal - target.minVal) || 1;
+                let step = target.keyStep > 0 ? target.keyStep : (span <= 3.0 ? 0.01 : (span <= 20 ? 1 : (span <= 120 ? 1 : 10)));
+                let rawNext = target.value + step * stepDir;
+                let decimals = step < 1 ? 2 : 0;
+                let snapped = Number(rawNext.toFixed(decimals));
+                let nextVal = Math.max(target.minVal, Math.min(target.maxVal, snapped));
+                if (typeof target.moved === "function") target.moved(nextVal);
+                return;
+            }
+            if (isSwitchControl(target) && stepDir === 0) {
+                target.toggled();
+                Qt.callLater(refreshRightControls);
+                return;
+            }
+            if (stepDir === 0) {
+                let ma = findClickableMouseArea(target);
+                if (ma) {
+                    ma.clicked({ button: Qt.LeftButton, x: Math.round(target.width / 2), y: Math.round(target.height / 2) });
+                    Qt.callLater(refreshRightControls);
+                }
+            }
+        }
+
+        function stepSettingsTab(delta) {
+            let idx = navTabOrder.indexOf(shellRoot.settingsTab);
+            if (idx < 0) idx = 0;
+            let next = (idx + delta + navTabOrder.length) % navTabOrder.length;
+            shellRoot.settingsTab = navTabOrder[next];
+            rightFocusIdx = 0;
+            Qt.callLater(refreshRightControls);
+        }
+
+        NumberAnimation {
+            id: rightScrollAnim
+            target: rightScroll
+            property: "contentY"
+            duration: 210
+            easing.type: Easing.OutExpo
+        }
+
+        Item {
+            id: settingsKeyCatcher
+            focus: settingsCard.isOpen && !setSearchInput.activeFocus && !setWifiPassField.activeFocus && !customMinInput.activeFocus && !customDirInput.activeFocus && !customFileInput.activeFocus && !profileNameInput.activeFocus && !profileAvatarInput.activeFocus
+            Keys.onEscapePressed: {
+                if (settingsCard.activeNavPane === "right") {
+                    settingsCard.activeNavPane = "left";
+                    settingsCard.updateFocusRing();
                 } else {
-                    settingsStaggerTimer.stop();
-                    stage = 0;
+                    shellRoot.closePopups();
                 }
             }
-
-            Timer {
-                id: settingsStaggerTimer
-                interval: 34
-                repeat: true
-                onTriggered: {
-                    if (settingsCard.stage < 6) settingsCard.stage++;
-                    else stop();
+            Keys.onUpPressed: (e) => {
+                if (settingsCard.activeNavPane === "left") {
+                    settingsCard.stepSettingsTab(-1);
+                } else {
+                    settingsCard.refreshRightControls();
+                    if (settingsCard.rightControls.length > 0) {
+                        settingsCard.rightFocusIdx = Math.max(0, settingsCard.rightFocusIdx - 1);
+                        settingsCard.updateFocusRing();
+                    }
+                }
+                e.accepted = true;
+            }
+            Keys.onDownPressed: (e) => {
+                if (settingsCard.activeNavPane === "left") {
+                    settingsCard.stepSettingsTab(1);
+                } else {
+                    settingsCard.refreshRightControls();
+                    if (settingsCard.rightControls.length > 0) {
+                        settingsCard.rightFocusIdx = Math.min(settingsCard.rightControls.length - 1, settingsCard.rightFocusIdx + 1);
+                        settingsCard.updateFocusRing();
+                    }
+                }
+                e.accepted = true;
+            }
+            Keys.onRightPressed: (e) => {
+                if (settingsCard.activeNavPane === "left") {
+                    settingsCard.activeNavPane = "right";
+                    settingsCard.rightFocusIdx = 0;
+                    settingsCard.refreshRightControls();
+                } else {
+                    settingsCard.activateCurrentRightControl(1);
+                }
+                e.accepted = true;
+            }
+            Keys.onLeftPressed: (e) => {
+                if (settingsCard.activeNavPane === "right") {
+                    let target = settingsCard.rightControls[settingsCard.rightFocusIdx];
+                    if (settingsCard.isSliderControl(target)) {
+                        settingsCard.activateCurrentRightControl(-1);
+                    } else {
+                        settingsCard.activeNavPane = "left";
+                        settingsCard.updateFocusRing();
+                    }
+                    e.accepted = true;
                 }
             }
-
-            Item {
-                id: settingsKeyCatcher
-                focus: settingsCard.isOpen && !setSearchInput.activeFocus && !setWifiPassField.activeFocus
-                Keys.onEscapePressed: shellRoot.closePopups()
+            Keys.onReturnPressed: (e) => {
+                if (settingsCard.activeNavPane === "left") {
+                    settingsCard.activeNavPane = "right";
+                    settingsCard.rightFocusIdx = 0;
+                    settingsCard.refreshRightControls();
+                } else {
+                    settingsCard.activateCurrentRightControl(0);
+                }
+                e.accepted = true;
             }
-
-            opacity: isOpen ? 1.0 : 0.0
-            scale: isOpen ? 1.0 : 0.90
-            transform: Translate {
-                y: settingsCard.isOpen ? 0 : 16
-                Behavior on y { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
+            Keys.onSpacePressed: (e) => {
+                if (settingsCard.activeNavPane === "right") {
+                    settingsCard.activateCurrentRightControl(0);
+                    e.accepted = true;
+                }
             }
+        }
 
-            Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
-            Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
+        opacity: isOpen ? 1.0 : 0.0
+        scale: isOpen ? 1.0 : 0.945
+        transform: Translate {
+            y: settingsCard.isOpen ? 0 : 16
+            Behavior on y { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+        }
 
-            RowLayout {
-                anchors.fill: parent
-                anchors.margins: 18
-                spacing: 16
-                z: 2
+        Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
+        Behavior on scale { SpringAnimation { mass: 0.95; spring: 5.6; damping: 0.48; epsilon: 0.001 } }
 
-                // ── SIDEBAR KIRI (KAPSUL LONJONG HARMONYOS) ───────────────
-                Rectangle {
-                    Layout.preferredWidth: 236
-                    Layout.fillHeight: true
-                    radius: 28
-                    color: "#44141724"
-                    border.width: 1
-                    border.color: "#36FFFFFF"
+        RowLayout {
+            anchors.fill: parent
+            spacing: 0
+            z: 2
 
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: 12
-                        spacing: 10
+            // ── SIDEBAR KIRI (MACOS SYSTEM SETTINGS) ─────────────────────
+            Rectangle {
+                Layout.preferredWidth: 232
+                Layout.fillHeight: true
+                Layout.leftMargin: 1
+                Layout.topMargin: 1
+                Layout.bottomMargin: 1
+                topLeftRadius: 21
+                bottomLeftRadius: 21
+                color: ThemeTokens.sidebarBg
+                border.width: settingsCard.activeNavPane === "left" ? 1 : 0
+                border.color: ThemeTokens.accentSoft
 
-                        // Header Traffic Light + Title
-                        RowLayout {
-                            Layout.fillWidth: true
-                            Layout.leftMargin: 4
-                            spacing: 8
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 14
+                    spacing: 12
 
-                            Row {
-                                spacing: 7
-                                Rectangle {
-                                    width: 12; height: 12; radius: 6
-                                    color: closeSetM.containsMouse ? "#FF3B30" : "#FF5F56"
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "×"
-                                        color: "#4D0000"
-                                        font.pixelSize: 10
-                                        font.bold: true
-                                        visible: closeSetM.containsMouse
-                                    }
-                                    MouseArea {
-                                        id: closeSetM
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: shellRoot.closePopups()
-                                    }
-                                }
-                                Rectangle { width: 12; height: 12; radius: 6; color: "#FFBD2E" }
-                                Rectangle { width: 12; height: 12; radius: 6; color: "#27C93F" }
-                            }
+                    // Traffic Lights + Judul
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 8
 
-                            Item { width: 4 }
-
-                            Text {
-                                text: "Settings"
-                                color: "#FFFFFF"
-                                font.pixelSize: 15
-                                font.bold: true
-                            }
-                        }
-
-                        // Kartu Profil User Pill Lonjong
-                        Rectangle {
-                            Layout.fillWidth: true
-                            height: 54
-                            radius: 27
-                            border.width: 1.1
-                            border.color: profilePillM.containsMouse ? "#58FFFFFF" : "#34FFFFFF"
-                            gradient: Gradient {
-                                GradientStop { position: 0.0; color: "#32FFFFFF" }
-                                GradientStop { position: 1.0; color: "#14FFFFFF" }
-                            }
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: 8
-                                anchors.rightMargin: 12
-                                spacing: 10
-
-                                Rectangle {
-                                    width: 38; height: 38; radius: 19
-                                    gradient: Gradient {
-                                        GradientStop { position: 0.0; color: "#2E94FF" }
-                                        GradientStop { position: 1.0; color: "#BF5AF2" }
-                                    }
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "AR"
-                                        color: "#FFFFFF"
-                                        font.pixelSize: 13
-                                        font.bold: true
-                                    }
-                                }
-
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 1
-                                    Text {
-                                        text: "Arip"
-                                        color: "#FFFFFF"
-                                        font.pixelSize: 12
-                                        font.bold: true
-                                        elide: Text.ElideRight
-                                        Layout.fillWidth: true
-                                    }
-                                    Text {
-                                        text: "Kairo 26.04 • L14"
-                                        color: "#C7C7CC"
-                                        font.pixelSize: 10
-                                        elide: Text.ElideRight
-                                        Layout.fillWidth: true
-                                    }
-                                }
-
-                                Text { text: "›"; color: "#AEAEB2"; font.pixelSize: 15; font.bold: true }
-                            }
-
-                            MouseArea {
-                                id: profilePillM
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onPressed: shellRoot.switchPopup("about")
-                            }
-                        }
-
-                        // Search Pill Lonjong
-                        Rectangle {
-                            Layout.fillWidth: true
-                            height: 36
-                            radius: 18
-                            color: "#22FFFFFF"
-                            border.width: 1
-                            border.color: setSearchInput.activeFocus ? "#77A1C6FF" : "#2EFFFFFF"
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: 12
-                                anchors.rightMargin: 12
-                                spacing: 6
-
-                                Text { text: "⌕"; color: "#AEAEB2"; font.pixelSize: 14 }
-
-                                TextInput {
-                                    id: setSearchInput
-                                    Layout.fillWidth: true
-                                    color: "#FFFFFF"
-                                    font.pixelSize: 12
-                                    clip: true
-                                    onTextChanged: {
-                                        shellRoot.settingsSearch = text;
-                                        let q = text.trim().toLowerCase();
-                                        if (q.includes("wifi") || q.includes("net") || q.includes("ip")) shellRoot.settingsTab = "wifi";
-                                        else if (q.includes("blue") || q.includes("bt")) shellRoot.settingsTab = "bluetooth";
-                                        else if (q.includes("bright") || q.includes("sound") || q.includes("vol") || q.includes("layar")) shellRoot.settingsTab = "display_sound";
-                                        else if (q.includes("wall") || q.includes("dock") || q.includes("widget") || q.includes("kairo")) shellRoot.settingsTab = "appearance";
-                                        else if (q.includes("bat") || q.includes("power") || q.includes("daya") || q.includes("about")) shellRoot.settingsTab = "power";
-                                    }
-                                    Keys.onEscapePressed: shellRoot.closePopups()
-
-                                    Text {
-                                        anchors.fill: parent
-                                        verticalAlignment: Text.AlignVCenter
-                                        text: "Cari pengaturan..."
-                                        color: "#8E8E93"
-                                        font.pixelSize: 11
-                                        visible: setSearchInput.text === ""
-                                    }
-                                }
-                            }
-                        }
-
-                        // Daftar Kategori Kapsul Lonjong
-                        ColumnLayout {
-                            Layout.fillWidth: true
+                        Row {
                             spacing: 7
-
-                            Repeater {
-                                model: [
-                                    { id: "appearance", title: "Kairo & Wallpaper", sub: "Preview, Dock, Widget", glyph: "✦" },
-                                    { id: "display_sound", title: "Display & Sound", sub: "Brightness, Volume, Focus", glyph: "☀" },
-                                    { id: "wifi", title: "Wi-Fi & Network", sub: shellRoot.wifiConnected ? shellRoot.wifiName : "Terputus", glyph: "ᯤ" },
-                                    { id: "bluetooth", title: "Bluetooth", sub: shellRoot.btEnabled ? "Aktif" : "Mati", glyph: "ᛒ" },
-                                    { id: "power", title: "Power & System", sub: shellRoot.batteryPercent >= 0 ? ("Baterai " + shellRoot.batteryPercent + "%") : "AC Power", glyph: "⚡" }
-                                ]
-
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    height: 44
-                                    radius: 22
-                                    property bool active: shellRoot.settingsTab === modelData.id
-                                    border.width: 1.1
-                                    border.color: active ? "#80FFFFFF" : (navPillM.containsMouse ? "#46FFFFFF" : "#22FFFFFF")
-                                    scale: navPillM.pressed ? 0.96 : 1.0
-
-                                    gradient: Gradient {
-                                        GradientStop { position: 0.0; color: active ? "#D92B8EFF" : (navPillM.containsMouse ? "#2CFFFFFF" : "#18FFFFFF") }
-                                        GradientStop { position: 1.0; color: active ? "#AD0866E6" : "#0DFFFFFF" }
-                                    }
-
-                                    Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
-
-                                    RowLayout {
-                                        anchors.fill: parent
-                                        anchors.leftMargin: 8
-                                        anchors.rightMargin: 12
-                                        spacing: 10
-
-                                        Rectangle {
-                                            width: 30; height: 30; radius: 15
-                                            color: active ? "#38FFFFFF" : "#24FFFFFF"
-                                            border.width: 1
-                                            border.color: "#36FFFFFF"
-                                            Text {
-                                                anchors.centerIn: parent
-                                                text: modelData.glyph
-                                                color: "#FFFFFF"
-                                                font.pixelSize: 13
-                                                font.bold: true
-                                            }
-                                        }
-
-                                        ColumnLayout {
-                                            Layout.fillWidth: true
-                                            spacing: 0
-                                            Text {
-                                                text: modelData.title
-                                                color: "#FFFFFF"
-                                                font.pixelSize: 12
-                                                font.bold: active
-                                                elide: Text.ElideRight
-                                                Layout.fillWidth: true
-                                            }
-                                            Text {
-                                                text: modelData.sub
-                                                color: active ? "#E5F2FF" : "#98989D"
-                                                font.pixelSize: 9
-                                                elide: Text.ElideRight
-                                                Layout.fillWidth: true
-                                            }
-                                        }
-                                    }
-
-                                    MouseArea {
-                                        id: navPillM
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: shellRoot.settingsTab = modelData.id
-                                    }
+                            Rectangle {
+                                width: 12; height: 12; radius: 6
+                                color: closeSetM.containsMouse ? "#FF3B30" : "#FF5F56"
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "×"
+                                    color: "#4D0000"
+                                    font.pixelSize: 10
+                                    font.bold: true
+                                    visible: closeSetM.containsMouse
+                                }
+                                MouseArea {
+                                    id: closeSetM
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: shellRoot.closePopups()
                                 }
                             }
+                            Rectangle { width: 12; height: 12; radius: 6; color: "#FFBD2E" }
+                            Rectangle { width: 12; height: 12; radius: 6; color: "#27C93F" }
                         }
 
-                        Item { Layout.fillHeight: true }
+                        Item { Layout.fillWidth: true }
 
-                        // Tombol Pill About Kairo di Dasar Sidebar
-                        Rectangle {
-                            Layout.fillWidth: true
-                            height: 36
-                            radius: 18
-                            color: aboutShortcutM.containsMouse ? "#2EFFFFFF" : "#1CFFFFFF"
-                            border.width: 1
-                            border.color: "#32FFFFFF"
+                        Text {
+                            text: LocaleStrings.settingsTitle
+                            color: ThemeTokens.textSecondary
+                            font.pixelSize: 12
+                            font.weight: Font.DemiBold
+                        }
+                    }
+
+                    // Search Bar macOS
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 32
+                        radius: 8
+                        color: ThemeTokens.inputBg
+                        border.width: 1
+                        border.color: setSearchInput.activeFocus ? ThemeTokens.accent : ThemeTokens.borderSubtle
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 10
+                            anchors.rightMargin: 8
+                            spacing: 6
 
                             Text {
-                                anchors.centerIn: parent
-                                text: "About Kairo Desktop ›"
-                                color: "#E5E5EA"
-                                font.pixelSize: 11
-                                font.weight: Font.Medium
+                                text: "⌕"
+                                color: ThemeTokens.textSecondary
+                                font.pixelSize: 13
                             }
 
-                            MouseArea {
-                                id: aboutShortcutM
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onPressed: shellRoot.switchPopup("about")
+                            TextInput {
+                                id: setSearchInput
+                                Layout.fillWidth: true
+                                color: ThemeTokens.textPrimary
+                                font.pixelSize: 12
+                                clip: true
+                                onTextChanged: {
+                                    shellRoot.settingsSearch = text;
+                                    let q = text.toLowerCase().trim();
+                                    if (q === "") return;
+                                    if (q.includes("wifi") || q.includes("net") || q.includes("ip")) shellRoot.settingsTab = "wifi";
+                                    else if (q.includes("blue") || q.includes("bt")) shellRoot.settingsTab = "bluetooth";
+                                    else if (q.includes("wall") || q.includes("gacha") || q.includes("live")) shellRoot.settingsTab = "wallpaper";
+                                    else if (q.includes("bright") || q.includes("sound") || q.includes("vol") || q.includes("audio") || q.includes("dnd")) shellRoot.settingsTab = "display_sound";
+                                    else if (q.includes("solid") || q.includes("liquid") || q.includes("dark") || q.includes("light") || q.includes("dock") || q.includes("float") || q.includes("island") || q.includes("notch")) shellRoot.settingsTab = "appearance";
+                                    else if (q.includes("lang") || q.includes("bahasa") || q.includes("prof") || q.includes("nama") || q.includes("avatar") || q.includes("foto")) shellRoot.settingsTab = "language_profile";
+                                    else if (q.includes("bat") || q.includes("power") || q.includes("daya") || q.includes("lock") || q.includes("stor") || q.includes("disk") || q.includes("health") || q.includes("screen")) shellRoot.settingsTab = "power";
+                                    else if (q.includes("key") || q.includes("touch") || q.includes("input") || q.includes("pintasan") || q.includes("scroll") || q.includes("niri")) shellRoot.settingsTab = "input_shortcuts";
+                                    else if (q.includes("notif") || q.includes("island") || q.includes("banner") || q.includes("music")) shellRoot.settingsTab = "notifications_island";
+                                }
+                                Keys.onEscapePressed: shellRoot.closePopups()
+
+                                Text {
+                                    anchors.fill: parent
+                                    verticalAlignment: Text.AlignVCenter
+                                    text: LocaleStrings.searchPlaceholder
+                                    color: ThemeTokens.textMuted
+                                    font.pixelSize: 12
+                                    visible: setSearchInput.text === ""
+                                }
+                            }
+
+                            Text {
+                                text: "✕"
+                                color: ThemeTokens.textSecondary
+                                font.pixelSize: 10
+                                visible: setSearchInput.text !== ""
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: setSearchInput.text = ""
+                                }
                             }
                         }
                     }
-                }
 
-                // ── PANEL KANAN (HARMONYOS GLASS PILLS, ORBS & LIVE PREVIEW) ──
-                Item {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-
-                    // ========================================================
-                    // TAB 1: KAIRO & WALLPAPER (OPSI 3 LIVE PREVIEW + PILLS)
-                    // ========================================================
-                    Flickable {
-                        anchors.fill: parent
-                        contentWidth: width
-                        contentHeight: wpScrollCol.implicitHeight + 16
-                        clip: true
-
-                        ColumnLayout {
-                            id: wpScrollCol
-                            width: parent.width
-                        spacing: 12
-                        visible: shellRoot.settingsTab === "appearance"
-                        opacity: visible ? 1.0 : 0.0
-                        Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
+                    // Kartu Profil Akun Ringkas
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 48
+                        radius: 10
+                        color: profileM.containsMouse ? ThemeTokens.cardHoverBg : "transparent"
 
                         RowLayout {
-                            Layout.fillWidth: true
-                            Text { text: "Kairo & Wallpaper"; color: "#FFFFFF"; font.pixelSize: 17; font.bold: true }
-                            Item { Layout.fillWidth: true }
+                            anchors.fill: parent
+                            anchors.leftMargin: 6
+                            anchors.rightMargin: 6
+                            spacing: 10
 
-                            // Pill Next Wallpaper
                             Rectangle {
-                                height: 34
-                                width: nextWpPillTxt.implicitWidth + 24
-                                radius: 17
-                                border.width: 1.1
-                                border.color: "#75FFFFFF"
-                                scale: nextWpPillM.pressed ? 0.94 : 1.0
-                                gradient: Gradient {
-                                    GradientStop { position: 0.0; color: "#D92B8EFF" }
-                                    GradientStop { position: 1.0; color: "#AD0866E6" }
-                                }
-                                Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
-
-                                Text {
-                                    id: nextWpPillTxt
-                                    anchors.centerIn: parent
-                                    text: shellRoot.wallpaperCycleMode === "gacha" ? "🎲 Gacha Wallpaper" : "⏭ Next Wallpaper"
-                                    color: "#FFFFFF"
-                                    font.pixelSize: 11
-                                    font.bold: true
-                                }
-
-                                MouseArea {
-                                    id: nextWpPillM
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: shellRoot.cycleWallpaper()
-                                }
-                            }
-                        }
-
-                        // LIVE KAIRO DESKTOP MINI-PREVIEW + KONTROL BULAT LONJONG
-                        RowLayout {
-                            Layout.fillWidth: true
-                            height: 112
-                            spacing: 12
-
-                            // Miniatur Layar Kairo Desktop (Rounded Capsule Frame)
-                            Rectangle {
-                                Layout.preferredWidth: 286
-                                Layout.fillHeight: true
-                                radius: 26
-                                color: "#1A1C28"
-                                border.width: 1.2
-                                border.color: "#4CFFFFFF"
+                                width: 34; height: 34; radius: 17
+                                color: ThemeTokens.accent
                                 clip: true
 
                                 Image {
+                                    id: sideAvatarImg
                                     anchors.fill: parent
-                                    source: shellRoot.currentWallpaper
+                                    source: ShellState.profileAvatar !== "" ? (ShellState.profileAvatar.startsWith("/") ? ("file://" + ShellState.profileAvatar) : ShellState.profileAvatar) : ""
                                     fillMode: Image.PreserveAspectCrop
                                     smooth: true
                                     visible: status === Image.Ready
                                 }
 
-                                // Mini Top Bar
-                                Rectangle {
-                                    anchors.top: parent.top
-                                    anchors.left: parent.left
-                                    anchors.right: parent.right
-                                    height: 14
-                                    color: "#99121218"
-
-                                    Row {
-                                        anchors.left: parent.left
-                                        anchors.leftMargin: 8
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        spacing: 4
-                                        Rectangle { width: 5; height: 5; radius: 2.5; color: "#FFFFFF" }
-                                        Rectangle { width: 18; height: 4; radius: 2; color: "#CCFFFFFF" }
-                                    }
-
-                                    Rectangle {
-                                        anchors.centerIn: parent
-                                        width: 34; height: 7; radius: 3.5
-                                        color: "#44FFFFFF"
-                                    }
-                                }
-
-                                // Mini Desktop Widgets
-                                Row {
-                                    x: 12; y: 24
-                                    spacing: 6
-                                    Rectangle {
-                                        width: 66; height: 84; radius: 11
-                                        color: "#CC18181E"; border.width: 1; border.color: "#33FFFFFF"
-                                    }
-                                    Column {
-                                        spacing: 6
-                                        Rectangle {
-                                            width: 40; height: 40; radius: 20
-                                            color: "#CC18181E"; border.width: 1; border.color: "#33FFFFFF"
-                                        }
-                                        Rectangle {
-                                            width: 40; height: 38; radius: 11
-                                            color: "#CC2D1F14"; border.width: 1; border.color: "#33FFFFFF"
-                                        }
-                                    }
-                                }
-
-                                // Mini Liquid Glass Floating Dock (Merespons Mode Auto-Hide!)
-                                Rectangle {
-                                    anchors.bottom: parent.bottom
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    anchors.bottomMargin: shellRoot.dockHideMode === "always" ? -18 : 7
-                                    width: 154
-                                    height: 20
-                                    radius: 10
-                                    color: "#AA1C1E28"
-                                    border.width: 1
-                                    border.color: "#55FFFFFF"
-                                    Behavior on anchors.bottomMargin { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
-
-                                    Row {
-                                        anchors.centerIn: parent
-                                        spacing: 5
-                                        Repeater {
-                                            model: ["#1D8FE1", "#5E5CE6", "#FF9500", "#30D158", "#0A84FF", "#BF5AF2"]
-                                            Rectangle {
-                                                width: 12; height: 12; radius: 6
-                                                color: modelData
-                                            }
-                                        }
-                                    }
-                                }
-
-                                // Badge Live Preview
-                                Rectangle {
-                                    anchors.top: parent.top
-                                    anchors.right: parent.right
-                                    anchors.topMargin: 20
-                                    anchors.rightMargin: 10
-                                    height: 20
-                                    width: livePrevBadge.implicitWidth + 12
-                                    radius: 10
-                                    color: "#8812141E"
-                                    border.width: 1
-                                    border.color: "#44FFFFFF"
-                                    Text {
-                                        id: livePrevBadge
-                                        anchors.centerIn: parent
-                                        text: "Live Preview"
-                                        color: "#FFFFFF"
-                                        font.pixelSize: 9
-                                        font.bold: true
-                                    }
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: ShellState.profileInitials
+                                    color: ThemeTokens.textOnAccent
+                                    font.pixelSize: 12
+                                    font.bold: true
+                                    visible: sideAvatarImg.status !== Image.Ready
                                 }
                             }
 
-                            // Kolom Kanan: Mode Floating Dock & Aksi Widget (Pil Bulat Lonjong)
                             ColumnLayout {
                                 Layout.fillWidth: true
-                                Layout.fillHeight: true
-                                spacing: 8
-
+                                spacing: 1
                                 Text {
-                                    text: "Floating Dock Mode"
-                                    color: "#D1D1D6"
-                                    font.pixelSize: 11
-                                    font.bold: true
-                                }
-
-                                // 3 Pilihan Mode Dock berbentuk Kapsul Lonjong
-                                Repeater {
-                                    model: [
-                                        { mode: "smart", label: "Smart Auto-Hide" },
-                                        { mode: "always", label: "Selalu Sembunyi" },
-                                        { mode: "never", label: "Selalu Tampil" }
-                                    ]
-
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        height: 32
-                                        radius: 16
-                                        property bool isSel: shellRoot.dockHideMode === modelData.mode
-                                        border.width: 1.1
-                                        border.color: isSel ? "#80FFFFFF" : "#30FFFFFF"
-                                        gradient: Gradient {
-                                            GradientStop { position: 0.0; color: isSel ? "#D92B8EFF" : "#24FFFFFF" }
-                                            GradientStop { position: 1.0; color: isSel ? "#AD0866E6" : "#10FFFFFF" }
-                                        }
-
-                                        RowLayout {
-                                            anchors.fill: parent
-                                            anchors.leftMargin: 12
-                                            anchors.rightMargin: 12
-                                            Text {
-                                                text: modelData.label
-                                                color: "#FFFFFF"
-                                                font.pixelSize: 11
-                                                font.bold: isSel
-                                            }
-                                            Item { Layout.fillWidth: true }
-                                            Rectangle {
-                                                width: 14; height: 14; radius: 7
-                                                color: isSel ? "#FFFFFF" : "transparent"
-                                                border.width: 1.2
-                                                border.color: "#88FFFFFF"
-                                            }
-                                        }
-
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: shellRoot.dockHideMode = modelData.mode
-                                        }
-                                    }
-                                }
-
-                                // Baris 2 Pill Aksi Widget (Atur & Reset)
-                                RowLayout {
+                                    text: ShellState.profileName
+                                    color: ThemeTokens.textPrimary
+                                    font.pixelSize: 13
+                                    font.weight: Font.DemiBold
+                                    elide: Text.ElideRight
                                     Layout.fillWidth: true
-                                    spacing: 8
+                                }
+                                Text {
+                                    text: ShellState.osFullName + " • " + (shellRoot.sysSpecs.hostModel || "Workstation")
+                                    color: ThemeTokens.textSecondary
+                                    font.pixelSize: 10
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+                            }
+                        }
+
+                        MouseArea {
+                            id: profileM
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: shellRoot.settingsTab = "language_profile"
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 1
+                        color: ThemeTokens.dividerColor
+                    }
+
+                    // Daftar Kategori Sidebar macOS
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 3
+
+                        Repeater {
+                            model: [
+                                { id: "appearance", title: LocaleStrings.navAppearance, badge: "#0A84FF", glyph: "◐" },
+                                { id: "wallpaper", title: LocaleStrings.navWallpaper, badge: "#32ADE6", glyph: "▣" },
+                                { id: "display_sound", title: LocaleStrings.navDisplaySound, badge: "#FF9F0A", glyph: "☀" },
+                                { id: "input_shortcuts", title: LocaleStrings.t("Input & Pintasan", "Input & Shortcuts"), badge: "#64D2FF", glyph: "⌘" },
+                                { id: "notifications_island", title: LocaleStrings.t("Notifikasi & Island", "Notifications & Island"), badge: "#FF375F", glyph: "◉" },
+                                { id: "wifi", title: LocaleStrings.navWifi, badge: "#007AFF", glyph: "wifi" },
+                                { id: "bluetooth", title: LocaleStrings.navBluetooth, badge: "#5E5CE6", glyph: "bt" },
+                                { id: "power", title: LocaleStrings.navBatterySystem, badge: "#30D158", glyph: "⚡" },
+                                { id: "language_profile", title: LocaleStrings.navLanguageProfile, badge: "#AF52DE", glyph: "☺" }
+                            ]
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 31
+                                radius: 8
+                                property bool active: shellRoot.settingsTab === modelData.id
+                                color: active ? (settingsCard.activeNavPane === "right" ? Qt.rgba(ThemeTokens.accent.r, ThemeTokens.accent.g, ThemeTokens.accent.b, 0.55) : ThemeTokens.accent) : (navM.containsMouse ? ThemeTokens.cardHoverBg : "transparent")
+                                Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 8
+                                    anchors.rightMargin: 10
+                                    spacing: 9
 
                                     Rectangle {
-                                        Layout.fillWidth: true
-                                        height: 34
-                                        radius: 17
-                                        color: editWidPillM.containsMouse ? "#34FFFFFF" : "#20FFFFFF"
-                                        border.width: 1.1
-                                        border.color: "#44FFFFFF"
+                                        width: 21; height: 21; radius: 6
+                                        color: active ? "#33FFFFFF" : modelData.badge
+
+                                        Canvas {
+                                            anchors.centerIn: parent
+                                            width: 14; height: 14
+                                            visible: modelData.glyph === "wifi" || modelData.glyph === "bt"
+                                            onPaint: {
+                                                let ctx = getContext("2d"); ctx.reset();
+                                                ctx.strokeStyle = "#FFFFFF"; ctx.fillStyle = "#FFFFFF";
+                                                ctx.lineWidth = 1.5; ctx.lineCap = "round"; ctx.lineJoin = "round";
+                                                if (modelData.glyph === "wifi") {
+                                                    for (let r = 2.5; r <= 7.5; r += 2.5) {
+                                                        ctx.beginPath();
+                                                        ctx.arc(7, 10.5, r, -Math.PI * 0.78, -Math.PI * 0.22);
+                                                        ctx.stroke();
+                                                    }
+                                                    ctx.beginPath(); ctx.arc(7, 10.8, 1.1, 0, Math.PI * 2); ctx.fill();
+                                                } else {
+                                                    ctx.beginPath();
+                                                    ctx.moveTo(4.5, 4.5); ctx.lineTo(9.5, 9.5); ctx.lineTo(7, 12);
+                                                    ctx.moveTo(7, 2); ctx.lineTo(7, 12);
+                                                    ctx.moveTo(7, 2); ctx.lineTo(9.5, 4.5); ctx.lineTo(4.5, 9.5);
+                                                    ctx.stroke();
+                                                }
+                                            }
+                                        }
+
                                         Text {
                                             anchors.centerIn: parent
-                                            text: "Atur Widget"
+                                            visible: modelData.glyph !== "wifi" && modelData.glyph !== "bt"
+                                            text: modelData.glyph
                                             color: "#FFFFFF"
                                             font.pixelSize: 11
                                             font.bold: true
                                         }
+                                    }
+
+                                    Text {
+                                        Layout.fillWidth: true
+                                        text: modelData.title
+                                        color: active ? ThemeTokens.textOnAccent : ThemeTokens.textPrimary
+                                        font.pixelSize: 13
+                                        font.weight: active ? Font.DemiBold : Font.Normal
+                                        elide: Text.ElideRight
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: navM
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: shellRoot.settingsTab = modelData.id
+                                }
+                            }
+                        }
+                    }
+
+                    Item { Layout.fillHeight: true }
+
+                    // Status Singkat di Bawah Sidebar
+                    Text {
+                        Layout.fillWidth: true
+                        text: (ShellState.isSolid ? "Solid" : ("Liquid (" + ShellState.liquidVariant.toUpperCase() + ")")) + " • " + (ShellState.isDark ? "Dark" : "Light")
+                        color: ThemeTokens.textMuted
+                        font.pixelSize: 10
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                }
+            }
+
+            // Garis Pemisah Vertikal Sidebar
+            Rectangle {
+                Layout.preferredWidth: 1
+                Layout.fillHeight: true
+                color: ThemeTokens.dividerColor
+            }
+
+            // ── PANEL KANAN SCROLLABLE ───────────────────────────────────
+            Item {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+
+                Flickable {
+                    flickDeceleration: 2000
+                    maximumFlickVelocity: 2800
+                    id: rightScroll
+                    anchors.fill: parent
+                    anchors.margins: 22
+                    contentWidth: width
+                    contentHeight: rightCol.implicitHeight + 16
+                    clip: true
+                    boundsBehavior: Flickable.DragAndOvershootBounds
+                    onMovementStarted: rightScrollAnim.stop()
+
+                    WheelHandler {
+                        id: rightWheelHandler
+                        acceptedDevices: PointerDevice.AllDevices
+                        onWheel: (ev) => {
+                            ev.accepted = true;
+                            let maxY = Math.max(0, rightScroll.contentHeight - rightScroll.height);
+                            let step = ev.pixelDelta.y !== 0 ? -ev.pixelDelta.y * 1.15 : (-ev.angleDelta.y * 0.9);
+                            let base = rightScrollAnim.running ? rightScrollAnim.to : rightScroll.contentY;
+                            rightScrollAnim.stop();
+                            rightScrollAnim.from = rightScroll.contentY;
+                            rightScrollAnim.to = Math.max(0, Math.min(maxY, base + step));
+                            rightScrollAnim.start();
+                        }
+                    }
+
+                    ScrollBar.vertical: ScrollBar {
+                        policy: ScrollBar.AsNeeded
+                        width: 5
+                    }
+
+                    Rectangle {
+                        id: rightFocusRing
+                        parent: rightScroll.contentItem
+                        z: 99
+                        visible: false
+                        property real targetX: 0
+                        property real targetY: 0
+                        property real targetW: 0
+                        property real targetH: 0
+                        property real targetR: 12
+                        x: targetX
+                        y: targetY
+                        width: targetW
+                        height: targetH
+                        radius: targetR
+                        color: Qt.rgba(ThemeTokens.accent.r, ThemeTokens.accent.g, ThemeTokens.accent.b, 0.10)
+                        border.width: 2
+                        border.color: ThemeTokens.accent
+                        Behavior on x { NumberAnimation { duration: 180; easing.type: Easing.OutExpo } }
+                        Behavior on y { NumberAnimation { duration: 180; easing.type: Easing.OutExpo } }
+                        Behavior on width { NumberAnimation { duration: 180; easing.type: Easing.OutExpo } }
+                        Behavior on height { NumberAnimation { duration: 180; easing.type: Easing.OutExpo } }
+                        Behavior on radius { NumberAnimation { duration: 180; easing.type: Easing.OutExpo } }
+                    }
+
+                    ColumnLayout {
+                        id: rightCol
+                        property real tabGlideX: 0
+                        property real tabZoom: 1.0
+                        property int prevTabIndex: 0
+                        property int tabDir: 1
+                        opacity: 1.0
+                        scale: tabZoom
+                        transformOrigin: Item.Center
+                        transform: Translate { x: rightCol.tabGlideX }
+
+                        ParallelAnimation {
+                            id: hyperTabAnim
+                            NumberAnimation { target: rightCol; property: "opacity"; from: 0.0; to: 1.0; duration: 310; easing.type: Easing.OutCubic }
+                            NumberAnimation { target: rightCol; property: "tabGlideX"; from: 22 * rightCol.tabDir; to: 0; duration: 360; easing.type: Easing.OutCubic }
+                            NumberAnimation { target: rightCol; property: "tabZoom"; from: 0.985; to: 1.0; duration: 360; easing.type: Easing.OutCubic }
+                        }
+
+                        Connections {
+                            target: shellRoot
+                            function onSettingsTabChanged() {
+                                let newIdx = settingsCard.navTabOrder.indexOf(shellRoot.settingsTab);
+                                if (newIdx < 0) newIdx = 0;
+                                rightCol.tabDir = (newIdx >= rightCol.prevTabIndex) ? 1 : -1;
+                                rightCol.prevTabIndex = newIdx;
+                                rightScrollAnim.stop();
+                                rightScroll.contentY = 0;
+                                hyperTabAnim.restart();
+                                Qt.callLater(settingsCard.refreshRightControls);
+                            }
+                        }
+                        width: rightScroll.width
+                        spacing: 16
+
+                        // ====================================================
+                        // KATEGORI 1: APPEARANCE (SOLID vs LIQUID + ISLAND + DOCK)
+                        // ====================================================
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 14
+                            visible: shellRoot.settingsTab === "appearance"
+
+                            Text {
+                                text: LocaleStrings.navAppearance
+                                color: ThemeTokens.textPrimary
+                                font.pixelSize: 18
+                                font.bold: true
+                            }
+
+                            // 1. Pilihan Utama Berdampingan: Solid vs Liquid
+                            SettingsGroup {
+                                Text {
+                                    text: "Material Permukaan"
+                                    color: ThemeTokens.textPrimary
+                                    font.pixelSize: 13
+                                    font.weight: Font.DemiBold
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 12
+
+                                    Repeater {
+                                        model: [
+                                            { id: "solid", title: "Solid", sub: "Permukaan solid bersih hemat daya", icon: "■" },
+                                            { id: "liquid", title: "Liquid", sub: "Efek kaca berlapis & refraksi", icon: "◈" }
+                                        ]
+
+                                        Rectangle {
+                                            Layout.fillWidth: true
+                                            height: 68
+                                            radius: 12
+                                            property bool selected: ShellState.surfaceMode === modelData.id
+                                            color: selected ? ThemeTokens.accentSoft : ThemeTokens.inputBg
+                                            border.width: selected ? 1.8 : 1
+                                            border.color: selected ? ThemeTokens.accent : ThemeTokens.borderSubtle
+
+                                            RowLayout {
+                                                anchors.fill: parent
+                                                anchors.margins: 12
+                                                spacing: 10
+
+                                                Rectangle {
+                                                    width: 36; height: 36; radius: 10
+                                                    color: selected ? ThemeTokens.accent : ThemeTokens.cardBg
+                                                    border.width: 1
+                                                    border.color: selected ? ThemeTokens.accent : ThemeTokens.borderSubtle
+
+                                                    Canvas {
+                                                        anchors.centerIn: parent
+                                                        width: 22; height: 22
+                                                        property string modeId: modelData.id
+                                                        property bool isSel: selected
+                                                        property color fg: isSel ? "#FFFFFF" : ThemeTokens.textPrimary
+                                                        onModeIdChanged: requestPaint()
+                                                        onIsSelChanged: requestPaint()
+                                                        onFgChanged: requestPaint()
+                                                        onPaint: {
+                                                            let ctx = getContext("2d");
+                                                            ctx.reset();
+                                                            ctx.save();
+                                                            if (modeId === "solid") {
+                                                                // Kotak Timbul (3D Embossed / Raised Box)
+                                                                ctx.fillStyle = isSel ? "rgba(0,0,0,0.32)" : "rgba(0,0,0,0.22)";
+                                                                ctx.beginPath();
+                                                                ctx.roundedRect(5.5, 6.0, 13.5, 13.5, 3.2, 3.2);
+                                                                ctx.fill();
+
+                                                                ctx.fillStyle = fg;
+                                                                ctx.beginPath();
+                                                                ctx.roundedRect(3.5, 3.5, 13.5, 13.5, 3.2, 3.2);
+                                                                ctx.fill();
+
+                                                                // Highlight timbul tepi atas-kiri
+                                                                ctx.strokeStyle = isSel ? "rgba(255,255,255,0.65)" : "rgba(255,255,255,0.45)";
+                                                                ctx.lineWidth = 1.2;
+                                                                ctx.beginPath();
+                                                                ctx.moveTo(5.0, 15.0);
+                                                                ctx.lineTo(5.0, 5.2);
+                                                                ctx.lineTo(15.2, 5.2);
+                                                                ctx.stroke();
+                                                            } else {
+                                                                // Kotak Kaca Bergaris Miring (Diagonal Glass Reflections)
+                                                                ctx.fillStyle = isSel ? "rgba(255,255,255,0.16)" : "rgba(128,140,160,0.14)";
+                                                                ctx.strokeStyle = fg;
+                                                                ctx.lineWidth = 1.45;
+                                                                ctx.beginPath();
+                                                                ctx.roundedRect(3.5, 3.5, 15.0, 15.0, 3.6, 3.6);
+                                                                ctx.fill();
+                                                                ctx.stroke();
+
+                                                                // Clip ke dalam kotak kaca lalu gambar 2 garis kilau miring
+                                                                ctx.beginPath();
+                                                                ctx.roundedRect(4.2, 4.2, 13.6, 13.6, 3.0, 3.0);
+                                                                ctx.clip();
+
+                                                                ctx.strokeStyle = fg;
+                                                                ctx.lineWidth = 2.0;
+                                                                ctx.beginPath();
+                                                                ctx.moveTo(4.0, 14.5);
+                                                                ctx.lineTo(14.5, 4.0);
+                                                                ctx.stroke();
+
+                                                                ctx.lineWidth = 1.15;
+                                                                ctx.globalAlpha = 0.72;
+                                                                ctx.beginPath();
+                                                                ctx.moveTo(8.5, 17.5);
+                                                                ctx.lineTo(17.5, 8.5);
+                                                                ctx.stroke();
+                                                            }
+                                                            ctx.restore();
+                                                        }
+                                                    }
+                                                }
+
+                                                ColumnLayout {
+                                                    Layout.fillWidth: true
+                                                    spacing: 2
+                                                    Text {
+                                                        text: modelData.title
+                                                        color: ThemeTokens.textPrimary
+                                                        font.pixelSize: 13
+                                                        font.bold: true
+                                                    }
+                                                    Text {
+                                                        text: modelData.sub
+                                                        color: ThemeTokens.textSecondary
+                                                        font.pixelSize: 10
+                                                        elide: Text.ElideRight
+                                                        Layout.fillWidth: true
+                                                    }
+                                                }
+                                            }
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: {
+                                                    ShellState.setSurfaceMode(modelData.id);
+                                                    hostWin.saveLayout();
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // ── TEMA WARNA SISTEM (BERLAKU GLOBAL UNTUK SOLID & LIQUID) ──
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 10
+
+                                    Rectangle { Layout.fillWidth: true; height: 1; color: ThemeTokens.dividerColor }
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        ColumnLayout {
+                                            Layout.fillWidth: true
+                                            spacing: 2
+                                            Text { text: "Tema Warna Sistem"; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.weight: Font.Medium }
+                                            Text { text: "Diterapkan ke seluruh bar, dock, widget, dan popup"; color: ThemeTokens.textSecondary; font.pixelSize: 11 }
+                                        }
+
+                                        Row {
+                                            spacing: 8
+                                            Repeater {
+                                                model: [
+                                                    { id: "light", label: "☀ Light" },
+                                                    { id: "dark", label: "☾ Dark" }
+                                                ]
+                                                Rectangle {
+                                                    width: 84; height: 32; radius: 8
+                                                    property bool active: ShellState.colorScheme === modelData.id
+                                                    color: active ? ThemeTokens.accent : ThemeTokens.inputBg
+                                                    border.width: 1
+                                                    border.color: active ? ThemeTokens.accent : ThemeTokens.borderSubtle
+                                                    Text {
+                                                        anchors.centerIn: parent
+                                                        text: modelData.label
+                                                        color: active ? ThemeTokens.textOnAccent : ThemeTokens.textPrimary
+                                                        font.pixelSize: 12
+                                                        font.weight: Font.DemiBold
+                                                    }
+                                                    MouseArea {
+                                                        anchors.fill: parent
+                                                        cursorShape: Qt.PointingHandCursor
+                                                        onClicked: {
+                                                            ShellState.setColorScheme(modelData.id);
+                                                            hostWin.saveLayout();
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    Rectangle { Layout.fillWidth: true; height: 1; color: ThemeTokens.dividerColor }
+
+                                    // Warna Aksen Dinamis (Standar vs Ekstrak Wallpaper)
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        ColumnLayout {
+                                            Layout.fillWidth: true
+                                            spacing: 2
+                                            Text { text: "Warna Aksen Sistem"; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.weight: Font.Medium }
+                                            Text { text: "Sesuaikan aksen tombol & sorotan dengan wallpaper aktif"; color: ThemeTokens.textSecondary; font.pixelSize: 11 }
+                                        }
+
+                                        Row {
+                                            spacing: 8
+                                            Repeater {
+                                                model: [
+                                                    { adaptive: false, label: "Biru Standar" },
+                                                    { adaptive: true,  label: "Ikuti Wallpaper" }
+                                                ]
+                                                Rectangle {
+                                                    height: 32
+                                                    width: accLbl.implicitWidth + 22
+                                                    radius: 8
+                                                    property bool active: ShellState.adaptiveAccent === modelData.adaptive
+                                                    color: active ? ThemeTokens.accent : ThemeTokens.inputBg
+                                                    border.width: 1
+                                                    border.color: active ? ThemeTokens.accent : ThemeTokens.borderSubtle
+                                                    Text {
+                                                        id: accLbl
+                                                        anchors.centerIn: parent
+                                                        text: modelData.label
+                                                        color: active ? "#FFFFFF" : ThemeTokens.textPrimary
+                                                        font.pixelSize: 11
+                                                        font.weight: Font.DemiBold
+                                                    }
+                                                    MouseArea {
+                                                        anchors.fill: parent
+                                                        cursorShape: Qt.PointingHandCursor
+                                                        onClicked: {
+                                                            ShellState.adaptiveAccent = modelData.adaptive;
+                                                            if (modelData.adaptive) {
+                                                                shellRoot.extractWallpaperAccent();
+                                                            }
+                                                            hostWin.saveLayout();
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // ── CABANG B: JIKA LIQUID DIPILIH -> 3 SUB-OPSI + DARK MODE TERPISAH ──
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 12
+                                    visible: ShellState.isLiquid
+
+                                    Rectangle { Layout.fillWidth: true; height: 1; color: ThemeTokens.dividerColor }
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        Text {
+                                            text: "Varian Liquid"
+                                            color: ThemeTokens.textPrimary
+                                            font.pixelSize: 12
+                                            font.weight: Font.DemiBold
+                                        }
+                                        Item { Layout.fillWidth: true }
+                                        Rectangle {
+                                            height: 24
+                                            width: resetGlassTxt.implicitWidth + 16
+                                            radius: 7
+                                            color: resetGlassM.containsMouse ? ThemeTokens.cardHoverBg : ThemeTokens.inputBg
+                                            border.width: 1
+                                            border.color: ThemeTokens.borderSubtle
+                                            Text {
+                                                id: resetGlassTxt
+                                                anchors.centerIn: parent
+                                                text: "Preset Bawaan"
+                                                color: ThemeTokens.accent
+                                                font.pixelSize: 10
+                                                font.weight: Font.DemiBold
+                                            }
+                                            MouseArea {
+                                                id: resetGlassM
+                                                anchors.fill: parent
+                                                hoverEnabled: true
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: {
+                                                    ShellState.resetGlassPresets();
+                                                    shellRoot.macOpacity = ShellState.macOpacity;
+                                                    shellRoot.macFrost = ShellState.macFrost;
+                                                    shellRoot.aeroBaseOpacity = ShellState.aeroBaseOpacity;
+                                                    shellRoot.aeroSheenBright = ShellState.aeroSheenBright;
+                                                    shellRoot.aeroSheenWidth = ShellState.aeroSheenWidth;
+                                                    shellRoot.liquidOpacity = ShellState.liquidOpacity;
+                                                    shellRoot.liquidRefraction = ShellState.liquidRefraction;
+                                                    shellRoot.liquidFringing = ShellState.liquidFringing;
+                                                    hostWin.saveLayout();
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 8
+
+                                        Repeater {
+                                            model: [
+                                                { id: "mac", title: "Clean Glass", sub: "Frost halus" },
+                                                { id: "aero", title: "Aero Blin", sub: "Kilau diagonal" },
+                                                { id: "liquid", title: "Liquid Glass", sub: "Refraksi Niri" }
+                                            ]
+
+                                            Rectangle {
+                                                Layout.fillWidth: true
+                                                height: 52
+                                                radius: 10
+                                                property bool active: ShellState.liquidVariant === modelData.id
+                                                color: active ? ThemeTokens.accent : ThemeTokens.inputBg
+                                                border.width: 1
+                                                border.color: active ? ThemeTokens.accent : ThemeTokens.borderSubtle
+
+                                                ColumnLayout {
+                                                    anchors.centerIn: parent
+                                                    spacing: 1
+                                                    Text {
+                                                        Layout.alignment: Qt.AlignHCenter
+                                                        text: modelData.title
+                                                        color: active ? ThemeTokens.textOnAccent : ThemeTokens.textPrimary
+                                                        font.pixelSize: 12
+                                                        font.bold: true
+                                                    }
+                                                    Text {
+                                                        Layout.alignment: Qt.AlignHCenter
+                                                        text: modelData.sub
+                                                        color: active ? "#E5F2FF" : ThemeTokens.textSecondary
+                                                        font.pixelSize: 10
+                                                    }
+                                                }
+
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: {
+                                                        ShellState.setLiquidVariant(modelData.id);
+                                                        hostWin.saveLayout();
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // Parameter Kondisional Sesuai Varian Liquid Aktif
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 8
+                                        visible: ShellState.liquidVariant === "mac"
+
+                                        RowLayout {
+                                            Layout.fillWidth: true
+                                            Text { text: "Transparansi"; color: ThemeTokens.textSecondary; font.pixelSize: 11; Layout.preferredWidth: 110 }
+                                            MacSlider {
+                                                Layout.fillWidth: true
+                                                value: 1.0 - shellRoot.macOpacity
+                                                minVal: 0.12; maxVal: 0.90
+                                                onMoved: (v) => { shellRoot.macOpacity = Number((1.0 - v).toFixed(2)); hostWin.saveLayout(); }
+                                            }
+                                            Text { text: Math.round((1.0 - shellRoot.macOpacity) * 100) + "%"; color: ThemeTokens.textPrimary; font.pixelSize: 11; Layout.preferredWidth: 38; horizontalAlignment: Text.AlignRight }
+                                        }
+
+                                        RowLayout {
+                                            Layout.fillWidth: true
+                                            Text { text: "Intensitas Frost"; color: ThemeTokens.textSecondary; font.pixelSize: 11; Layout.preferredWidth: 110 }
+                                            MacSlider {
+                                                Layout.fillWidth: true
+                                                value: shellRoot.macFrost
+                                                minVal: 0.0; maxVal: 1.0
+                                                onMoved: (v) => { shellRoot.macFrost = Number(v.toFixed(2)); hostWin.saveLayout(); }
+                                            }
+                                            Text { text: Math.round(shellRoot.macFrost * 100) + "%"; color: ThemeTokens.textPrimary; font.pixelSize: 11; Layout.preferredWidth: 38; horizontalAlignment: Text.AlignRight }
+                                        }
+                                    }
+
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 8
+                                        visible: ShellState.liquidVariant === "aero"
+
+                                        RowLayout {
+                                            Layout.fillWidth: true
+                                            Text { text: "Transparansi"; color: ThemeTokens.textSecondary; font.pixelSize: 11; Layout.preferredWidth: 110 }
+                                            MacSlider {
+                                                Layout.fillWidth: true
+                                                value: 1.0 - shellRoot.aeroBaseOpacity
+                                                minVal: 0.12; maxVal: 0.90
+                                                onMoved: (v) => { shellRoot.aeroBaseOpacity = Number((1.0 - v).toFixed(2)); hostWin.saveLayout(); }
+                                            }
+                                            Text { text: Math.round((1.0 - shellRoot.aeroBaseOpacity) * 100) + "%"; color: ThemeTokens.textPrimary; font.pixelSize: 11; Layout.preferredWidth: 38; horizontalAlignment: Text.AlignRight }
+                                        }
+
+                                        RowLayout {
+                                            Layout.fillWidth: true
+                                            Text { text: "Kecerahan Kilau"; color: ThemeTokens.textSecondary; font.pixelSize: 11; Layout.preferredWidth: 110 }
+                                            MacSlider {
+                                                Layout.fillWidth: true
+                                                value: shellRoot.aeroSheenBright
+                                                minVal: 0.0; maxVal: 1.0
+                                                onMoved: (v) => { shellRoot.aeroSheenBright = Number(v.toFixed(2)); hostWin.saveLayout(); }
+                                            }
+                                            Text { text: Math.round(shellRoot.aeroSheenBright * 100) + "%"; color: ThemeTokens.textPrimary; font.pixelSize: 11; Layout.preferredWidth: 38; horizontalAlignment: Text.AlignRight }
+                                        }
+
+                                        RowLayout {
+                                            Layout.fillWidth: true
+                                            Text { text: "Lebar Garis Kilau"; color: ThemeTokens.textSecondary; font.pixelSize: 11; Layout.preferredWidth: 110 }
+                                            MacSlider {
+                                                Layout.fillWidth: true
+                                                value: shellRoot.aeroSheenWidth
+                                                minVal: 0.08; maxVal: 1.0
+                                                onMoved: (v) => { shellRoot.aeroSheenWidth = Number(v.toFixed(2)); hostWin.saveLayout(); }
+                                            }
+                                            Text { text: Math.round(shellRoot.aeroSheenWidth * 100) + "%"; color: ThemeTokens.textPrimary; font.pixelSize: 11; Layout.preferredWidth: 38; horizontalAlignment: Text.AlignRight }
+                                        }
+                                    }
+
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 8
+                                        visible: ShellState.liquidVariant === "liquid"
+
+                                        RowLayout {
+                                            Layout.fillWidth: true
+                                            Text { text: "Transparansi"; color: ThemeTokens.textSecondary; font.pixelSize: 11; Layout.preferredWidth: 110 }
+                                            MacSlider {
+                                                Layout.fillWidth: true
+                                                value: 1.0 - shellRoot.liquidOpacity
+                                                minVal: 0.12; maxVal: 0.90
+                                                onMoved: (v) => { shellRoot.liquidOpacity = Number((1.0 - v).toFixed(2)); hostWin.saveLayout(); }
+                                            }
+                                            Text { text: Math.round((1.0 - shellRoot.liquidOpacity) * 100) + "%"; color: ThemeTokens.textPrimary; font.pixelSize: 11; Layout.preferredWidth: 38; horizontalAlignment: Text.AlignRight }
+                                        }
+
+                                        RowLayout {
+                                            Layout.fillWidth: true
+                                            Text { text: "Refraksi Tepi"; color: ThemeTokens.textSecondary; font.pixelSize: 11; Layout.preferredWidth: 110 }
+                                            MacSlider {
+                                                Layout.fillWidth: true
+                                                value: shellRoot.liquidRefraction
+                                                minVal: 0.0; maxVal: 1.0
+                                                onMoved: (v) => { shellRoot.liquidRefraction = Number(v.toFixed(2)); hostWin.saveLayout(); }
+                                            }
+                                            Text { text: Math.round(shellRoot.liquidRefraction * 100) + "%"; color: ThemeTokens.textPrimary; font.pixelSize: 11; Layout.preferredWidth: 38; horizontalAlignment: Text.AlignRight }
+                                        }
+
+                                        RowLayout {
+                                            Layout.fillWidth: true
+                                            Text { text: "Dispersi Warna"; color: ThemeTokens.textSecondary; font.pixelSize: 11; Layout.preferredWidth: 110 }
+                                            MacSlider {
+                                                Layout.fillWidth: true
+                                                value: shellRoot.liquidFringing
+                                                minVal: 0.0; maxVal: 1.0
+                                                onMoved: (v) => { shellRoot.liquidFringing = Number(v.toFixed(2)); hostWin.saveLayout(); }
+                                            }
+                                            Text { text: Math.round(shellRoot.liquidFringing * 100) + "%"; color: ThemeTokens.textPrimary; font.pixelSize: 11; Layout.preferredWidth: 38; horizontalAlignment: Text.AlignRight }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 2. Perilaku Dock & Widget Desktop
+                            SettingsGroup {
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text { text: "Perilaku Dock"; color: ThemeTokens.textPrimary; font.pixelSize: 12; Layout.fillWidth: true }
+                                    Row {
+                                        spacing: 6
+                                        Repeater {
+                                            model: [
+                                                { mode: "smart", label: "Smart" },
+                                                { mode: "always", label: "Auto-Hide" },
+                                                { mode: "never", label: "Selalu Tampil" }
+                                            ]
+                                            Rectangle {
+                                                height: 28
+                                                width: lblDock.implicitWidth + 18
+                                                radius: 7
+                                                property bool sel: shellRoot.dockHideMode === modelData.mode
+                                                color: sel ? ThemeTokens.accent : ThemeTokens.inputBg
+                                                Text {
+                                                    id: lblDock
+                                                    anchors.centerIn: parent
+                                                    text: modelData.label
+                                                    color: sel ? ThemeTokens.textOnAccent : ThemeTokens.textPrimary
+                                                    font.pixelSize: 11
+                                                }
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: {
+                                                        shellRoot.dockHideMode = modelData.mode;
+                                                        hostWin.saveLayout();
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Rectangle { Layout.fillWidth: true; height: 1; color: ThemeTokens.dividerColor }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 1
+                                        Text { text: "Kustomisasi Widget Desktop"; color: ThemeTokens.textPrimary; font.pixelSize: 12 }
+                                        Text { text: "Atur posisi dan ukuran widget di layar utama"; color: ThemeTokens.textSecondary; font.pixelSize: 10 }
+                                    }
+                                    Rectangle {
+                                        height: 30; width: 108; radius: 8
+                                        color: ThemeTokens.inputBg
+                                        border.width: 1; border.color: ThemeTokens.borderSubtle
+                                        Text { anchors.centerIn: parent; text: "Edit Widget"; color: ThemeTokens.textPrimary; font.pixelSize: 11; font.weight: Font.Medium }
                                         MouseArea {
-                                            id: editWidPillM
                                             anchors.fill: parent
-                                            hoverEnabled: true
                                             cursorShape: Qt.PointingHandCursor
                                             onClicked: {
                                                 shellRoot.closePopups();
@@ -679,1728 +1544,1903 @@ Item {
                                             }
                                         }
                                     }
-
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        height: 34
-                                        radius: 17
-                                        color: rstWidPillM.containsMouse ? "#34FFFFFF" : "#20FFFFFF"
-                                        border.width: 1.1
-                                        border.color: "#44FFFFFF"
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: "Reset Layout"
-                                            color: "#E5E5EA"
-                                            font.pixelSize: 11
-                                        }
-                                        MouseArea {
-                                            id: rstWidPillM
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: hostWin.resetLayout()
-                                        }
-                                    }
                                 }
                             }
-                        }
-
-                        // ── PILIHAN 2 OPSI GLASS + SETTINGAN INDEPENDEN MASING-MASING ──
-                        RowLayout {
-                            Layout.fillWidth: true
-                            height: 40
-                            spacing: 10
-
-                            Repeater {
-                                model: [
-                                    { id: "mac", title: "Opsi 1 • Clean Glass", sub: "Frost Rata Halus" },
-                                    { id: "aero", title: "Opsi 2 • Aero Blin", sub: "Pantulan Diagonal" },
-                                    { id: "liquid", title: "Opsi 3 • Liquid Glass", sub: "Refraksi Niri-Glass" }
-                                ]
-
-                                Rectangle {
+                        
+                            // Opsi Terpisah Dynamic Island: Melayang vs Menyatu
+                            SettingsGroup {
+                                ColumnLayout {
                                     Layout.fillWidth: true
-                                    height: 40
-                                    radius: 20
-                                    property bool active: shellRoot.glassStyle === modelData.id
-                                    border.width: 1.15
-                                    border.color: active ? "#85FFFFFF" : "#3CFFFFFF"
-                                    scale: optPillM.pressed ? 0.96 : 1.0
-                                    gradient: Gradient {
-                                        GradientStop { position: 0.0; color: active ? "#D92B8EFF" : "#26FFFFFF" }
-                                        GradientStop { position: 1.0; color: active ? "#AD0866E6" : "#12FFFFFF" }
+                                    spacing: 2
+                                    Text {
+                                        text: LocaleStrings.secIslandLayout
+                                        color: ThemeTokens.textPrimary
+                                        font.pixelSize: 13
+                                        font.weight: Font.DemiBold
                                     }
-                                    Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
+                                    Text {
+                                        text: LocaleStrings.secIslandLayoutDesc
+                                        color: ThemeTokens.textSecondary
+                                        font.pixelSize: 11
+                                        wrapMode: Text.WordWrap
+                                        Layout.fillWidth: true
+                                    }
+                                }
 
-                                    RowLayout {
-                                        anchors.fill: parent
-                                        anchors.leftMargin: 14
-                                        anchors.rightMargin: 12
-                                        spacing: 8
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 12
 
-                                        ColumnLayout {
-                                            Layout.fillWidth: true
-                                            spacing: 0
-                                            Text {
-                                                text: modelData.title
-                                                color: "#FFFFFF"
-                                                font.pixelSize: 11
-                                                font.bold: active
-                                                elide: Text.ElideRight
-                                                Layout.fillWidth: true
-                                            }
-                                            Text {
-                                                text: modelData.sub
-                                                color: active ? "#E5F2FF" : "#AEAEB2"
-                                                font.pixelSize: 9
-                                                elide: Text.ElideRight
-                                                Layout.fillWidth: true
-                                            }
-                                        }
+                                    Repeater {
+                                        model: [
+                                            { id: "floating", title: LocaleStrings.optIslandFloating, sub: LocaleStrings.optIslandFloatingDesc, glyph: "▭" },
+                                            { id: "merged", title: LocaleStrings.optIslandMerged, sub: LocaleStrings.optIslandMergedDesc, glyph: "▀" }
+                                        ]
 
                                         Rectangle {
-                                            width: 14; height: 14; radius: 7
-                                            color: active ? "#FFFFFF" : "transparent"
-                                            border.width: 1.2
-                                            border.color: "#88FFFFFF"
-                                        }
-                                    }
+                                            Layout.fillWidth: true
+                                            height: 66
+                                            radius: 12
+                                            property bool selected: ShellState.islandLayoutMode === modelData.id
+                                            color: selected ? ThemeTokens.accentSoft : ThemeTokens.inputBg
+                                            border.width: selected ? 1.8 : 1
+                                            border.color: selected ? ThemeTokens.accent : ThemeTokens.borderSubtle
 
-                                    MouseArea {
-                                        id: optPillM
-                                        anchors.fill: parent
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            shellRoot.glassStyle = modelData.id;
-                                            hostWin.saveLayout();
+                                            RowLayout {
+                                                anchors.fill: parent
+                                                anchors.margins: 12
+                                                spacing: 10
+
+                                                Rectangle {
+                                                    width: 36; height: 36; radius: 10
+                                                    color: selected ? ThemeTokens.accent : ThemeTokens.cardHoverBg
+                                                    border.width: 1
+                                                    border.color: selected ? ThemeTokens.accent : ThemeTokens.borderSubtle
+
+                                                    Canvas {
+                                                        anchors.centerIn: parent
+                                                        width: 24; height: 22
+                                                        property string islId: modelData.id
+                                                        property bool isSel: selected
+                                                        property color fg: isSel ? "#FFFFFF" : ThemeTokens.textPrimary
+                                                        onIslIdChanged: requestPaint()
+                                                        onIsSelChanged: requestPaint()
+                                                        onFgChanged: requestPaint()
+                                                        onPaint: {
+                                                            let ctx = getContext("2d");
+                                                            ctx.reset();
+                                                            ctx.save();
+
+                                                            // Bingkai layar mini
+                                                            ctx.strokeStyle = fg;
+                                                            ctx.globalAlpha = 0.42;
+                                                            ctx.lineWidth = 1.15;
+                                                            ctx.beginPath();
+                                                            ctx.roundedRect(1.5, 2.5, 21.0, 17.0, 4.0, 4.0);
+                                                            ctx.stroke();
+                                                            ctx.globalAlpha = 1.0;
+
+                                                            if (islId === "floating") {
+                                                                // Mode Melayang: Logo Kapsul / Pil mengambang di tengah atas
+                                                                ctx.fillStyle = fg;
+                                                                ctx.beginPath();
+                                                                ctx.roundedRect(6.0, 6.2, 12.0, 4.4, 2.2, 2.2);
+                                                                ctx.fill();
+                                                            } else {
+                                                                // Mode Menyatu: Siluet Notch dengan lengkungan cekung menempel di tepi atas
+                                                                ctx.fillStyle = fg;
+                                                                ctx.beginPath();
+                                                                ctx.moveTo(4.0, 2.8);
+                                                                ctx.quadraticCurveTo(6.4, 2.8, 6.8, 5.2);
+                                                                ctx.quadraticCurveTo(7.2, 7.6, 9.4, 7.6);
+                                                                ctx.lineTo(14.6, 7.6);
+                                                                ctx.quadraticCurveTo(16.8, 7.6, 17.2, 5.2);
+                                                                ctx.quadraticCurveTo(17.6, 2.8, 20.0, 2.8);
+                                                                ctx.closePath();
+                                                                ctx.fill();
+                                                            }
+                                                            ctx.restore();
+                                                        }
+                                                    }
+                                                }
+
+                                                ColumnLayout {
+                                                    Layout.fillWidth: true
+                                                    spacing: 2
+                                                    Text {
+                                                        text: modelData.title
+                                                        color: ThemeTokens.textPrimary
+                                                        font.pixelSize: 13
+                                                        font.weight: Font.DemiBold
+                                                    }
+                                                    Text {
+                                                        text: modelData.sub
+                                                        color: ThemeTokens.textSecondary
+                                                        font.pixelSize: 10
+                                                        elide: Text.ElideRight
+                                                        Layout.fillWidth: true
+                                                    }
+                                                }
+                                            }
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: {
+                                                    ShellState.setIslandLayoutMode(modelData.id);
+                                                    ShellState.saveProfile(ShellState.profileName, ShellState.profileAvatar);
+                                                }
+                                            }
                                         }
                                     }
                                 }
                             }
+
                         }
 
-                        // SLIDER INDEPENDEN OPSI 1 (CLEAN GLASS: TRANSPARANSI & BLIN RATA)
-                        RowLayout {
+                        // ====================================================
+                        // KATEGORI 2: WALLPAPER (EKSPAINSI KONDISIONAL)
+                        // ====================================================
+                        ColumnLayout {
                             Layout.fillWidth: true
-                            height: 40
-                            spacing: 10
-                            visible: shellRoot.glassStyle === "mac"
+                            spacing: 14
+                            visible: shellRoot.settingsTab === "wallpaper"
 
-                            // Slider 1A: Transparansi Opsi 1
-                            Rectangle {
-                                Layout.fillWidth: true
-                                height: 40
-                                radius: 20
-                                color: "#22FFFFFF"
-                                border.width: 1.1
-                                border.color: "#48FFFFFF"
-                                clip: true
-
-                                Rectangle {
-                                    width: Math.max(40, parent.width * Math.max(0.12, Math.min(0.90, 1.0 - shellRoot.macOpacity)))
-                                    height: 40
-                                    radius: 20
-                                    gradient: Gradient {
-                                        GradientStop { position: 0.0; color: "#72FFFFFF" }
-                                        GradientStop { position: 1.0; color: "#44FFFFFF" }
-                                    }
-                                    border.width: 1
-                                    border.color: "#60FFFFFF"
-                                }
-
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 14
-                                    anchors.rightMargin: 14
-                                    Text { text: "◌"; color: "#FFFFFF"; font.pixelSize: 14; font.bold: true }
-                                    Text { text: "Transparansi"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
-                                    Item { Layout.fillWidth: true }
-                                    Text { text: Math.round((1.0 - shellRoot.macOpacity) * 100) + "%"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onPressed: (m) => {
-                                        let t = Math.max(0.15, Math.min(0.90, m.x / width));
-                                        shellRoot.macOpacity = Number((1.0 - t).toFixed(2));
-                                    }
-                                    onPositionChanged: (m) => {
-                                        if (pressed) {
-                                            let t = Math.max(0.15, Math.min(0.90, m.x / width));
-                                            shellRoot.macOpacity = Number((1.0 - t).toFixed(2));
-                                        }
-                                    }
-                                    onReleased: hostWin.saveLayout()
-                                }
-                            }
-
-                            // Slider 1B: Blin Rata Opsi 1
-                            Rectangle {
-                                Layout.fillWidth: true
-                                height: 40
-                                radius: 20
-                                color: "#22FFFFFF"
-                                border.width: 1.1
-                                border.color: "#48FFFFFF"
-                                clip: true
-
-                                Rectangle {
-                                    width: Math.max(40, parent.width * shellRoot.macFrost)
-                                    height: 40
-                                    radius: 20
-                                    gradient: Gradient {
-                                        GradientStop { position: 0.0; color: "#72FFFFFF" }
-                                        GradientStop { position: 1.0; color: "#44FFFFFF" }
-                                    }
-                                    border.width: 1
-                                    border.color: "#60FFFFFF"
-                                }
-
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 14
-                                    anchors.rightMargin: 14
-                                    Text { text: "✦"; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true }
-                                    Text { text: "Blin Rata"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
-                                    Item { Layout.fillWidth: true }
-                                    Text { text: Math.round(shellRoot.macFrost * 100) + "%"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onPressed: (m) => shellRoot.macFrost = Number(Math.max(0.0, Math.min(1.0, m.x / width)).toFixed(2))
-                                    onPositionChanged: (m) => { if (pressed) shellRoot.macFrost = Number(Math.max(0.0, Math.min(1.0, m.x / width)).toFixed(2)); }
-                                    onReleased: hostWin.saveLayout()
-                                }
-                            }
-                        }
-
-                        // SLIDER INDEPENDEN OPSI 2 (AERO BLIN: TRANSPARANSI, KECERAHAN BLIN & KETEBALAN BLIN)
-                        RowLayout {
-                            Layout.fillWidth: true
-                            height: 40
-                            spacing: 8
-                            visible: shellRoot.glassStyle === "aero"
-
-                            // Slider 2A: Transparansi Opsi 2
-                            Rectangle {
-                                Layout.fillWidth: true
-                                height: 40
-                                radius: 20
-                                color: "#22FFFFFF"
-                                border.width: 1.1
-                                border.color: "#48FFFFFF"
-                                clip: true
-
-                                Rectangle {
-                                    width: Math.max(36, parent.width * Math.max(0.12, Math.min(0.90, 1.0 - shellRoot.aeroBaseOpacity)))
-                                    height: 40
-                                    radius: 20
-                                    gradient: Gradient {
-                                        GradientStop { position: 0.0; color: "#72FFFFFF" }
-                                        GradientStop { position: 1.0; color: "#44FFFFFF" }
-                                    }
-                                    border.width: 1
-                                    border.color: "#60FFFFFF"
-                                }
-
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 11
-                                    anchors.rightMargin: 11
-                                    Text { text: "Transparansi"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
-                                    Item { Layout.fillWidth: true }
-                                    Text { text: Math.round((1.0 - shellRoot.aeroBaseOpacity) * 100) + "%"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onPressed: (m) => {
-                                        let t = Math.max(0.15, Math.min(0.90, m.x / width));
-                                        shellRoot.aeroBaseOpacity = Number((1.0 - t).toFixed(2));
-                                    }
-                                    onPositionChanged: (m) => {
-                                        if (pressed) {
-                                            let t = Math.max(0.15, Math.min(0.90, m.x / width));
-                                            shellRoot.aeroBaseOpacity = Number((1.0 - t).toFixed(2));
-                                        }
-                                    }
-                                    onReleased: hostWin.saveLayout()
-                                }
-                            }
-
-                            // Slider 2B: Kecerahan Blin Opsi 2
-                            Rectangle {
-                                Layout.fillWidth: true
-                                height: 40
-                                radius: 20
-                                color: "#22FFFFFF"
-                                border.width: 1.1
-                                border.color: "#48FFFFFF"
-                                clip: true
-
-                                Rectangle {
-                                    width: Math.max(36, parent.width * shellRoot.aeroSheenBright)
-                                    height: 40
-                                    radius: 20
-                                    gradient: Gradient {
-                                        GradientStop { position: 0.0; color: "#72FFFFFF" }
-                                        GradientStop { position: 1.0; color: "#44FFFFFF" }
-                                    }
-                                    border.width: 1
-                                    border.color: "#60FFFFFF"
-                                }
-
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 11
-                                    anchors.rightMargin: 11
-                                    Text { text: "Cerah Blin"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
-                                    Item { Layout.fillWidth: true }
-                                    Text { text: Math.round(shellRoot.aeroSheenBright * 100) + "%"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onPressed: (m) => shellRoot.aeroSheenBright = Number(Math.max(0.0, Math.min(1.0, m.x / width)).toFixed(2))
-                                    onPositionChanged: (m) => { if (pressed) shellRoot.aeroSheenBright = Number(Math.max(0.0, Math.min(1.0, m.x / width)).toFixed(2)); }
-                                    onReleased: hostWin.saveLayout()
-                                }
-                            }
-
-                            // Slider 2C: Ketebalan Blin Opsi 2
-                            Rectangle {
-                                Layout.fillWidth: true
-                                height: 40
-                                radius: 20
-                                color: "#22FFFFFF"
-                                border.width: 1.1
-                                border.color: "#48FFFFFF"
-                                clip: true
-
-                                Rectangle {
-                                    width: Math.max(36, parent.width * shellRoot.aeroSheenWidth)
-                                    height: 40
-                                    radius: 20
-                                    gradient: Gradient {
-                                        GradientStop { position: 0.0; color: "#72FFFFFF" }
-                                        GradientStop { position: 1.0; color: "#44FFFFFF" }
-                                    }
-                                    border.width: 1
-                                    border.color: "#60FFFFFF"
-                                }
-
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 11
-                                    anchors.rightMargin: 11
-                                    Text { text: "Tebal Blin"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
-                                    Item { Layout.fillWidth: true }
-                                    Text { text: Math.round(shellRoot.aeroSheenWidth * 100) + "%"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onPressed: (m) => shellRoot.aeroSheenWidth = Number(Math.max(0.08, Math.min(1.0, m.x / width)).toFixed(2))
-                                    onPositionChanged: (m) => { if (pressed) shellRoot.aeroSheenWidth = Number(Math.max(0.08, Math.min(1.0, m.x / width)).toFixed(2)); }
-                                    onReleased: hostWin.saveLayout()
-                                }
-                            }
-                        }
-
-                        // SLIDER INDEPENDEN OPSI 3 (LIQUID GLASS: TRANSPARANSI, REFRAKSI & PRISMA RGB)
-                        RowLayout {
-                            Layout.fillWidth: true
-                            height: 40
-                            spacing: 8
-                            visible: shellRoot.glassStyle === "liquid"
-
-                            Rectangle {
-                                Layout.fillWidth: true
-                                height: 40
-                                radius: 20
-                                color: "#22FFFFFF"
-                                border.width: 1.1
-                                border.color: "#48FFFFFF"
-                                clip: true
-
-                                Rectangle {
-                                    width: Math.max(36, parent.width * Math.max(0.12, Math.min(0.90, 1.0 - shellRoot.liquidOpacity)))
-                                    height: 40
-                                    radius: 20
-                                    gradient: Gradient {
-                                        GradientStop { position: 0.0; color: "#72FFFFFF" }
-                                        GradientStop { position: 1.0; color: "#44FFFFFF" }
-                                    }
-                                    border.width: 1
-                                    border.color: "#60FFFFFF"
-                                }
-
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 11
-                                    anchors.rightMargin: 11
-                                    Text { text: "Transparansi"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
-                                    Item { Layout.fillWidth: true }
-                                    Text { text: Math.round((1.0 - shellRoot.liquidOpacity) * 100) + "%"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onPressed: (m) => {
-                                        let t = Math.max(0.15, Math.min(0.90, m.x / width));
-                                        shellRoot.liquidOpacity = Number((1.0 - t).toFixed(2));
-                                    }
-                                    onPositionChanged: (m) => {
-                                        if (pressed) {
-                                            let t = Math.max(0.15, Math.min(0.90, m.x / width));
-                                            shellRoot.liquidOpacity = Number((1.0 - t).toFixed(2));
-                                        }
-                                    }
-                                    onReleased: hostWin.saveLayout()
-                                }
-                            }
-
-                            Rectangle {
-                                Layout.fillWidth: true
-                                height: 40
-                                radius: 20
-                                color: "#22FFFFFF"
-                                border.width: 1.1
-                                border.color: "#48FFFFFF"
-                                clip: true
-
-                                Rectangle {
-                                    width: Math.max(36, parent.width * shellRoot.liquidRefraction)
-                                    height: 40
-                                    radius: 20
-                                    gradient: Gradient {
-                                        GradientStop { position: 0.0; color: "#72FFFFFF" }
-                                        GradientStop { position: 1.0; color: "#44FFFFFF" }
-                                    }
-                                    border.width: 1
-                                    border.color: "#60FFFFFF"
-                                }
-
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 11
-                                    anchors.rightMargin: 11
-                                    Text { text: "Refraksi"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
-                                    Item { Layout.fillWidth: true }
-                                    Text { text: Math.round(shellRoot.liquidRefraction * 100) + "%"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onPressed: (m) => shellRoot.liquidRefraction = Number(Math.max(0.0, Math.min(1.0, m.x / width)).toFixed(2))
-                                    onPositionChanged: (m) => { if (pressed) shellRoot.liquidRefraction = Number(Math.max(0.0, Math.min(1.0, m.x / width)).toFixed(2)); }
-                                    onReleased: hostWin.saveLayout()
-                                }
-                            }
-
-                            Rectangle {
-                                Layout.fillWidth: true
-                                height: 40
-                                radius: 20
-                                color: "#22FFFFFF"
-                                border.width: 1.1
-                                border.color: "#48FFFFFF"
-                                clip: true
-
-                                Rectangle {
-                                    width: Math.max(36, parent.width * shellRoot.liquidFringing)
-                                    height: 40
-                                    radius: 20
-                                    gradient: Gradient {
-                                        GradientStop { position: 0.0; color: "#72FFFFFF" }
-                                        GradientStop { position: 1.0; color: "#44FFFFFF" }
-                                    }
-                                    border.width: 1
-                                    border.color: "#60FFFFFF"
-                                }
-
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 11
-                                    anchors.rightMargin: 11
-                                    Text { text: "Prisma RGB"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
-                                    Item { Layout.fillWidth: true }
-                                    Text { text: Math.round(shellRoot.liquidFringing * 100) + "%"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onPressed: (m) => shellRoot.liquidFringing = Number(Math.max(0.0, Math.min(1.0, m.x / width)).toFixed(2))
-                                    onPositionChanged: (m) => { if (pressed) shellRoot.liquidFringing = Number(Math.max(0.0, Math.min(1.0, m.x / width)).toFixed(2)); }
-                                    onReleased: hostWin.saveLayout()
-                                }
-                            }
-                        }
-
-                        // Galeri Pilihan Wallpaper (Pill Rounded Thumbnails)
-                        // ── WIDGET GALLERY (PILIH WIDGET 1-1 & KUNCI POSISI) ──
-                        RowLayout {
-                            Layout.fillWidth: true
                             Text {
-                                text: "Widget Desktop (Klik untuk Tampilkan / Sembunyikan)"
-                                color: "#D1D1D6"
-                                font.pixelSize: 11
+                                text: "Wallpaper"
+                                color: ThemeTokens.textPrimary
+                                font.pixelSize: 18
                                 font.bold: true
                             }
-                            Item { Layout.fillWidth: true }
-                            Rectangle {
-                                height: 24; width: setLockTxt.implicitWidth + 16; radius: 12
-                                color: hostWin.widgetsLocked ? "#44FFD60A" : "#22FFFFFF"
-                                border.width: 1; border.color: hostWin.widgetsLocked ? "#88FFD60A" : "#3CFFFFFF"
-                                Text {
-                                    id: setLockTxt
-                                    anchors.centerIn: parent
-                                    text: hostWin.widgetsLocked ? "🔒 Posisi Terkunci" : "🔓 Posisi Bebas"
-                                    color: "#FFFFFF"
-                                    font.pixelSize: 10
-                                    font.bold: true
-                                }
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: hostWin.toggleLock()
-                                }
-                            }
-                        }
 
-                        Flow {
-                            Layout.fillWidth: true
-                            spacing: 7
-
-                            Repeater {
-                                model: [
-                                    { key: "media", label: "♫ Media Player" },
-                                    { key: "clock", label: "🕒 Analog Clock" },
-                                    { key: "weather", label: "☀ Weather" },
-                                    { key: "battery", label: "🔋 Batteries Ring" },
-                                    { key: "sysmon", label: "⚡ CPU & RAM" },
-                                    { key: "notes", label: "📝 Calendar & Notes" }
-                                ]
-
-                                Rectangle {
-                                    height: 30
-                                    width: wChipTxt.implicitWidth + 24
-                                    radius: 15
-                                    property bool active: hostWin.isWidgetOn(modelData.key)
-                                    border.width: 1.1
-                                    border.color: active ? "#85FFFFFF" : "#38FFFFFF"
-                                    gradient: Gradient {
-                                        GradientStop { position: 0.0; color: active ? "#D92B8EFF" : "#24FFFFFF" }
-                                        GradientStop { position: 1.0; color: active ? "#AD0866E6" : "#12FFFFFF" }
-                                    }
-
-                                    Text {
-                                        id: wChipTxt
-                                        anchors.centerIn: parent
-                                        text: (active ? "✓ " : "+ ") + modelData.label
-                                        color: "#FFFFFF"
-                                        font.pixelSize: 10
-                                        font.bold: active
-                                    }
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: hostWin.setWidgetEnabled(modelData.key, !active)
-                                    }
-                                }
-                            }
-                        }
-
-
-
-                        Rectangle {
-                            Layout.fillWidth: true
-                            implicitHeight: wpCycleCol.implicitHeight + 22
-                            radius: 16
-                            color: "#1B1E2B"
-                            border.width: 1
-                            border.color: "#38FFFFFF"
-                            scale: wpCycleArea.pressed ? 0.985 : 1.0
-                            Behavior on scale { SpringAnimation { mass: 0.95; spring: 4.5; damping: 0.52; epsilon: 0.001 } }
-
-                            MouseArea { id: wpCycleArea; anchors.fill: parent; propagateComposedEvents: true; onPressed: function(m){ m.accepted = false; } }
-
-                            ColumnLayout {
-                                id: wpCycleCol
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                anchors.top: parent.top
-                                anchors.margins: 11
-                                spacing: 8
-
+                            SettingsGroup {
                                 RowLayout {
                                     Layout.fillWidth: true
-                                    Text { text: "Cycle Mode & Auto Cycle"; color: "#FFFFFF"; font.pixelSize: 12; font.bold: true }
-                                    Item { Layout.fillWidth: true }
-                                    Text {
-                                        text: shellRoot.wallpaperCycleMode === "gacha" ? "Mode: Gacha" : "Mode: Next"
-                                        color: "#64D2FF"; font.pixelSize: 11; font.bold: true
-                                    }
-                                }
+                                    spacing: 14
 
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 8
-
+                                    // Preview Wallpaper Aktif
                                     Rectangle {
-                                        Layout.fillWidth: true; height: 30; radius: 10
-                                        color: shellRoot.wallpaperCycleMode === "gacha" ? "#0A84FF" : "#282C3D"
-                                        scale: modeGachaM.pressed ? 0.93 : (modeGachaM.containsMouse ? 1.03 : 1.0)
-                                        Behavior on color { ColorAnimation { duration: 140 } }
-                                        Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
-                                        Text { anchors.centerIn: parent; text: "🎲 Gacha"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
-                                        MouseArea { id: modeGachaM; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.wallpaperCycleMode = "gacha" }
-                                    }
-
-                                    Rectangle {
-                                        Layout.fillWidth: true; height: 30; radius: 10
-                                        color: shellRoot.wallpaperCycleMode === "next" ? "#0A84FF" : "#282C3D"
-                                        scale: modeNextM.pressed ? 0.93 : (modeNextM.containsMouse ? 1.03 : 1.0)
-                                        Behavior on color { ColorAnimation { duration: 140 } }
-                                        Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
-                                        Text { anchors.centerIn: parent; text: "⏭ Next"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
-                                        MouseArea { id: modeNextM; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.wallpaperCycleMode = "next" }
-                                    }
-
-                                    Rectangle {
-                                        width: 82; height: 30; radius: 10
-                                        color: "#282C3D"
-                                        scale: openFolderM.pressed ? 0.93 : (openFolderM.containsMouse ? 1.03 : 1.0)
-                                        Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
-                                        Text { anchors.centerIn: parent; text: "📁 Folder"; color: "#F5F5F7"; font.pixelSize: 11; font.bold: true }
-                                        MouseArea { id: openFolderM; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.openWallpaperFolder() }
-                                    }
-
-                                    Rectangle {
-                                        width: 78; height: 30; radius: 10
-                                        color: "#282C3D"
-                                        scale: reloadWpM.pressed ? 0.93 : (reloadWpM.containsMouse ? 1.03 : 1.0)
-                                        Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
-                                        Text { anchors.centerIn: parent; text: "↻ Reload"; color: "#F5F5F7"; font.pixelSize: 11; font.bold: true }
-                                        MouseArea { id: reloadWpM; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.reloadWallpapers() }
-                                    }
-                                }
-
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 8
-
-                                    Text { text: "Auto Cycle:"; color: "#D1D1D6"; font.pixelSize: 11 }
-
-                                        Repeater {
-                                            model: [
-                                                { label: "Off", mins: 0 },
-                                                { label: "15m", mins: 15 },
-                                                { label: "30m", mins: 30 },
-                                                { label: "1h", mins: 60 }
-                                            ]
-                                            Rectangle {
-                                                width: 48; height: 26; radius: 8
-                                                color: shellRoot.autoCycleMinutes === modelData.mins ? "#32ADE6" : "#282C3D"
-                                                scale: acM.pressed ? 0.92 : (acM.containsMouse ? 1.04 : 1.0)
-                                                Behavior on color { ColorAnimation { duration: 130 } }
-                                                Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
-                                                Text { anchors.centerIn: parent; text: modelData.label; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
-                                                MouseArea { id: acM; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.autoCycleMinutes = modelData.mins }
-                                            }
-                                        }
-
-                                    Item { Layout.fillWidth: true }
-
-                                    Rectangle {
-                                        width: 116; height: 26; radius: 8
-                                        color: "#3A2328"
-                                        border.width: 1; border.color: "#66FF453A"
-                                        scale: resetWpM.pressed ? 0.93 : (resetWpM.containsMouse ? 1.03 : 1.0)
-                                        Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
-                                        Text { anchors.centerIn: parent; text: "↩ Reset Default"; color: "#FF6961"; font.pixelSize: 11; font.bold: true }
-                                        MouseArea { id: resetWpM; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.resetWallpaperToDefault() }
-                                    }
-                                }
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 8
-
-                                    Text {
-                                        text: "Custom Menit:"
-                                        color: "#D1D1D6"
-                                        font.pixelSize: 11
-                                    }
-
-                                    Rectangle {
-                                        width: 28; height: 26; radius: 8
-                                        color: "#282C3D"
-                                        scale: minDecM.pressed ? 0.9 : (minDecM.containsMouse ? 1.05 : 1.0)
-                                        Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
-                                        Text { anchors.centerIn: parent; text: "-"; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true }
-                                        MouseArea {
-                                            id: minDecM; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                                            onClicked: shellRoot.autoCycleMinutes = Math.max(0, shellRoot.autoCycleMinutes - 1)
+                                        width: 184; height: 106; radius: 10
+                                        color: ThemeTokens.inputBg
+                                        border.width: 1; border.color: ThemeTokens.borderSubtle
+                                        clip: true
+                                        Image {
+                                            anchors.fill: parent
+                                            source: { let w = String(shellRoot.currentWallpaper || ""); if (!w) return ""; if (w.startsWith("file://") || w.startsWith("http://") || w.startsWith("https://")) return w; return "file://" + w; }
+                                            fillMode: Image.PreserveAspectCrop
+                                            sourceSize: Qt.size(368, 212)
                                         }
                                     }
 
-                                    TextField {
-                                        id: customMinutesInput
-                                        Layout.preferredWidth: 68
-                                        height: 26
-                                        text: String(shellRoot.autoCycleMinutes)
-                                        color: "#FFFFFF"
-                                        font.pixelSize: 11
-                                        horizontalAlignment: TextInput.AlignHCenter
-                                        validator: IntValidator { bottom: 0; top: 1440 }
-                                        background: Rectangle { radius: 8; color: "#12141E"; border.width: 1; border.color: "#38FFFFFF" }
-                                        onEditingFinished: {
-                                            let parsed = parseInt(text, 10);
-                                            shellRoot.autoCycleMinutes = isNaN(parsed) ? 0 : Math.max(0, Math.min(1440, parsed));
-                                            text = String(shellRoot.autoCycleMinutes);
-                                        }
-                                    }
-
-                                    Rectangle {
-                                        width: 28; height: 26; radius: 8
-                                        color: "#282C3D"
-                                        scale: minIncM.pressed ? 0.9 : (minIncM.containsMouse ? 1.05 : 1.0)
-                                        Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
-                                        Text { anchors.centerIn: parent; text: "+"; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true }
-                                        MouseArea {
-                                            id: minIncM; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                                            onClicked: shellRoot.autoCycleMinutes = Math.min(1440, shellRoot.autoCycleMinutes + 1)
-                                        }
-                                    }
-
-                                    Text {
-                                        text: shellRoot.autoCycleMinutes > 0
-                                            ? "Aktif tiap " + shellRoot.autoCycleMinutes + " mnt (" + (shellRoot.wallpaperCycleMode === "gacha" ? "Gacha" : "Next") + ")"
-                                            : "Nonaktif (Manual)"
-                                        color: shellRoot.autoCycleMinutes > 0 ? "#30D158" : "#A1A1AA"
-                                        font.pixelSize: 11
-                                        elide: Text.ElideRight
-                                    }
-                                }
-                            }
-                        }
-
-                        Rectangle {
-                            Layout.fillWidth: true
-                            implicitHeight: wpSrcCol.implicitHeight + 22
-                            radius: 16
-                            color: "#1B1E2B"
-                            border.width: 1
-                            border.color: "#38FFFFFF"
-
-                            ColumnLayout {
-                                id: wpSrcCol
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                anchors.top: parent.top
-                                anchors.margins: 11
-                                spacing: 8
-
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    Text {
-                                        text: "Custom Folder / File & Source (" + (shellRoot.wallpaperSourceMode === "custom" ? "Custom File" : "Sample") + ")"
-                                        color: "#FFFFFF"; font.pixelSize: 12; font.bold: true
-                                    }
-                                    Item { Layout.fillWidth: true }
-                                    Rectangle {
-                                        width: 86; height: 26; radius: 8
-                                        color: "#2C3246"
-                                        scale: toggleSrcPanelM.pressed ? 0.93 : 1.0
-                                        Behavior on scale { SpringAnimation { mass: 0.9; spring: 4.8; damping: 0.46; epsilon: 0.001 } }
-                                        Text { anchors.centerIn: parent; text: showSourcePanel ? "Tutup" : "Buka Opsi"; color: "#64D2FF"; font.pixelSize: 11; font.bold: true }
-                                        MouseArea { id: toggleSrcPanelM; anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: showSourcePanel = !showSourcePanel }
-                                    }
-                                }
-
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 8
-                                    visible: showSourcePanel || opacity > 0.01
-                                    opacity: showSourcePanel ? 1.0 : 0.0
-                                    scale: showSourcePanel ? 1.0 : 0.95
-                                    Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
-                                    Behavior on scale { SpringAnimation { mass: 0.95; spring: 4.4; damping: 0.48; epsilon: 0.001 } }
-
-                                    RowLayout {
-                                        Layout.fillWidth: true
-                                        spacing: 8
-                                        Rectangle {
-                                            Layout.fillWidth: true; height: 28; radius: 8
-                                            color: shellRoot.wallpaperSourceMode === "sample" ? "#0A84FF" : "#282C3D"
-                                            scale: srcSampleM.pressed ? 0.94 : 1.0
-                                            Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
-                                            Text { anchors.centerIn: parent; text: "Sample"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
-                                            MouseArea { id: srcSampleM; anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { shellRoot.wallpaperSourceMode = "sample"; shellRoot.reloadWallpapers(); } }
-                                        }
-                                        Rectangle {
-                                            Layout.fillWidth: true; height: 28; radius: 8
-                                            color: shellRoot.wallpaperSourceMode === "custom" ? "#0A84FF" : "#282C3D"
-                                            scale: srcCustomM.pressed ? 0.94 : 1.0
-                                            Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
-                                            Text { anchors.centerIn: parent; text: "Custom File"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
-                                            MouseArea { id: srcCustomM; anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { shellRoot.wallpaperSourceMode = "custom"; shellRoot.reloadWallpapers(); } }
-                                        }
-                                    }
-
-                                    TextField {
-                                        id: customDirInput
-                                        Layout.fillWidth: true
-                                        placeholderText: "Path folder sendiri (contoh: /home/arip/Pictures/MyWall)"
-                                        text: shellRoot.customWallpaperDir
-                                        color: "#FFFFFF"; font.pixelSize: 11
-                                        background: Rectangle { radius: 8; color: "#12141E"; border.width: 1; border.color: "#38FFFFFF" }
-                                        onTextEdited: shellRoot.customWallpaperDir = text
-                                    }
-
-                                    TextField {
-                                        id: customFileInput
-                                        Layout.fillWidth: true
-                                        placeholderText: "Path file gambar/MP4 sendiri (contoh: /home/arip/Pictures/wall.png)"
-                                        text: shellRoot.customWallpaperFile
-                                        color: "#FFFFFF"; font.pixelSize: 11
-                                        background: Rectangle { radius: 8; color: "#12141E"; border.width: 1; border.color: "#38FFFFFF" }
-                                        onTextEdited: {
-                                            shellRoot.customWallpaperFile = text;
-                                            if (text.trim() !== "") {
-                                                shellRoot.wallpaperSourceMode = "custom";
-                                                let p = text.trim();
-                                                shellRoot.currentWallpaper = p.startsWith("file://") ? p : "file://" + p;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        Rectangle {
-                            Layout.fillWidth: true
-                            implicitHeight: wpMedCol.implicitHeight + 22
-                            radius: 16
-                            color: "#1B1E2B"
-                            border.width: 1
-                            border.color: "#38FFFFFF"
-
-                            ColumnLayout {
-                                id: wpMedCol
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                anchors.top: parent.top
-                                anchors.margins: 11
-                                spacing: 8
-
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    Text {
-                                        text: "Favorites & Live / MP4 (" + (shellRoot.favoriteWallpapers ? shellRoot.favoriteWallpapers.length : 0) + " fav)"
-                                        color: "#FFFFFF"; font.pixelSize: 12; font.bold: true
-                                    }
-                                    Item { Layout.fillWidth: true }
-                                    Rectangle {
-                                        width: 86; height: 26; radius: 8
-                                        color: "#2C3246"
-                                        scale: toggleMedPanelM.pressed ? 0.93 : 1.0
-                                        Behavior on scale { SpringAnimation { mass: 0.9; spring: 4.8; damping: 0.46; epsilon: 0.001 } }
-                                        Text { anchors.centerIn: parent; text: showMediaFavPanel ? "Tutup" : "Buka Opsi"; color: "#64D2FF"; font.pixelSize: 11; font.bold: true }
-                                        MouseArea { id: toggleMedPanelM; anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: showMediaFavPanel = !showMediaFavPanel }
-                                    }
-                                }
-
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 8
-                                    visible: showMediaFavPanel || opacity > 0.01
-                                    opacity: showMediaFavPanel ? 1.0 : 0.0
-                                    scale: showMediaFavPanel ? 1.0 : 0.95
-                                    Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
-                                    Behavior on scale { SpringAnimation { mass: 0.95; spring: 4.4; damping: 0.48; epsilon: 0.001 } }
-
-                                    RowLayout {
+                                    ColumnLayout {
                                         Layout.fillWidth: true
                                         spacing: 8
 
-                                        Rectangle {
-                                            Layout.fillWidth: true; height: 30; radius: 9
-                                            color: shellRoot.isFavoriteWallpaper(shellRoot.currentWallpaper) ? "#FF9F0A" : "#282C3D"
-                                            scale: favBtnM.pressed ? 0.93 : 1.0
-                                            Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
-                                            Text {
-                                                anchors.centerIn: parent
-                                                text: shellRoot.isFavoriteWallpaper(shellRoot.currentWallpaper) ? "★ Tersimpan di Favorites" : "☆ Simpan ke Favorites"
-                                                color: "#FFFFFF"; font.pixelSize: 11; font.bold: true
-                                            }
-                                            MouseArea { id: favBtnM; anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.toggleFavoriteWallpaper(shellRoot.currentWallpaper) }
+                                        Text {
+                                            text: String(shellRoot.currentWallpaper).split("/").pop() || "Wallpaper Aktif"
+                                            color: ThemeTokens.textPrimary
+                                            font.pixelSize: 13
+                                            font.bold: true
+                                            elide: Text.ElideRight
+                                            Layout.fillWidth: true
                                         }
-
-                                        Rectangle {
-                                            width: 124; height: 30; radius: 9
-                                            color: shellRoot.liveWallpaperEnabled ? "#30D158" : "#282C3D"
-                                            scale: liveWpM.pressed ? 0.93 : 1.0
-                                            Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
-                                            Text {
-                                                anchors.centerIn: parent
-                                                text: shellRoot.liveWallpaperEnabled ? "🎬 Live / MP4: ON" : "🎬 Live / MP4: OFF"
-                                                color: "#FFFFFF"; font.pixelSize: 11; font.bold: true
-                                            }
-                                            MouseArea {
-                                                id: liveWpM; anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                                onClicked: { shellRoot.liveWallpaperEnabled = !shellRoot.liveWallpaperEnabled; shellRoot.reloadWallpapers(); }
-                                            }
-                                        }
-                                    }
-
-                                    Rectangle {
-                                        Layout.fillWidth: true; height: 34; radius: 10
-                                        color: shellRoot.pauseWhenUnseen ? "#1D3528" : "#282C3D"
-                                        border.width: 1
-                                        border.color: shellRoot.pauseWhenUnseen ? "#4830D158" : "#28FFFFFF"
-                                        scale: pauseSaverM.pressed ? 0.96 : 1.0
-                                        Behavior on scale { SpringAnimation { mass: 0.9; spring: 4.8; damping: 0.46; epsilon: 0.001 } }
 
                                         RowLayout {
-                                            anchors.fill: parent; anchors.leftMargin: 10; anchors.rightMargin: 10
-                                            Text { text: "Pause When Unseen (Battery Saver)"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
-                                            Item { Layout.fillWidth: true }
-                                            Text {
-                                                text: shellRoot.pauseWhenUnseen ? "AKTIF" : "MATI"
-                                                color: shellRoot.pauseWhenUnseen ? "#30D158" : "#A1A1AA"
-                                                font.pixelSize: 11; font.bold: true
+                                            spacing: 8
+                                            Rectangle {
+                                                height: 30; width: 104; radius: 8
+                                                color: ThemeTokens.accent
+                                                Text { anchors.centerIn: parent; text: "Ganti Acak"; color: ThemeTokens.textOnAccent; font.pixelSize: 11; font.bold: true }
+                                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.cycleWallpaper() }
+                                            }
+                                            Rectangle {
+                                                height: 30; width: 88; radius: 8
+                                                color: ThemeTokens.inputBg
+                                                border.width: 1; border.color: ThemeTokens.borderSubtle
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: shellRoot.isFavoriteWallpaper(shellRoot.currentWallpaper) ? "★ Favorit" : "☆ Favorit"
+                                                    color: ThemeTokens.textPrimary
+                                                    font.pixelSize: 11
+                                                }
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: { shellRoot.toggleFavoriteWallpaper(shellRoot.currentWallpaper); hostWin.saveLayout(); }
+                                                }
                                             }
                                         }
 
-                                        MouseArea { id: pauseSaverM; anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.pauseWhenUnseen = !shellRoot.pauseWhenUnseen }
+                                        RowLayout {
+                                            spacing: 8
+                                            Rectangle {
+                                                height: 28; width: 92; radius: 7
+                                                color: ThemeTokens.inputBg
+                                                border.width: 1; border.color: ThemeTokens.borderSubtle
+                                                Text { anchors.centerIn: parent; text: "Buka Folder"; color: ThemeTokens.textPrimary; font.pixelSize: 11 }
+                                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.openWallpaperFolder() }
+                                            }
+                                            Rectangle {
+                                                height: 28; width: 112; radius: 7
+                                                color: settingsScope.showWallpaperAdvanced ? ThemeTokens.accentSoft : ThemeTokens.inputBg
+                                                border.width: 1; border.color: settingsScope.showWallpaperAdvanced ? ThemeTokens.accent : ThemeTokens.borderSubtle
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: settingsScope.showWallpaperAdvanced ? "Sembunyikan Opsi" : "Opsi Lanjutan"
+                                                    color: ThemeTokens.textPrimary
+                                                    font.pixelSize: 11
+                                                }
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: settingsScope.showWallpaperAdvanced = !settingsScope.showWallpaperAdvanced
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Opsi Lanjutan Wallpaper (Hanya muncul saat dibuka)
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 10
+                                    visible: settingsScope.showWallpaperAdvanced
+
+                                    Rectangle { Layout.fillWidth: true; height: 1; color: ThemeTokens.dividerColor }
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        Text { text: "Sumber Wallpaper"; color: ThemeTokens.textPrimary; font.pixelSize: 12; Layout.fillWidth: true }
+                                        Row {
+                                            spacing: 6
+                                            Repeater {
+                                                model: [
+                                                    { id: "sample", label: "Koleksi Folder" },
+                                                    { id: "custom", label: "Custom Path" }
+                                                ]
+                                                Rectangle {
+                                                    height: 28; width: 96; radius: 7
+                                                    property bool sel: shellRoot.wallpaperSourceMode === modelData.id
+                                                    color: sel ? ThemeTokens.accent : ThemeTokens.inputBg
+                                                    Text {
+                                                        anchors.centerIn: parent
+                                                        text: modelData.label
+                                                        color: sel ? ThemeTokens.textOnAccent : ThemeTokens.textPrimary
+                                                        font.pixelSize: 11
+                                                    }
+                                                    MouseArea {
+                                                        anchors.fill: parent
+                                                        cursorShape: Qt.PointingHandCursor
+                                                        onClicked: { shellRoot.wallpaperSourceMode = modelData.id; shellRoot.reloadWallpapers(); hostWin.saveLayout(); }
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
 
-                                    Flow {
-                                        Layout.fillWidth: true; spacing: 6
-                                        visible: shellRoot.favoriteWallpapers && shellRoot.favoriteWallpapers.length > 0
+                                    // Input Path Custom (Hanya muncul saat Custom Path dipilih)
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 8
+                                        visible: shellRoot.wallpaperSourceMode === "custom"
+
+                                        Rectangle {
+                                            Layout.fillWidth: true; height: 32; radius: 8
+                                            color: ThemeTokens.inputBg; border.width: 1; border.color: ThemeTokens.borderSubtle
+                                            TextInput {
+                                                id: customDirInput
+                                                anchors.fill: parent; anchors.margins: 8
+                                                verticalAlignment: Text.AlignVCenter
+                                                color: ThemeTokens.textPrimary; font.pixelSize: 11; clip: true
+                                                text: shellRoot.customWallpaperDir
+                                                onTextEdited: shellRoot.customWallpaperDir = text
+                                                onEditingFinished: { shellRoot.reloadWallpapers(); hostWin.saveLayout(); }
+                                                Text {
+                                                    anchors.fill: parent; verticalAlignment: Text.AlignVCenter
+                                                    text: "Path folder wallpaper kustom..."
+                                                    color: ThemeTokens.textMuted; font.pixelSize: 11
+                                                    visible: customDirInput.text === ""
+                                                }
+                                            }
+                                        }
+
+                                        Rectangle {
+                                            Layout.fillWidth: true; height: 32; radius: 8
+                                            color: ThemeTokens.inputBg; border.width: 1; border.color: ThemeTokens.borderSubtle
+                                            TextInput {
+                                                id: customFileInput
+                                                anchors.fill: parent; anchors.margins: 8
+                                                verticalAlignment: Text.AlignVCenter
+                                                color: ThemeTokens.textPrimary; font.pixelSize: 11; clip: true
+                                                text: shellRoot.customWallpaperFile
+                                                onEditingFinished: {
+                                                    shellRoot.customWallpaperFile = text;
+                                                    let p = text.trim();
+                                                    if (p !== "") {
+                                                        shellRoot.wallpaperSourceMode = "custom";
+                                                        shellRoot.currentWallpaper = p.startsWith("file://") ? p : "file://" + p;
+                                                    }
+                                                    hostWin.saveLayout();
+                                                }
+                                                Text {
+                                                    anchors.fill: parent; verticalAlignment: Text.AlignVCenter
+                                                    text: "Path file gambar/video spesifik..."
+                                                    color: ThemeTokens.textMuted; font.pixelSize: 11
+                                                    visible: customFileInput.text === ""
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        Text { text: "Rotasi Otomatis (Menit, 0 = Mati)"; color: ThemeTokens.textPrimary; font.pixelSize: 12; Layout.fillWidth: true }
+
+                                        Row {
+                                            spacing: 6
+                                            Rectangle {
+                                                width: 28; height: 28; radius: 7; color: ThemeTokens.inputBg
+                                                Text { anchors.centerIn: parent; text: "−"; color: ThemeTokens.textPrimary; font.bold: true }
+                                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { shellRoot.autoCycleMinutes = Math.max(0, shellRoot.autoCycleMinutes - 5); hostWin.saveLayout(); } }
+                                            }
+                                            Rectangle {
+                                                width: 54; height: 28; radius: 7; color: ThemeTokens.inputBg; border.width: 1; border.color: ThemeTokens.borderSubtle
+                                                TextInput {
+                                                    id: customMinInput
+                                                    anchors.fill: parent
+                                                    horizontalAlignment: Text.AlignHCenter
+                                                    verticalAlignment: Text.AlignVCenter
+                                                    color: ThemeTokens.textPrimary
+                                                    font.pixelSize: 12
+                                                    validator: IntValidator { bottom: 0; top: 1440 }
+                                                    text: String(shellRoot.autoCycleMinutes)
+                                                    onEditingFinished: {
+                                                        let parsed = parseInt(text);
+                                                        shellRoot.autoCycleMinutes = isNaN(parsed) ? 0 : Math.max(0, Math.min(1440, parsed));
+                                                        text = Qt.binding(function() { return String(shellRoot.autoCycleMinutes); });
+                                                        customMinInput.focus = false;
+                                                        hostWin.saveLayout();
+                                                    }
+                                                }
+                                            }
+                                            Rectangle {
+                                                width: 28; height: 28; radius: 7; color: ThemeTokens.inputBg
+                                                Text { anchors.centerIn: parent; text: "+"; color: ThemeTokens.textPrimary; font.bold: true }
+                                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { shellRoot.autoCycleMinutes = Math.min(1440, shellRoot.autoCycleMinutes + 5); hostWin.saveLayout(); } }
+                                            }
+                                        }
+                                    }
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        Text { text: "Live / Video Wallpaper"; color: ThemeTokens.textPrimary; font.pixelSize: 12; Layout.fillWidth: true }
+                                        MacSwitch {
+                                            checked: shellRoot.liveWallpaperEnabled
+                                            onToggled: { shellRoot.liveWallpaperEnabled = !shellRoot.liveWallpaperEnabled; shellRoot.reloadWallpapers(); hostWin.saveLayout(); }
+                                        }
+                                    }
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        visible: shellRoot.liveWallpaperEnabled
+                                        Text { text: "Jeda Otomatis Saat Tertutup Jendela"; color: ThemeTokens.textSecondary; font.pixelSize: 11; Layout.fillWidth: true }
+                                        MacSwitch {
+                                            checked: shellRoot.pauseWhenUnseen
+                                            onToggled: { shellRoot.pauseWhenUnseen = !shellRoot.pauseWhenUnseen; hostWin.saveLayout(); }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Koleksi Wallpaper Tanpa Nested Scroll
+                            Text {
+                                text: "Koleksi (" + shellRoot.wallpaperList.length + ")"
+                                color: ThemeTokens.textSecondary
+                                font.pixelSize: 12
+                                font.weight: Font.DemiBold
+                            }
+
+                            GridView {
+                                id: wallCollectionGrid
+                                Layout.fillWidth: true
+                                readonly property int cols: 3
+                                readonly property int rowCount: Math.max(1, Math.ceil((shellRoot.wallpaperList ? shellRoot.wallpaperList.length : 0) / cols))
+                                Layout.preferredHeight: rowCount * 96 + 8
+                                interactive: false
+                                cellWidth: Math.floor((width > 0 ? width : 540) / cols)
+                                cellHeight: 96
+                                clip: false
+                                model: shellRoot.wallpaperList
+
+                                delegate: Item {
+                                    width: wallCollectionGrid.cellWidth
+                                    height: wallCollectionGrid.cellHeight
+
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        anchors.margins: 4
+                                        radius: 10
+                                        color: ThemeTokens.inputBg
+                                        border.width: shellRoot.currentWallpaper === modelData ? 2 : 1
+                                        border.color: shellRoot.currentWallpaper === modelData ? ThemeTokens.accent : ThemeTokens.borderSubtle
+                                        clip: true
+
+                                        Image {
+                                            anchors.fill: parent
+                                            source: {
+                                                let w = String(modelData || "");
+                                                if (!w) return "";
+                                                return (w.startsWith("file://") || w.startsWith("http://") || w.startsWith("https://")) ? w : ("file://" + w);
+                                            }
+                                            sourceSize: Qt.size(220, 128)
+                                            asynchronous: true
+                                            cache: true
+                                            fillMode: Image.PreserveAspectCrop
+                                            smooth: true
+                                        }
+
+                                        Rectangle {
+                                            anchors.right: parent.right
+                                            anchors.bottom: parent.bottom
+                                            anchors.margins: 6
+                                            width: 20; height: 20; radius: 10
+                                            color: ThemeTokens.accent
+                                            visible: shellRoot.currentWallpaper === modelData
+                                            Text { anchors.centerIn: parent; text: "✓"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                shellRoot.currentWallpaper = modelData;
+                                                hostWin.saveLayout();
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // ====================================================
+                        // KATEGORI 3: DISPLAYS & SOUND
+                        // ====================================================
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 14
+                            visible: shellRoot.settingsTab === "display_sound"
+
+                            Text {
+                                text: "Displays & Sound"
+                                color: ThemeTokens.textPrimary
+                                font.pixelSize: 18
+                                font.bold: true
+                            }
+
+                            SettingsGroup {
+                                Text { text: "Layar"; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text { text: "Kecerahan"; color: ThemeTokens.textSecondary; font.pixelSize: 12; Layout.preferredWidth: 96 }
+                                    MacSlider {
+                                        Layout.fillWidth: true
+                                        value: shellRoot.brightnessLevel
+                                        minVal: 5; maxVal: 100
+                                        onMoved: (v) => shellRoot.setBrightnessPct(v)
+                                    }
+                                    Text { text: shellRoot.brightnessLevel + "%"; color: ThemeTokens.textPrimary; font.pixelSize: 12; Layout.preferredWidth: 42; horizontalAlignment: Text.AlignRight }
+                                }
+
+                                Rectangle { Layout.fillWidth: true; height: 1; color: ThemeTokens.dividerColor }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text { text: shellRoot.sysSpecs.displayInfo || "Layar Utama"; color: ThemeTokens.textPrimary; font.pixelSize: 12 }
+                                    Item { Layout.fillWidth: true }
+                                    Text { text: shellRoot.sysSpecs.gpuModel || ""; color: ThemeTokens.textSecondary; font.pixelSize: 11 }
+                                }
+                            }
+
+                            SettingsGroup {
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text { text: "Audio"; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold; Layout.fillWidth: true }
+                                    Text { text: shellRoot.volumeMuted ? "Muted" : "Aktif"; color: ThemeTokens.textSecondary; font.pixelSize: 11 }
+                                    MacSwitch {
+                                        checked: !shellRoot.volumeMuted
+                                        onToggled: shellRoot.toggleMute()
+                                    }
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text { text: "Volume Utama"; color: ThemeTokens.textSecondary; font.pixelSize: 12; Layout.preferredWidth: 96 }
+                                    MacSlider {
+                                        Layout.fillWidth: true
+                                        enabledControl: !shellRoot.volumeMuted
+                                        value: shellRoot.volumeLevel
+                                        minVal: 0; maxVal: 100
+                                        onMoved: (v) => shellRoot.setVolumePct(v)
+                                    }
+                                    Text { text: shellRoot.volumeMuted ? "0%" : (shellRoot.volumeLevel + "%"); color: ThemeTokens.textPrimary; font.pixelSize: 12; Layout.preferredWidth: 42; horizontalAlignment: Text.AlignRight }
+                                }
+                            }
+
+                            SettingsGroup {
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 2
+                                        Text { text: "Do Not Disturb"; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.weight: Font.Medium }
+                                        Text { text: "Heningkan notifikasi saat fokus"; color: ThemeTokens.textSecondary; font.pixelSize: 11 }
+                                    }
+                                    MacSwitch {
+                                        checked: shellRoot.dndEnabled
+                                        onToggled: shellRoot.toggleDnd()
+                                    }
+                                }
+
+                                Rectangle { Layout.fillWidth: true; height: 1; color: ThemeTokens.dividerColor }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 2
+                                        Text { text: "Cegah Layar Tidur (Keep Awake)"; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.weight: Font.Medium }
+                                        Text { text: "Tahan idle & sleep sistem"; color: ThemeTokens.textSecondary; font.pixelSize: 11 }
+                                    }
+                                    MacSwitch {
+                                        checked: shellRoot.keepAwake
+                                        onToggled: shellRoot.toggleKeepAwake()
+                                    }
+                                }
+                            }
+                        }
+
+                        // ====================================================
+                        // KATEGORI 4: WI-FI (EKSPAINSI KONDISIONAL SAAT ON)
+                        // ====================================================
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 14
+                            visible: shellRoot.settingsTab === "wifi"
+
+                            Text {
+                                text: "Wi-Fi"
+                                color: ThemeTokens.textPrimary
+                                font.pixelSize: 18
+                                font.bold: true
+                            }
+
+                            SettingsGroup {
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 2
+                                        Text { text: "Wi-Fi"; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
+                                        Text {
+                                            text: shellRoot.wifiEnabled ? (shellRoot.wifiName + " • IP " + shellRoot.localIpAddr) : "Wi-Fi Nonaktif"
+                                            color: ThemeTokens.textSecondary
+                                            font.pixelSize: 11
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        height: 28; width: 74; radius: 7
+                                        color: ThemeTokens.inputBg
+                                        border.width: 1; border.color: ThemeTokens.borderSubtle
+                                        visible: shellRoot.wifiEnabled
+                                        Text { anchors.centerIn: parent; text: shellRoot.wifiScanning ? "Memindai..." : "Pindai"; color: ThemeTokens.textPrimary; font.pixelSize: 11 }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.scanWifiNetworks() }
+                                    }
+
+                                    MacSwitch {
+                                        checked: shellRoot.wifiEnabled
+                                        onToggled: shellRoot.toggleWifi()
+                                    }
+                                }
+                            }
+
+                            // Input Sandi Kondisional
+                            SettingsGroup {
+                                visible: shellRoot.wifiEnabled && shellRoot.wifiPasswordTarget !== ""
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 8
+                                    TextInput {
+                                        id: setWifiPassField
+                                        Layout.fillWidth: true
+                                        echoMode: TextInput.Password
+                                        color: ThemeTokens.textPrimary
+                                        font.pixelSize: 12
+                                        onAccepted: shellRoot.connectWifi(shellRoot.wifiPasswordTarget, text)
+                                        Text {
+                                            anchors.fill: parent; verticalAlignment: Text.AlignVCenter
+                                            text: "Kata sandi untuk " + shellRoot.wifiPasswordTarget + "..."
+                                            color: ThemeTokens.textMuted; font.pixelSize: 11
+                                            visible: setWifiPassField.text === ""
+                                        }
+                                    }
+                                    Rectangle {
+                                        height: 28; width: 88; radius: 7
+                                        color: ThemeTokens.accent
+                                        Text { anchors.centerIn: parent; text: "Hubungkan"; color: ThemeTokens.textOnAccent; font.pixelSize: 11; font.bold: true }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.connectWifi(shellRoot.wifiPasswordTarget, setWifiPassField.text) }
+                                    }
+                                }
+                            }
+
+                            // Daftar Jaringan (Hilang otomatis saat Wi-Fi OFF)
+                            SettingsGroup {
+                                visible: shellRoot.wifiEnabled
+
+                                Text {
+                                    text: "Jaringan Tersedia"
+                                    color: ThemeTokens.textSecondary
+                                    font.pixelSize: 11
+                                    font.weight: Font.DemiBold
+                                }
+
+                                Repeater {
+                                    model: shellRoot.wifiNetworks
+                                    Rectangle {
+                                        Layout.fillWidth: true
+                                        height: 38
+                                        radius: 8
+                                        color: modelData.connected ? ThemeTokens.accentSoft : (wRowM.containsMouse ? ThemeTokens.cardHoverBg : "transparent")
+
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            anchors.leftMargin: 10
+                                            anchors.rightMargin: 10
+                                            spacing: 10
+
+                                            Text {
+                                                text: modelData.connected ? "✓" : "ᯤ"
+                                                color: modelData.connected ? ThemeTokens.accent : ThemeTokens.textSecondary
+                                                font.pixelSize: 12
+                                                font.bold: true
+                                            }
+                                            Text {
+                                                Layout.fillWidth: true
+                                                text: modelData.ssid
+                                                color: ThemeTokens.textPrimary
+                                                font.pixelSize: 12
+                                                font.weight: modelData.connected ? Font.DemiBold : Font.Normal
+                                                elide: Text.ElideRight
+                                            }
+                                            Text {
+                                                text: (modelData.secured ? "🔒 " : "") + modelData.signal + "%"
+                                                color: ThemeTokens.textSecondary
+                                                font.pixelSize: 11
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            id: wRowM
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                if (modelData.connected) return;
+                                                if (modelData.secured) {
+                                                    shellRoot.wifiStatusMsg = "";
+                                                    shellRoot.wifiPasswordTarget = modelData.ssid;
+                                                    setWifiPassField.text = "";
+                                                    setWifiPassField.forceActiveFocus();
+                                                } else {
+                                                    shellRoot.wifiPasswordTarget = "";
+                                                    shellRoot.connectWifi(modelData.ssid, "");
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // ====================================================
+                        // KATEGORI 5: BLUETOOTH (EKSPAINSI KONDISIONAL SAAT ON)
+                        // ====================================================
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 14
+                            visible: shellRoot.settingsTab === "bluetooth"
+
+                            Text {
+                                text: "Bluetooth"
+                                color: ThemeTokens.textPrimary
+                                font.pixelSize: 18
+                                font.bold: true
+                            }
+
+                            SettingsGroup {
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 2
+                                        Text { text: "Bluetooth"; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
+                                        Text {
+                                            text: shellRoot.btEnabled ? (shellRoot.btDeviceName !== "" ? "Terhubung: " + shellRoot.btDeviceName : "Dapat ditemukan") : "Bluetooth Nonaktif"
+                                            color: ThemeTokens.textSecondary
+                                            font.pixelSize: 11
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        height: 28; width: 74; radius: 7
+                                        color: ThemeTokens.inputBg
+                                        border.width: 1; border.color: ThemeTokens.borderSubtle
+                                        visible: shellRoot.btEnabled
+                                        Text { anchors.centerIn: parent; text: shellRoot.btScanning ? "Memindai..." : "Pindai"; color: ThemeTokens.textPrimary; font.pixelSize: 11 }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.scanBtDevices() }
+                                    }
+
+                                    MacSwitch {
+                                        checked: shellRoot.btEnabled
+                                        onToggled: shellRoot.toggleBluetooth()
+                                    }
+                                }
+                            }
+
+                            SettingsGroup {
+                                visible: shellRoot.btEnabled
+
+                                Text {
+                                    text: "Perangkat"
+                                    color: ThemeTokens.textSecondary
+                                    font.pixelSize: 11
+                                    font.weight: Font.DemiBold
+                                }
+
+                                Repeater {
+                                    model: shellRoot.btDevices
+                                    Rectangle {
+                                        Layout.fillWidth: true
+                                        height: 38
+                                        radius: 8
+                                        color: modelData.connected ? ThemeTokens.accentSoft : (btRowM.containsMouse ? ThemeTokens.cardHoverBg : "transparent")
+
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            anchors.leftMargin: 10
+                                            anchors.rightMargin: 10
+                                            spacing: 10
+
+                                            Text {
+                                                text: modelData.connected ? "✓" : "ᛒ"
+                                                color: modelData.connected ? ThemeTokens.accent : ThemeTokens.textSecondary
+                                                font.pixelSize: 12
+                                                font.bold: true
+                                            }
+                                            Text {
+                                                Layout.fillWidth: true
+                                                text: modelData.name
+                                                color: ThemeTokens.textPrimary
+                                                font.pixelSize: 12
+                                                font.weight: modelData.connected ? Font.DemiBold : Font.Normal
+                                                elide: Text.ElideRight
+                                            }
+                                            Text {
+                                                text: shellRoot.btBusyMac === modelData.mac ? "Proses..." : (modelData.connected ? "Terhubung" : "Hubungkan")
+                                                color: modelData.connected ? ThemeTokens.success : ThemeTokens.textSecondary
+                                                font.pixelSize: 11
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            id: btRowM
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: shellRoot.toggleBtDevice(modelData.mac, modelData.connected)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // ====================================================
+                        // KATEGORI 6: BATTERY & SYSTEM
+                        // ====================================================
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 14
+                            visible: shellRoot.settingsTab === "input_shortcuts"
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Text {
+                                    text: LocaleStrings.t("Input & Pintasan", "Input & Shortcuts")
+                                    color: ThemeTokens.textPrimary
+                                    font.pixelSize: 18
+                                    font.bold: true
+                                    Layout.fillWidth: true
+                                }
+                                Text {
+                                    text: settingsScope.niriInputFeedback
+                                    color: ThemeTokens.success
+                                    font.pixelSize: 11
+                                    font.weight: Font.DemiBold
+                                    opacity: settingsScope.niriInputFeedback !== "" ? 1.0 : 0.0
+                                    Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                                }
+                            }
+
+                            SettingsGroup {
+                                Text { text: "Touchpad (Trackpad)"; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    ColumnLayout {
+                                        Layout.fillWidth: true; spacing: 2
+                                        Text { text: "Ketuk untuk Klik (Tap to Click)"; color: ThemeTokens.textPrimary; font.pixelSize: 12 }
+                                        Text { text: "Ketuk ringan pada permukaan touchpad sebagai klik kiri"; color: ThemeTokens.textSecondary; font.pixelSize: 10 }
+                                    }
+                                    MacSwitch {
+                                        checked: settingsScope.tpTapToClick
+                                        onToggled: { settingsScope.tpTapToClick = !settingsScope.tpTapToClick; settingsScope.applyNiriInputConfig(); }
+                                    }
+                                }
+
+                                Rectangle { Layout.fillWidth: true; height: 1; color: ThemeTokens.dividerColor }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    ColumnLayout {
+                                        Layout.fillWidth: true; spacing: 2
+                                        Text { text: "Natural Scroll (Gulir Alami)"; color: ThemeTokens.textPrimary; font.pixelSize: 12 }
+                                        Text { text: "Konten layar bergerak searah dengan gerakan jari"; color: ThemeTokens.textSecondary; font.pixelSize: 10 }
+                                    }
+                                    MacSwitch {
+                                        checked: settingsScope.tpNaturalScroll
+                                        onToggled: { settingsScope.tpNaturalScroll = !settingsScope.tpNaturalScroll; settingsScope.applyNiriInputConfig(); }
+                                    }
+                                }
+
+                                Rectangle { Layout.fillWidth: true; height: 1; color: ThemeTokens.dividerColor }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    ColumnLayout {
+                                        Layout.fillWidth: true; spacing: 2
+                                        Text { text: "Nonaktifkan Touchpad Saat Mengetik"; color: ThemeTokens.textPrimary; font.pixelSize: 12 }
+                                        Text { text: "Mencegah kursor melompat akibat telapak tangan menyentuh touchpad"; color: ThemeTokens.textSecondary; font.pixelSize: 10 }
+                                    }
+                                    MacSwitch {
+                                        checked: settingsScope.tpDisableWhileTyping
+                                        onToggled: { settingsScope.tpDisableWhileTyping = !settingsScope.tpDisableWhileTyping; settingsScope.applyNiriInputConfig(); }
+                                    }
+                                }
+
+                                Rectangle { Layout.fillWidth: true; height: 1; color: ThemeTokens.dividerColor }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    ColumnLayout {
+                                        Layout.fillWidth: true; spacing: 2
+                                        Text { text: "Mode Tangan Kiri Touchpad"; color: ThemeTokens.textPrimary; font.pixelSize: 12 }
+                                        Text { text: "Menukar tombol klik utama touchpad untuk pengguna kidal"; color: ThemeTokens.textSecondary; font.pixelSize: 10 }
+                                    }
+                                    MacSwitch {
+                                        checked: settingsScope.tpLeftHanded
+                                        onToggled: { settingsScope.tpLeftHanded = !settingsScope.tpLeftHanded; settingsScope.applyNiriInputConfig(); }
+                                    }
+                                }
+
+                                Rectangle { Layout.fillWidth: true; height: 1; color: ThemeTokens.dividerColor }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text { text: "Kecepatan Pointer"; color: ThemeTokens.textPrimary; font.pixelSize: 12; Layout.preferredWidth: 140 }
+                                    MacSlider {
+                                        Layout.fillWidth: true
+                                        value: settingsScope.tpAccelSpeed
+                                        minVal: -0.8; maxVal: 1.0
+                                        onMoved: (v) => { settingsScope.tpAccelSpeed = Number(v.toFixed(2)); settingsScope.applyNiriInputConfig(); }
+                                    }
+                                    Text { text: (settingsScope.tpAccelSpeed >= 0 ? "+" : "") + settingsScope.tpAccelSpeed.toFixed(2); color: ThemeTokens.textSecondary; font.pixelSize: 11; Layout.preferredWidth: 42; horizontalAlignment: Text.AlignRight }
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text { text: "Kecepatan Gulir"; color: ThemeTokens.textPrimary; font.pixelSize: 12; Layout.preferredWidth: 140 }
+                                    MacSlider {
+                                        Layout.fillWidth: true
+                                        value: settingsScope.tpScrollFactor
+                                        minVal: 0.3; maxVal: 2.5
+                                        onMoved: (v) => { settingsScope.tpScrollFactor = Number(v.toFixed(2)); settingsScope.applyNiriInputConfig(); }
+                                    }
+                                    Text { text: settingsScope.tpScrollFactor.toFixed(1) + "x"; color: ThemeTokens.textSecondary; font.pixelSize: 11; Layout.preferredWidth: 42; horizontalAlignment: Text.AlignRight }
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text { text: "Profil Akselerasi"; color: ThemeTokens.textPrimary; font.pixelSize: 12; Layout.fillWidth: true }
+                                    Row {
+                                        spacing: 6
+                                        Repeater {
+                                            model: [
+                                                { id: "adaptive", label: "Adaptive" },
+                                                { id: "flat", label: "Flat" }
+                                            ]
+                                            Rectangle {
+                                                height: 26; width: 76; radius: 7
+                                                property bool sel: settingsScope.tpAccelProfile === modelData.id
+                                                color: sel ? ThemeTokens.accent : ThemeTokens.inputBg
+                                                Text { anchors.centerIn: parent; text: modelData.label; color: sel ? "#FFFFFF" : ThemeTokens.textPrimary; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { settingsScope.tpAccelProfile = modelData.id; settingsScope.applyNiriInputConfig(); } }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            SettingsGroup {
+                                Text { text: "Mouse Eksternal"; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text { text: "Kecepatan Pointer Mouse"; color: ThemeTokens.textPrimary; font.pixelSize: 12; Layout.preferredWidth: 150 }
+                                    MacSlider {
+                                        Layout.fillWidth: true
+                                        value: settingsScope.msAccelSpeed
+                                        minVal: -0.8; maxVal: 1.0
+                                        onMoved: (v) => { settingsScope.msAccelSpeed = Number(v.toFixed(2)); settingsScope.applyNiriInputConfig(); }
+                                    }
+                                    Text { text: (settingsScope.msAccelSpeed >= 0 ? "+" : "") + settingsScope.msAccelSpeed.toFixed(2); color: ThemeTokens.textSecondary; font.pixelSize: 11; Layout.preferredWidth: 42; horizontalAlignment: Text.AlignRight }
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text { text: "Kecepatan Roda Gulir"; color: ThemeTokens.textPrimary; font.pixelSize: 12; Layout.preferredWidth: 150 }
+                                    MacSlider {
+                                        Layout.fillWidth: true
+                                        value: settingsScope.msScrollFactor
+                                        minVal: 0.3; maxVal: 2.5
+                                        onMoved: (v) => { settingsScope.msScrollFactor = Number(v.toFixed(2)); settingsScope.applyNiriInputConfig(); }
+                                    }
+                                    Text { text: settingsScope.msScrollFactor.toFixed(1) + "x"; color: ThemeTokens.textSecondary; font.pixelSize: 11; Layout.preferredWidth: 42; horizontalAlignment: Text.AlignRight }
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    ColumnLayout {
+                                        Layout.fillWidth: true; spacing: 2
+                                        Text { text: "Profil Akselerasi Mouse"; color: ThemeTokens.textPrimary; font.pixelSize: 12 }
+                                        Text { text: "Flat untuk presisi 1:1 (gaming/desain), Adaptive untuk harian"; color: ThemeTokens.textSecondary; font.pixelSize: 10 }
+                                    }
+                                    Row {
+                                        spacing: 6
+                                        Repeater {
+                                            model: [
+                                                { id: "flat", label: "Flat" },
+                                                { id: "adaptive", label: "Adaptive" }
+                                            ]
+                                            Rectangle {
+                                                height: 26; width: 76; radius: 7
+                                                property bool sel: settingsScope.msAccelProfile === modelData.id
+                                                color: sel ? ThemeTokens.accent : ThemeTokens.inputBg
+                                                Text { anchors.centerIn: parent; text: modelData.label; color: sel ? "#FFFFFF" : ThemeTokens.textPrimary; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { settingsScope.msAccelProfile = modelData.id; settingsScope.applyNiriInputConfig(); } }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Rectangle { Layout.fillWidth: true; height: 1; color: ThemeTokens.dividerColor }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    ColumnLayout {
+                                        Layout.fillWidth: true; spacing: 2
+                                        Text { text: "Natural Scroll Mouse"; color: ThemeTokens.textPrimary; font.pixelSize: 12 }
+                                        Text { text: "Balikkan arah gulir roda mouse mengikuti arah jari"; color: ThemeTokens.textSecondary; font.pixelSize: 10 }
+                                    }
+                                    MacSwitch {
+                                        checked: settingsScope.msNaturalScroll
+                                        onToggled: { settingsScope.msNaturalScroll = !settingsScope.msNaturalScroll; settingsScope.applyNiriInputConfig(); }
+                                    }
+                                }
+
+                                Rectangle { Layout.fillWidth: true; height: 1; color: ThemeTokens.dividerColor }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    ColumnLayout {
+                                        Layout.fillWidth: true; spacing: 2
+                                        Text { text: "Mode Tangan Kiri (Tukar Klik Kiri & Kanan)"; color: ThemeTokens.textPrimary; font.pixelSize: 12 }
+                                        Text { text: "Ubah tombol utama mouse menjadi tombol kanan"; color: ThemeTokens.textSecondary; font.pixelSize: 10 }
+                                    }
+                                    MacSwitch {
+                                        checked: settingsScope.msLeftHanded
+                                        onToggled: { settingsScope.msLeftHanded = !settingsScope.msLeftHanded; settingsScope.applyNiriInputConfig(); }
+                                    }
+                                }
+
+                                Rectangle { Layout.fillWidth: true; height: 1; color: ThemeTokens.dividerColor }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    ColumnLayout {
+                                        Layout.fillWidth: true; spacing: 2
+                                        Text { text: "Emulasi Klik Tengah (Klik Kiri + Kanan)"; color: ThemeTokens.textPrimary; font.pixelSize: 12 }
+                                        Text { text: "Tekan klik kiri & kanan bersamaan untuk menempel teks atau buka tab baru"; color: ThemeTokens.textSecondary; font.pixelSize: 10 }
+                                    }
+                                    MacSwitch {
+                                        checked: settingsScope.msMiddleEmulation
+                                        onToggled: { settingsScope.msMiddleEmulation = !settingsScope.msMiddleEmulation; settingsScope.applyNiriInputConfig(); }
+                                    }
+                                }
+                            }
+
+                            SettingsGroup {
+                                Text { text: "Perilaku Fokus & Multitasking Jendela"; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    ColumnLayout {
+                                        Layout.fillWidth: true; spacing: 2
+                                        Text { text: "Fokus Mengikuti Kursor (Focus Follows Mouse)"; color: ThemeTokens.textPrimary; font.pixelSize: 12 }
+                                        Text { text: "Otomatis mengaktifkan jendela saat kursor diarahkan ke atasnya"; color: ThemeTokens.textSecondary; font.pixelSize: 10 }
+                                    }
+                                    MacSwitch {
+                                        checked: settingsScope.niriFocusFollowsMouse
+                                        onToggled: { settingsScope.niriFocusFollowsMouse = !settingsScope.niriFocusFollowsMouse; settingsScope.applyNiriInputConfig(); }
+                                    }
+                                }
+
+                                Rectangle { Layout.fillWidth: true; height: 1; color: ThemeTokens.dividerColor }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    ColumnLayout {
+                                        Layout.fillWidth: true; spacing: 2
+                                        Text { text: "Kursor Mengikuti Fokus Jendela (Warp Mouse)"; color: ThemeTokens.textPrimary; font.pixelSize: 12 }
+                                        Text { text: "Pindahkan kursor otomatis ke tengah jendela yang baru difokuskan"; color: ThemeTokens.textSecondary; font.pixelSize: 10 }
+                                    }
+                                    MacSwitch {
+                                        checked: settingsScope.niriWarpMouseToFocus
+                                        onToggled: { settingsScope.niriWarpMouseToFocus = !settingsScope.niriWarpMouseToFocus; settingsScope.applyNiriInputConfig(); }
+                                    }
+                                }
+                            }
+
+                            SettingsGroup {
+                                Text { text: "Keyboard & Respons Tombol"; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text { text: "Repeat Delay"; color: ThemeTokens.textPrimary; font.pixelSize: 12; Layout.preferredWidth: 130 }
+                                    MacSlider {
+                                        Layout.fillWidth: true
+                                        value: settingsScope.kbRepeatDelay
+                                        minVal: 150; maxVal: 800
+                                        onMoved: (v) => { settingsScope.kbRepeatDelay = Math.round(v); settingsScope.applyNiriInputConfig(); }
+                                    }
+                                    Text { text: settingsScope.kbRepeatDelay + " ms"; color: ThemeTokens.textSecondary; font.pixelSize: 11; Layout.preferredWidth: 50; horizontalAlignment: Text.AlignRight }
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text { text: "Repeat Rate"; color: ThemeTokens.textPrimary; font.pixelSize: 12; Layout.preferredWidth: 130 }
+                                    MacSlider {
+                                        Layout.fillWidth: true
+                                        value: settingsScope.kbRepeatRate
+                                        minVal: 15; maxVal: 60
+                                        onMoved: (v) => { settingsScope.kbRepeatRate = Math.round(v); settingsScope.applyNiriInputConfig(); }
+                                    }
+                                    Text { text: settingsScope.kbRepeatRate + " /dtk"; color: ThemeTokens.textSecondary; font.pixelSize: 11; Layout.preferredWidth: 50; horizontalAlignment: Text.AlignRight }
+                                }
+                            }
+
+                            SettingsGroup {
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    ColumnLayout {
+                                        Layout.fillWidth: true; spacing: 2
+                                        Text { text: "Pintasan Niri (~/.config/niri/config.kdl)"; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
+                                        Text { text: "Tambah pintasan cepat atau buka daftar lengkap"; color: ThemeTokens.textSecondary; font.pixelSize: 10 }
+                                    }
+                                    Rectangle {
+                                        height: 28; width: 104; radius: 8; color: ThemeTokens.accent
+                                        Text { anchors.centerIn: parent; text: "Semua (⌘/)"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.switchPopup("keybinds") }
+                                    }
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 6
+                                    Rectangle {
+                                        Layout.preferredWidth: 130; height: 30; radius: 8
+                                        color: ThemeTokens.inputBg; border.width: 1; border.color: ThemeTokens.borderSubtle
+                                        TextInput {
+                                            id: newBindKeyIn
+                                            anchors.fill: parent; anchors.margins: 7
+                                            verticalAlignment: Text.AlignVCenter; color: ThemeTokens.textPrimary; font.pixelSize: 11; clip: true
+                                            text: settingsScope.newBindCombo
+                                            onTextChanged: settingsScope.newBindCombo = text
+                                            Text { anchors.fill: parent; verticalAlignment: Text.AlignVCenter; text: "Contoh: Mod+B"; color: ThemeTokens.textMuted; font.pixelSize: 10; visible: newBindKeyIn.text === "" }
+                                        }
+                                    }
+                                    Rectangle {
+                                        Layout.fillWidth: true; height: 30; radius: 8
+                                        color: ThemeTokens.inputBg; border.width: 1; border.color: ThemeTokens.borderSubtle
+                                        TextInput {
+                                            id: newBindCmdIn
+                                            anchors.fill: parent; anchors.margins: 7
+                                            verticalAlignment: Text.AlignVCenter; color: ThemeTokens.textPrimary; font.pixelSize: 11; clip: true
+                                            text: settingsScope.newBindCmd
+                                            onTextChanged: settingsScope.newBindCmd = text
+                                            Text { anchors.fill: parent; verticalAlignment: Text.AlignVCenter; text: "Perintah (contoh: firefox)"; color: ThemeTokens.textMuted; font.pixelSize: 10; visible: newBindCmdIn.text === "" }
+                                        }
+                                    }
+                                    Rectangle {
+                                        height: 30; width: 74; radius: 8; color: ThemeTokens.inputBg; border.width: 1; border.color: ThemeTokens.borderSubtle
+                                        Text { anchors.centerIn: parent; text: "+ Tambah"; color: ThemeTokens.accent; font.pixelSize: 11; font.bold: true }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: settingsScope.addNiriCustomBind() }
+                                    }
+                                }
+
+                                Repeater {
+                                    model: settingsScope.niriBindsList.slice(0, 8)
+                                    Rectangle {
+                                        Layout.fillWidth: true; height: 28; radius: 7
+                                        color: ThemeTokens.inputBg
+                                        RowLayout {
+                                            anchors.fill: parent; anchors.leftMargin: 10; anchors.rightMargin: 10; spacing: 8
+                                            Text { text: modelData.combo; color: ThemeTokens.accent; font.pixelSize: 11; font.bold: true; Layout.preferredWidth: 145; elide: Text.ElideRight }
+                                            Text { text: modelData.action; color: ThemeTokens.textSecondary; font.pixelSize: 11; Layout.fillWidth: true; elide: Text.ElideRight }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 14
+                            visible: shellRoot.settingsTab === "notifications_island"
+
+                            Text {
+                                text: LocaleStrings.t("Notifikasi & Dynamic Island", "Notifications & Dynamic Island")
+                                color: ThemeTokens.textPrimary
+                                font.pixelSize: 18
+                                font.bold: true
+                            }
+
+                            SettingsGroup {
+                                Text { text: "Pratinjau & Perilaku Dynamic Island"; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    height: 64
+                                    radius: 12
+                                    color: ThemeTokens.inputBg
+
+                                    Rectangle {
+                                        anchors.centerIn: parent
+                                        width: ShellState.islandBehaviorMode === "expanded" ? 260 : (ShellState.islandBehaviorMode === "compact" ? 136 : 196)
+                                        height: 32
+                                        radius: 16
+                                        color: "#000000"
+                                        border.width: 1
+                                        border.color: "#2C2C34"
+                                        opacity: ShellState.islandEnabled ? 1.0 : 0.35
+                                        Behavior on width { SpringAnimation { mass: 0.9; spring: 6.5; damping: 0.50; epsilon: 0.001 } }
+                                        Behavior on opacity { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+
+                                        RowLayout {
+                                            anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12; spacing: 8
+                                            Rectangle { width: 8; height: 8; radius: 4; color: ThemeTokens.accent }
+                                            Text { text: "NivrOS Island"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true; Layout.fillWidth: true; elide: Text.ElideRight }
+                                            Text { text: ShellState.islandBehaviorMode.toUpperCase(); color: "#98989F"; font.pixelSize: 9; visible: ShellState.islandBehaviorMode !== "compact" }
+                                        }
+                                    }
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text { text: "Aktifkan Dynamic Island"; color: ThemeTokens.textPrimary; font.pixelSize: 12; Layout.fillWidth: true }
+                                    MacSwitch {
+                                        checked: ShellState.islandEnabled
+                                        onToggled: ShellState.islandEnabled = !ShellState.islandEnabled
+                                    }
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text { text: "Preview Musik Saat Hover"; color: ThemeTokens.textPrimary; font.pixelSize: 12; Layout.fillWidth: true }
+                                    MacSwitch {
+                                        checked: ShellState.islandMusicHover
+                                        onToggled: ShellState.islandMusicHover = !ShellState.islandMusicHover
+                                    }
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 8
+                                    Repeater {
+                                        model: [
+                                            { id: "compact", label: "Compact" },
+                                            { id: "adaptive", label: "Adaptif" },
+                                            { id: "expanded", label: "Selalu Luas" }
+                                        ]
+                                        Rectangle {
+                                            Layout.fillWidth: true; height: 30; radius: 8
+                                            property bool sel: ShellState.islandBehaviorMode === modelData.id
+                                            color: sel ? ThemeTokens.accent : ThemeTokens.inputBg
+                                            Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                                            Text { anchors.centerIn: parent; text: modelData.label; color: sel ? "#FFFFFF" : ThemeTokens.textPrimary; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: ShellState.islandBehaviorMode = modelData.id }
+                                        }
+                                    }
+                                }
+                            }
+
+                            SettingsGroup {
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text { text: "Banner & Fokus Notifikasi"; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold; Layout.fillWidth: true }
+                                    Rectangle {
+                                        height: 28; width: 102; radius: 7; color: ThemeTokens.accentSoft; border.width: 1; border.color: ThemeTokens.accent
+                                        Text { anchors.centerIn: parent; text: "Uji Notifikasi"; color: ThemeTokens.accent; font.pixelSize: 11; font.bold: true }
+                                        MouseArea {
+                                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                let dur = ShellState.notifDurationSec || 4;
+                                                settingsScope.notifTestBanner = "Push notifikasi dikirim ke Dynamic Island (" + dur + " detik)";
+                                                notifBannerClearTimer.restart();
+                                                ShellState.triggerTestNotification(
+                                                    "NivrOS Push",
+                                                    "Uji Push Notifikasi • " + dur + "s",
+                                                    "Dynamic Island aktif menampilkan notifikasi masuk secara real-time."
+                                                );
+                                                shellRoot.runCmd("notify-send -a 'NivrOS' -t " + (dur * 1000) + " 'Uji Dynamic Island' 'Banner notifikasi melayang aktif selama " + dur + " detik.' 2>/dev/null || true");
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    visible: settingsScope.notifTestBanner !== ""
+                                    Layout.preferredHeight: 34
+                                    radius: 8
+                                    color: ThemeTokens.accentSoft
+                                    border.width: 1; border.color: ThemeTokens.accent
+                                    Text {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 12
+                                        anchors.rightMargin: 12
+                                        verticalAlignment: Text.AlignVCenter
+                                        horizontalAlignment: Text.AlignHCenter
+                                        elide: Text.ElideRight
+                                        text: settingsScope.notifTestBanner
+                                        color: ThemeTokens.textPrimary
+                                        font.pixelSize: 11; font.weight: Font.DemiBold
+                                    }
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text { text: "Durasi Tampil Banner"; color: ThemeTokens.textPrimary; font.pixelSize: 12; Layout.preferredWidth: 145 }
+                                    MacSlider {
+                                        Layout.fillWidth: true
+                                        value: ShellState.notifDurationSec
+                                        minVal: 2; maxVal: 10; keyStep: 1
+                                        onMoved: (v) => ShellState.notifDurationSec = Math.round(v)
+                                    }
+                                    Text { text: ShellState.notifDurationSec + " dtk"; color: ThemeTokens.textSecondary; font.pixelSize: 11; Layout.preferredWidth: 42; horizontalAlignment: Text.AlignRight }
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    ColumnLayout {
+                                        Layout.fillWidth: true; spacing: 2
+                                        Text { text: "Mode Jangan Ganggu (Do Not Disturb)"; color: ThemeTokens.textPrimary; font.pixelSize: 12 }
+                                        Text { text: "Senyapkan pop-up notifikasi saat presentasi atau fokus"; color: ThemeTokens.textSecondary; font.pixelSize: 10 }
+                                    }
+                                    MacSwitch {
+                                        checked: shellRoot.dndEnabled
+                                        onToggled: shellRoot.toggleDnd()
+                                    }
+                                }
+                            }
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 14
+                            visible: shellRoot.settingsTab === "power"
+
+                            Text {
+                                text: "Battery & System"
+                                color: ThemeTokens.textPrimary
+                                font.pixelSize: 18
+                                font.bold: true
+                            }
+
+                            SettingsGroup {
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 8
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 2
+                                        Text { text: "Low Power Mode"; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
+                                        Text {
+                                            text: "Kurangi konsumsi daya & kecepatan kipas agar baterai lebih awet"
+                                            color: ThemeTokens.textSecondary
+                                            font.pixelSize: 10
+                                            wrapMode: Text.WordWrap
+                                            Layout.fillWidth: true
+                                        }
+                                    }
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 8
+                                        Repeater {
+                                            model: [
+                                                { id: "never", label: "Never", prof: "performance" },
+                                                { id: "battery", label: "On Battery", prof: "balanced" },
+                                                { id: "always", label: "Always", prof: "power-saver" }
+                                            ]
+                                            Rectangle {
+                                                Layout.fillWidth: true
+                                                height: 28
+                                                radius: 8
+                                                property bool sel: settingsScope.lowPowerPolicy === modelData.id
+                                                color: sel ? ThemeTokens.accent : ThemeTokens.inputBg
+                                                border.width: 1
+                                                border.color: sel ? ThemeTokens.accent : ThemeTokens.borderSubtle
+                                                Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                                                Text { anchors.centerIn: parent; text: modelData.label; color: sel ? "#FFFFFF" : ThemeTokens.textPrimary; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                                MouseArea {
+                                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                                    onClicked: {
+                                                        settingsScope.lowPowerPolicy = modelData.id;
+                                                        settingsScope.setPowerProfile(modelData.prof);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Rectangle { Layout.fillWidth: true; height: 1; color: ThemeTokens.dividerColor }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    ColumnLayout {
+                                        Layout.fillWidth: true; spacing: 2
+                                        Text { text: "Battery Health"; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
+                                        Text {
+                                            text: "Kapasitas Maksimum: " + settingsScope.batHealthPct + "% • " + settingsScope.batTech + (settingsScope.batCycleCount > 0 ? (" • " + settingsScope.batCycleCount + " Siklus") : "")
+                                            color: ThemeTokens.textSecondary; font.pixelSize: 10
+                                        }
+                                    }
+                                    Rectangle {
+                                        height: 26; width: 88; radius: 13
+                                        color: settingsScope.batHealthPct >= 80 ? Qt.rgba(0.19, 0.82, 0.35, 0.16) : Qt.rgba(1.0, 0.62, 0.04, 0.18)
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: settingsScope.batHealthPct >= 80 ? ("Normal • " + settingsScope.batHealthPct + "%") : ("Service • " + settingsScope.batHealthPct + "%")
+                                            color: settingsScope.batHealthPct >= 80 ? "#30D158" : "#FF9F0A"
+                                            font.pixelSize: 11; font.bold: true
+                                        }
+                                    }
+                                }
+                            }
+
+                            SettingsGroup {
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    ColumnLayout {
+                                        Layout.fillWidth: true; spacing: 1
+                                        Text { text: "Battery Level & Screen Time"; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
+                                        Text { text: "Level: " + (shellRoot.batteryPercent >= 0 ? (shellRoot.batteryPercent + "%") : "AC") + " • " + settingsScope.screenOnSummary; color: ThemeTokens.textSecondary; font.pixelSize: 10 }
+                                    }
+                                    Row {
+                                        spacing: 4
+                                        Repeater {
+                                            model: [
+                                                { id: "24h", label: "Last 24 Hours" },
+                                                { id: "10d", label: "Last 10 Days" }
+                                            ]
+                                            Rectangle {
+                                                height: 26; width: 92; radius: 7
+                                                property bool sel: settingsScope.batChartRange === modelData.id
+                                                color: sel ? ThemeTokens.accent : ThemeTokens.inputBg
+                                                Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                                                Text { anchors.centerIn: parent; text: modelData.label; color: sel ? "#FFFFFF" : ThemeTokens.textPrimary; font.pixelSize: 10; font.weight: Font.DemiBold }
+                                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: settingsScope.batChartRange = modelData.id }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Text { text: "Battery Level"; color: ThemeTokens.textPrimary; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    height: 82
+                                    radius: 10
+                                    color: ThemeTokens.inputBg
+
+                                    Row {
+                                        anchors.fill: parent
+                                        anchors.margins: 8
+                                        spacing: settingsScope.batChartRange === "24h" ? 4 : 10
 
                                         Repeater {
-                                            model: shellRoot.favoriteWallpapers
-                                            Rectangle {
-                                                height: 24; width: Math.min(180, favChipTxt.implicitWidth + 18); radius: 8
-                                                color: shellRoot.currentWallpaper === modelData ? "#0A84FF" : "#242838"
-                                                scale: favChipM.pressed ? 0.93 : 1.0
-                                                Behavior on scale { SpringAnimation { mass: 0.9; spring: 5.0; damping: 0.45; epsilon: 0.001 } }
-                                                Text {
-                                                    id: favChipTxt; anchors.centerIn: parent
-                                                    text: "★ " + String(modelData).split("/").pop()
-                                                    color: "#FFFFFF"; font.pixelSize: 10; elide: Text.ElideRight
+                                            model: settingsScope.batChartRange === "24h" ? settingsScope.batHistory24h : settingsScope.batHistory10d
+                                            Item {
+                                                width: Math.max(4, (parent.width - (settingsScope.batChartRange === "24h" ? 23 * 4 : 9 * 10)) / (settingsScope.batChartRange === "24h" ? 24 : 10))
+                                                height: parent.height
+
+                                                Rectangle {
+                                                    anchors.bottom: parent.bottom
+                                                    width: parent.width
+                                                    height: Math.max(4, parent.height * (modelData / 100.0))
+                                                    radius: 3
+                                                    color: modelData <= 20 ? "#FF453A" : "#30D158"
+                                                    Behavior on height { NumberAnimation { duration: 420; easing.type: Easing.OutExpo } }
                                                 }
-                                                MouseArea { id: favChipM; anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shellRoot.currentWallpaper = modelData }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Text { text: "Screen On Usage"; color: ThemeTokens.textPrimary; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    height: 76
+                                    radius: 10
+                                    color: ThemeTokens.inputBg
+
+                                    Row {
+                                        anchors.fill: parent
+                                        anchors.margins: 8
+                                        spacing: settingsScope.batChartRange === "24h" ? 4 : 10
+
+                                        Repeater {
+                                            model: settingsScope.batChartRange === "24h" ? settingsScope.screenHistory24h : settingsScope.screenHistory10d
+                                            Item {
+                                                property real maxRef: settingsScope.batChartRange === "24h" ? 60.0 : 420.0
+                                                width: Math.max(4, (parent.width - (settingsScope.batChartRange === "24h" ? 23 * 4 : 9 * 10)) / (settingsScope.batChartRange === "24h" ? 24 : 10))
+                                                height: parent.height
+
+                                                Rectangle {
+                                                    anchors.bottom: parent.bottom
+                                                    width: parent.width
+                                                    height: Math.max(3, parent.height * Math.min(1.0, modelData / maxRef))
+                                                    radius: 3
+                                                    color: "#0A84FF"
+                                                    Behavior on height { NumberAnimation { duration: 420; easing.type: Easing.OutExpo } }
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
-                        }
 
-                        Text {
-                            text: "Koleksi Wallpaper (" + shellRoot.wallpaperList.length + " tersedia)"
-                            color: "#D1D1D6"
-                            font.pixelSize: 11
-                            font.bold: true
-                        }
-
-                        GridView {
-                            id: wallGrid
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 170
-                            clip: true
-                            cellWidth: Math.floor(width / 3)
-                            cellHeight: 74
-                            model: shellRoot.wallpaperList
-
-                            delegate: Item {
-                                width: wallGrid.cellWidth
-                                height: wallGrid.cellHeight
+                            SettingsGroup {
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text { text: "Storage"; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold; Layout.fillWidth: true }
+                                    Text {
+                                        text: settingsScope.storageUsedGb.toFixed(1) + " GB digunakan dari " + settingsScope.storageTotalGb.toFixed(0) + " GB"
+                                        color: ThemeTokens.textSecondary; font.pixelSize: 11
+                                    }
+                                }
 
                                 Rectangle {
-                                    anchors.fill: parent
-                                    anchors.margins: 4
-                                    radius: 22
-                                    color: "#222534"
-                                    border.width: shellRoot.currentWallpaper === modelData ? 2 : 1.1
-                                    border.color: shellRoot.currentWallpaper === modelData ? "#64D2FF" : "#3CFFFFFF"
+                                    id: storageTrack
+                                    Layout.fillWidth: true
+                                    height: 16
+                                    radius: 8
+                                    color: ThemeTokens.inputBg
                                     clip: true
-                                    scale: wpThumbM.pressed ? 0.94 : (wpThumbM.containsMouse ? 1.03 : 1.0)
-                                    Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
-                                    Image {
+                                    Row {
                                         anchors.fill: parent
-                                        source: modelData
-                                        fillMode: Image.PreserveAspectCrop
-                                        sourceSize: Qt.size(260, 160)
-                                        asynchronous: true
-                                        smooth: true
-                                    }
+                                        spacing: 2
 
-                                    Rectangle {
-                                        anchors.right: parent.right
-                                        anchors.bottom: parent.bottom
-                                        anchors.margins: 7
-                                        width: 22; height: 22; radius: 11
-                                        color: "#0A84FF"
-                                        border.width: 1
-                                        border.color: "#FFFFFF"
-                                        visible: shellRoot.currentWallpaper === modelData
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: "✓"
-                                            color: "#FFFFFF"
-                                            font.pixelSize: 11
-                                            font.bold: true
+                                        Rectangle {
+                                            height: parent.height
+                                            width: Math.max(6, storageTrack.width * (settingsScope.storageSysGb / Math.max(1, settingsScope.storageTotalGb)))
+                                            color: "#FF9F0A"
+                                            Behavior on width { NumberAnimation { duration: 480; easing.type: Easing.OutExpo } }
+                                        }
+                                        Rectangle {
+                                            height: parent.height
+                                            width: Math.max(6, storageTrack.width * (settingsScope.storageAppsGb / Math.max(1, settingsScope.storageTotalGb)))
+                                            color: "#30D158"
+                                            Behavior on width { NumberAnimation { duration: 480; easing.type: Easing.OutExpo } }
+                                        }
+                                        Rectangle {
+                                            height: parent.height
+                                            width: Math.max(6, storageTrack.width * (settingsScope.storageMediaGb / Math.max(1, settingsScope.storageTotalGb)))
+                                            color: "#0A84FF"
+                                            Behavior on width { NumberAnimation { duration: 480; easing.type: Easing.OutExpo } }
                                         }
                                     }
-
-                                    MouseArea {
-                                        id: wpThumbM
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: shellRoot.currentWallpaper = modelData
-                                    }
-                                }
-                            }
-                        }
-                        }
-                    }
-                    // ========================================================
-                    // TAB 2: DISPLAY & SOUND (HARMONYOS GLASS PILLS & ORBS)
-                    // ========================================================
-                    ColumnLayout {
-                        anchors.fill: parent
-                        spacing: 14
-                        visible: shellRoot.settingsTab === "display_sound"
-                        opacity: visible ? 1.0 : 0.0
-                        Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
-
-                        Text { text: "Display & Sound"; color: "#FFFFFF"; font.pixelSize: 17; font.bold: true }
-
-                        // BARIS 1: 2 KAPSUL LONJONG BESAR ALA HARMONYOS (DND PILL + BRIGHTNESS PILL SLIDER)
-                        RowLayout {
-                            Layout.fillWidth: true
-                            height: 58
-                            spacing: 12
-
-                            // Kapsul Lonjong Focus / Do Not Disturb (Persis kiri atas gambar referensi)
-                            Rectangle {
-                                Layout.fillWidth: true
-                                height: 58
-                                radius: 29
-                                border.width: 1.2
-                                border.color: shellRoot.dndEnabled ? "#85FFFFFF" : "#48FFFFFF"
-                                scale: setDndPillM.pressed ? 0.96 : 1.0
-                                gradient: Gradient {
-                                    GradientStop { position: 0.0; color: shellRoot.dndEnabled ? "#D92B8EFF" : "#2EFFFFFF" }
-                                    GradientStop { position: 1.0; color: shellRoot.dndEnabled ? "#AD0866E6" : "#14FFFFFF" }
-                                }
-                                Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
-
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 16
-                                    anchors.rightMargin: 18
-                                    spacing: 12
-
-                                    Text { text: "☾"; color: "#FFFFFF"; font.pixelSize: 20; font.bold: true }
-                                    ColumnLayout {
-                                        Layout.fillWidth: true
-                                        spacing: 1
-                                        Text { text: "Do Not Disturb"; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true }
-                                        Text { text: shellRoot.dndEnabled ? "Aktif • Notifikasi Hening" : "Nonaktif"; color: "#E5E5EA"; font.pixelSize: 10 }
-                                    }
                                 }
 
-                                MouseArea {
-                                    id: setDndPillM
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: shellRoot.toggleDnd()
-                                }
-                            }
-
-                            // Slider Pil Kaca Brightness (Persis kanan atas gambar referensi)
-                            Rectangle {
-                                Layout.fillWidth: true
-                                height: 58
-                                radius: 29
-                                color: "#22FFFFFF"
-                                border.width: 1.2
-                                border.color: "#4CFFFFFF"
-                                clip: true
-
-                                Rectangle {
-                                    width: Math.max(58, parent.width * (shellRoot.brightnessLevel / 100))
-                                    height: 58
-                                    radius: 29
-                                    gradient: Gradient {
-                                        GradientStop { position: 0.0; color: "#78FFFFFF" }
-                                        GradientStop { position: 1.0; color: "#4CFFFFFF" }
-                                    }
-                                    border.width: 1
-                                    border.color: "#66FFFFFF"
-                                    Behavior on width { NumberAnimation { duration: 110; easing.type: Easing.InOutCubic } }
-                                }
-
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 18
-                                    anchors.rightMargin: 18
-                                    Text { text: "☀"; color: "#FFFFFF"; font.pixelSize: 19; font.bold: true }
-                                    Text { text: "Brightness"; color: "#FFFFFF"; font.pixelSize: 12; font.bold: true }
-                                    Item { Layout.fillWidth: true }
-                                    Text { text: shellRoot.brightnessLevel + "%"; color: "#FFFFFF"; font.pixelSize: 12; font.bold: true }
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onPressed: (m) => shellRoot.setBrightnessPct((m.x / width) * 100)
-                                    onPositionChanged: (m) => { if (pressed) shellRoot.setBrightnessPct((m.x / width) * 100); }
-                                }
-                            }
-                        }
-
-                        // BARIS 2: SLIDER PIL KACA SOUND VOLUME
-                        Rectangle {
-                            Layout.fillWidth: true
-                            height: 58
-                            radius: 29
-                            color: "#22FFFFFF"
-                            border.width: 1.2
-                            border.color: "#4CFFFFFF"
-                            clip: true
-
-                            Rectangle {
-                                width: shellRoot.volumeMuted ? 58 : Math.max(58, parent.width * (shellRoot.volumeLevel / 100))
-                                height: 58
-                                radius: 29
-                                gradient: Gradient {
-                                    GradientStop { position: 0.0; color: shellRoot.volumeMuted ? "#44FF453A" : "#78FFFFFF" }
-                                    GradientStop { position: 1.0; color: shellRoot.volumeMuted ? "#28FF453A" : "#4CFFFFFF" }
-                                }
-                                border.width: 1
-                                border.color: "#66FFFFFF"
-                                Behavior on width { NumberAnimation { duration: 110; easing.type: Easing.InOutCubic } }
-                            }
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: 18
-                                anchors.rightMargin: 18
-                                Text { text: shellRoot.volumeMuted ? "🔇" : "🔊"; font.pixelSize: 17 }
-                                Text { text: "Master Volume"; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true }
-                                Item { Layout.fillWidth: true }
-                                Text {
-                                    text: shellRoot.volumeMuted ? "Muted" : (shellRoot.volumeLevel + "%")
-                                    color: "#FFFFFF"
-                                    font.pixelSize: 13
-                                    font.bold: true
-                                }
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onPressed: (m) => shellRoot.setVolumePct((m.x / width) * 100)
-                                onPositionChanged: (m) => { if (pressed) shellRoot.setVolumePct((m.x / width) * 100); }
-                            }
-                        }
-
-                        // BARIS 3: 4 TOMBOL BULAT KACA (CIRCULAR GLASS ORBS ALA HARMONYOS)
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 14
-
-                            Repeater {
-                                model: [
-                                    { label: "Keep Awake", glyph: "⏱", active: shellRoot.keepAwake, act: "awake" },
-                                    { label: "Mute Audio", glyph: "🔇", active: shellRoot.volumeMuted, act: "mute" },
-                                    { label: "Screenshot", glyph: "📷", active: false, act: "ss" },
-                                    { label: "Overview", glyph: "⊞", active: false, act: "ov" }
-                                ]
-
-                                ColumnLayout {
+                                Flow {
                                     Layout.fillWidth: true
-                                    spacing: 6
-
-                                    Rectangle {
-                                        Layout.alignment: Qt.AlignHCenter
-                                        width: 62
-                                        height: 62
-                                        radius: 31
-                                        border.width: 1.2
-                                        border.color: modelData.active ? "#88FFFFFF" : "#4CFFFFFF"
-                                        scale: orbM1.pressed ? 0.92 : (orbM1.containsMouse ? 1.05 : 1.0)
-                                        gradient: Gradient {
-                                            GradientStop { position: 0.0; color: modelData.active ? "#E02E94FF" : "#30FFFFFF" }
-                                            GradientStop { position: 1.0; color: modelData.active ? "#AD0866E6" : "#14FFFFFF" }
-                                        }
-                                        Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
-
+                                    spacing: 12
+                                    Row {
+                                        spacing: 5
+                                        Rectangle { width: 8; height: 8; radius: 4; color: "#FF9F0A"; anchors.verticalCenter: parent.verticalCenter }
+                                        Text { text: "Sistem (" + settingsScope.storageSysGb.toFixed(0) + " GB)"; color: ThemeTokens.textSecondary; font.pixelSize: 10 }
+                                    }
+                                    Row {
+                                        spacing: 5
+                                        Rectangle { width: 8; height: 8; radius: 4; color: "#30D158"; anchors.verticalCenter: parent.verticalCenter }
+                                        Text { text: "Aplikasi (" + settingsScope.storageAppsGb.toFixed(0) + " GB)"; color: ThemeTokens.textSecondary; font.pixelSize: 10 }
+                                    }
+                                    Row {
+                                        spacing: 5
+                                        Rectangle { width: 8; height: 8; radius: 4; color: "#0A84FF"; anchors.verticalCenter: parent.verticalCenter }
+                                        Text { text: "Media & File (" + settingsScope.storageMediaGb.toFixed(0) + " GB)"; color: ThemeTokens.textSecondary; font.pixelSize: 10 }
+                                    }
+                                    Row {
+                                        spacing: 5
+                                        Rectangle { width: 8; height: 8; radius: 4; color: ThemeTokens.textMuted; anchors.verticalCenter: parent.verticalCenter }
                                         Text {
-                                            anchors.centerIn: parent
-                                            text: modelData.glyph
-                                            color: "#FFFFFF"
-                                            font.pixelSize: 21
+                                            text: Math.max(0, settingsScope.storageTotalGb - settingsScope.storageUsedGb).toFixed(0) + " GB Tersedia"
+                                            color: ThemeTokens.textPrimary; font.pixelSize: 10; font.weight: Font.DemiBold
                                         }
+                                    }
+                                }
+                            }
 
-                                        MouseArea {
-                                            id: orbM1
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: {
-                                                if (modelData.act === "awake") shellRoot.toggleKeepAwake();
-                                                else if (modelData.act === "mute") shellRoot.toggleMute();
-                                                else if (modelData.act === "ss") { shellRoot.closePopups(); screenshotDelayTimer.restart(); }
-                                                else if (modelData.act === "ov") { shellRoot.closePopups(); shellRoot.runCmd("niri msg action toggle-overview"); }
+                            SettingsGroup {
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text {
+                                        text: shellRoot.batteryPercent >= 0 ? ("Baterai " + shellRoot.batteryPercent + "% (" + shellRoot.batteryStatus + ")") : "Daya Listrik (AC)"
+                                        color: ThemeTokens.textPrimary
+                                        font.pixelSize: 13
+                                        font.weight: Font.DemiBold
+                                    }
+                                    Item { Layout.fillWidth: true }
+                                    Text { text: "Uptime " + (shellRoot.sysSpecs.uptimeStr || "-"); color: ThemeTokens.textSecondary; font.pixelSize: 11 }
+                                }
+
+                                Rectangle { Layout.fillWidth: true; height: 1; color: ThemeTokens.dividerColor }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text { text: "Mode Energi"; color: ThemeTokens.textPrimary; font.pixelSize: 12; Layout.fillWidth: true }
+                                    Row {
+                                        spacing: 6
+                                        Repeater {
+                                            model: [
+                                                { id: "power-saver", label: "Hemat" },
+                                                { id: "balanced", label: "Seimbang" },
+                                                { id: "performance", label: "Performa" }
+                                            ]
+                                            Rectangle {
+                                                height: 28; width: 78; radius: 7
+                                                property bool active: shellRoot.powerProfile === modelData.id
+                                                color: active ? ThemeTokens.accent : ThemeTokens.inputBg
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: modelData.label
+                                                    color: active ? ThemeTokens.textOnAccent : ThemeTokens.textPrimary
+                                                    font.pixelSize: 11
+                                                }
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: settingsScope.setPowerProfile(modelData.id)
+                                                }
                                             }
                                         }
                                     }
-
-                                    Text {
-                                        Layout.alignment: Qt.AlignHCenter
-                                        text: modelData.label
-                                        color: "#E5E5EA"
-                                        font.pixelSize: 11
-                                        font.weight: Font.Medium
-                                    }
                                 }
                             }
-                        }
 
-                        // BARIS 4: INFO OUTPUT LAYAR (KAPSUL LONJONG)
-                        Rectangle {
-                            Layout.fillWidth: true
-                            height: 52
-                            radius: 26
-                            color: "#22FFFFFF"
-                            border.width: 1.1
-                            border.color: "#38FFFFFF"
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: 18
-                                anchors.rightMargin: 18
-                                Text { text: "Layar Utama • " + shellRoot.sysSpecs.displayInfo; color: "#FFFFFF"; font.pixelSize: 12; font.bold: true }
-                                Item { Layout.fillWidth: true }
-                                Text { text: shellRoot.sysSpecs.gpuModel; color: "#C7C7CC"; font.pixelSize: 11; elide: Text.ElideRight; Layout.maximumWidth: 250 }
-                            }
-                        }
-
-                        Item { Layout.fillHeight: true }
-                    }
-
-                    // ========================================================
-                    // TAB 3: WI-FI & NETWORK (KAPSUL LONJONG + ORB SCAN)
-                    // ========================================================
-                    ColumnLayout {
-                        anchors.fill: parent
-                        spacing: 12
-                        visible: shellRoot.settingsTab === "wifi"
-                        opacity: visible ? 1.0 : 0.0
-                        Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 10
-
-                            // Kapsul Toggle Wi-Fi
-                            Rectangle {
-                                Layout.fillWidth: true
-                                height: 54
-                                radius: 27
-                                border.width: 1.2
-                                border.color: shellRoot.wifiEnabled ? "#85FFFFFF" : "#48FFFFFF"
-                                gradient: Gradient {
-                                    GradientStop { position: 0.0; color: shellRoot.wifiEnabled ? "#D92B8EFF" : "#2EFFFFFF" }
-                                    GradientStop { position: 1.0; color: shellRoot.wifiEnabled ? "#AD0866E6" : "#14FFFFFF" }
-                                }
+                            SettingsGroup {
+                                Text { text: "Sesi & Daya"; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
 
                                 RowLayout {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 16
-                                    anchors.rightMargin: 18
-                                    spacing: 12
-
-                                    Text { text: "ᯤ"; color: "#FFFFFF"; font.pixelSize: 18; font.bold: true }
-                                    ColumnLayout {
-                                        Layout.fillWidth: true
-                                        spacing: 1
-                                        Text { text: "Wi-Fi"; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true }
-                                        Text { text: shellRoot.wifiName + " • IP " + shellRoot.localIpAddr; color: "#E5F2FF"; font.pixelSize: 10; elide: Text.ElideRight; Layout.fillWidth: true }
-                                    }
-                                    Text { text: shellRoot.wifiEnabled ? "ON" : "OFF"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: shellRoot.toggleWifi()
-                                }
-                            }
-
-                            // Tombol Bulat Kaca Rescan Wi-Fi
-                            Rectangle {
-                                width: 54; height: 54; radius: 27
-                                border.width: 1.2
-                                border.color: "#4CFFFFFF"
-                                visible: shellRoot.wifiEnabled
-                                gradient: Gradient {
-                                    GradientStop { position: 0.0; color: "#30FFFFFF" }
-                                    GradientStop { position: 1.0; color: "#14FFFFFF" }
-                                }
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: shellRoot.wifiScanning ? "…" : "↻"
-                                    color: "#FFFFFF"
-                                    font.pixelSize: 18
-                                    font.bold: true
-                                }
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: shellRoot.scanWifiNetworks()
-                                }
-                            }
-                        }
-
-                        // Kapsul Input Sandi Wi-Fi
-                        Rectangle {
-                            Layout.fillWidth: true
-                            height: 48
-                            radius: 24
-                            color: "#2EFFFFFF"
-                            border.width: 1.2
-                            border.color: "#66A1C6FF"
-                            visible: shellRoot.wifiPasswordTarget !== ""
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: 16
-                                anchors.rightMargin: 8
-                                spacing: 8
-
-                                TextInput {
-                                    id: setWifiPassField
                                     Layout.fillWidth: true
-                                    echoMode: TextInput.Password
-                                    color: "#FFFFFF"
-                                    font.pixelSize: 12
-                                    onAccepted: shellRoot.connectWifi(shellRoot.wifiPasswordTarget, text)
-                                    Text {
-                                        anchors.fill: parent
-                                        verticalAlignment: Text.AlignVCenter
-                                        text: "Sandi untuk " + shellRoot.wifiPasswordTarget + "..."
-                                        color: "#C7C7CC"
-                                        font.pixelSize: 11
-                                        visible: setWifiPassField.text === ""
-                                    }
-                                }
-
-                                Rectangle {
-                                    height: 34
-                                    width: 96
-                                    radius: 17
-                                    color: "#0A84FF"
-                                    Text { anchors.centerIn: parent; text: "Hubungkan"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: shellRoot.connectWifi(shellRoot.wifiPasswordTarget, setWifiPassField.text)
-                                    }
-                                }
-                            }
-                        }
-
-                        // Daftar Jaringan Wi-Fi (Kapsul Lonjong)
-                        ListView {
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            clip: true
-                            spacing: 8
-                            visible: shellRoot.wifiEnabled
-                            model: shellRoot.wifiNetworks
-
-                            delegate: Rectangle {
-                                width: ListView.view.width
-                                height: 46
-                                radius: 23
-                                border.width: 1.1
-                                border.color: modelData.connected ? "#80FFFFFF" : "#30FFFFFF"
-                                gradient: Gradient {
-                                    GradientStop { position: 0.0; color: modelData.connected ? "#CC2B8EFF" : (wPillM.containsMouse ? "#2CFFFFFF" : "#1CFFFFFF") }
-                                    GradientStop { position: 1.0; color: modelData.connected ? "#990866E6" : "#0EFFFFFF" }
-                                }
-
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 14
-                                    anchors.rightMargin: 16
                                     spacing: 10
 
-                                    Rectangle {
-                                        width: 26; height: 26; radius: 13
-                                        color: "#33FFFFFF"
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: modelData.connected ? "✓" : "ᯤ"
-                                            color: "#FFFFFF"
-                                            font.pixelSize: 11
-                                            font.bold: true
+                                    Repeater {
+                                        model: [
+                                            { label: "Lock Screen", act: "lock", cmd: "" },
+                                            { label: "Sleep", act: "sleep", cmd: "sleep 0.25; systemctl suspend" },
+                                            { label: "Restart...", act: "reboot", cmd: "systemctl reboot || loginctl reboot" },
+                                            { label: "Shut Down...", act: "poweroff", cmd: "systemctl poweroff || loginctl poweroff" }
+                                        ]
+
+                                        Rectangle {
+                                            Layout.fillWidth: true
+                                            height: 36
+                                            radius: 9
+                                            color: (modelData.act === "poweroff" || modelData.act === "reboot") ? ThemeTokens.inputBg : ThemeTokens.accentSoft
+                                            border.width: 1
+                                            border.color: (modelData.act === "poweroff" || modelData.act === "reboot") ? ThemeTokens.borderSubtle : ThemeTokens.accent
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: modelData.label
+                                                color: (modelData.act === "poweroff" || modelData.act === "reboot") ? ThemeTokens.danger : ThemeTokens.textPrimary
+                                                font.pixelSize: 11
+                                                font.weight: Font.DemiBold
+                                            }
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: {
+                                                    if (modelData.act === "lock") {
+                                                        shellRoot.closePopups();
+                                                        shellRoot.sessionLocked = true;
+                                                    } else if (modelData.act === "sleep") {
+                                                        shellRoot.closePopups();
+                                                        shellRoot.runCmd(modelData.cmd);
+                                                    } else {
+                                                        // Buka modal konfirmasi daya yang sama di MenuPopups
+                                                        shellRoot.closePopups();
+                                                        if (typeof modRoot !== "undefined") {
+                                                            modRoot.pendingPowerLabel = modelData.label;
+                                                            modRoot.pendingPowerCmd = modelData.cmd;
+                                                        } else {
+                                                            shellRoot.runCmd(modelData.cmd);
+                                                        }
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
-
-                                    Text {
-                                        Layout.fillWidth: true
-                                        text: modelData.ssid
-                                        color: "#FFFFFF"
-                                        font.pixelSize: 12
-                                        font.bold: modelData.connected
-                                        elide: Text.ElideRight
-                                    }
-
-                                    Text {
-                                        text: (modelData.secured ? "🔒 " : "") + modelData.signal + "%"
-                                        color: "#E5E5EA"
-                                        font.pixelSize: 11
-                                    }
-                                }
-
-                                MouseArea {
-                                    id: wPillM
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        if (modelData.connected) return;
-                                        if (modelData.secured) {
-                                            shellRoot.wifiPasswordTarget = modelData.ssid;
-                                            setWifiPassField.text = "";
-                                            setWifiPassField.forceActiveFocus();
-                                        }
-                                        shellRoot.connectWifi(modelData.ssid, "");
-                                    }
                                 }
                             }
                         }
 
-                        Item { Layout.fillHeight: true; visible: !shellRoot.wifiEnabled }
-                    }
-
-                    // ========================================================
-                    // TAB 4: BLUETOOTH (KAPSUL LONJONG + ORB SCAN)
-                    // ========================================================
-                    ColumnLayout {
-                        anchors.fill: parent
-                        spacing: 12
-                        visible: shellRoot.settingsTab === "bluetooth"
-                        opacity: visible ? 1.0 : 0.0
-                        Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 10
-
-                            Rectangle {
-                                Layout.fillWidth: true
-                                height: 54
-                                radius: 27
-                                border.width: 1.2
-                                border.color: shellRoot.btEnabled ? "#85FFFFFF" : "#48FFFFFF"
-                                gradient: Gradient {
-                                    GradientStop { position: 0.0; color: shellRoot.btEnabled ? "#D92B8EFF" : "#2EFFFFFF" }
-                                    GradientStop { position: 1.0; color: shellRoot.btEnabled ? "#AD0866E6" : "#14FFFFFF" }
-                                }
-
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 16
-                                    anchors.rightMargin: 18
-                                    spacing: 12
-
-                                    Text { text: "ᛒ"; color: "#FFFFFF"; font.pixelSize: 18; font.bold: true }
-                                    ColumnLayout {
-                                        Layout.fillWidth: true
-                                        spacing: 1
-                                        Text { text: "Bluetooth"; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true }
-                                        Text { text: shellRoot.btEnabled ? (shellRoot.btDeviceName !== "" ? "Terhubung: " + shellRoot.btDeviceName : "Siap dipasangkan") : "Bluetooth Nonaktif"; color: "#E5F2FF"; font.pixelSize: 10 }
-                                    }
-                                    Text { text: shellRoot.btEnabled ? "ON" : "OFF"; color: "#FFFFFF"; font.pixelSize: 11; font.bold: true }
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: shellRoot.toggleBluetooth()
-                                }
-                            }
-
-                            Rectangle {
-                                width: 54; height: 54; radius: 27
-                                border.width: 1.2
-                                border.color: "#4CFFFFFF"
-                                visible: shellRoot.btEnabled
-                                gradient: Gradient {
-                                    GradientStop { position: 0.0; color: "#30FFFFFF" }
-                                    GradientStop { position: 1.0; color: "#14FFFFFF" }
-                                }
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: shellRoot.btScanning ? "…" : "↻"
-                                    color: "#FFFFFF"
-                                    font.pixelSize: 18
-                                    font.bold: true
-                                }
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: shellRoot.scanBtDevices()
-                                }
-                            }
-                        }
-
-                        ListView {
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            clip: true
-                            spacing: 8
-                            visible: shellRoot.btEnabled
-                            model: shellRoot.btDevices
-
-                            delegate: Rectangle {
-                                width: ListView.view.width
-                                height: 48
-                                radius: 24
-                                border.width: 1.1
-                                border.color: modelData.connected ? "#80FFFFFF" : "#30FFFFFF"
-                                gradient: Gradient {
-                                    GradientStop { position: 0.0; color: modelData.connected ? "#CC2B8EFF" : (btPillM.containsMouse ? "#2CFFFFFF" : "#1CFFFFFF") }
-                                    GradientStop { position: 1.0; color: modelData.connected ? "#990866E6" : "#0EFFFFFF" }
-                                }
-
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 14
-                                    anchors.rightMargin: 16
-                                    spacing: 10
-
-                                    Rectangle {
-                                        width: 28; height: 28; radius: 14
-                                        color: "#33FFFFFF"
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: modelData.connected ? "✓" : "ᛒ"
-                                            color: "#FFFFFF"
-                                            font.pixelSize: 12
-                                            font.bold: true
-                                        }
-                                    }
-
-                                    Text {
-                                        Layout.fillWidth: true
-                                        text: modelData.name
-                                        color: "#FFFFFF"
-                                        font.pixelSize: 12
-                                        font.bold: modelData.connected
-                                        elide: Text.ElideRight
-                                    }
-
-                                    Text {
-                                        text: shellRoot.btBusyMac === modelData.mac ? "Proses..." : (modelData.connected ? "Terhubung" : "Hubungkan")
-                                        color: modelData.connected ? "#32D74B" : "#E5E5EA"
-                                        font.pixelSize: 11
-                                        font.bold: true
-                                    }
-                                }
-
-                                MouseArea {
-                                    id: btPillM
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: shellRoot.toggleBtDevice(modelData.mac, modelData.connected)
-                                }
-                            }
-                        }
-
-                        Item { Layout.fillHeight: true; visible: !shellRoot.btEnabled }
-                    }
-
-                    // ========================================================
-                    // TAB 5: POWER & SYSTEM (PILL PROFILES + POWER ORBS)
-                    // ========================================================
-                    ColumnLayout {
-                        anchors.fill: parent
-                        spacing: 14
-                        visible: shellRoot.settingsTab === "power"
-                        opacity: visible ? 1.0 : 0.0
-                        Behavior on opacity { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
-
-                        Text { text: "Power & System"; color: "#FFFFFF"; font.pixelSize: 17; font.bold: true }
-
-                        // Kapsul Status Baterai
-                        Rectangle {
-                            Layout.fillWidth: true
-                            height: 58
-                            radius: 29
-                            color: "#22FFFFFF"
-                            border.width: 1.2
-                            border.color: "#4CFFFFFF"
-                            clip: true
-
-                            Rectangle {
-                                width: shellRoot.batteryPercent >= 0 ? Math.max(58, parent.width * (shellRoot.batteryPercent / 100)) : parent.width
-                                height: 58
-                                radius: 29
-                                gradient: Gradient {
-                                    GradientStop { position: 0.0; color: shellRoot.batteryStatus === "Charging" ? "#5532D74B" : "#552E94FF" }
-                                    GradientStop { position: 1.0; color: "#22FFFFFF" }
-                                }
-                            }
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: 18
-                                anchors.rightMargin: 18
-                                Text { text: shellRoot.batteryStatus === "Charging" ? "⚡" : "🔋"; font.pixelSize: 18 }
-                                Text {
-                                    text: shellRoot.batteryPercent >= 0 ? ("Baterai " + shellRoot.batteryPercent + "% (" + shellRoot.batteryStatus + ")") : "Daya Listrik Langsung (AC)"
-                                    color: "#FFFFFF"
-                                    font.pixelSize: 13
-                                    font.bold: true
-                                }
-                                Item { Layout.fillWidth: true }
-                                Text { text: "Up " + shellRoot.sysSpecs.uptimeStr; color: "#E5E5EA"; font.pixelSize: 11 }
-                            }
-                        }
-
-                        // 3 Pil Mode Performa CPU
-                        Text { text: "Mode Performa Daya"; color: "#D1D1D6"; font.pixelSize: 11; font.bold: true }
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 10
-
-                            Repeater {
-                                model: [
-                                    { id: "power-saver", label: "Hemat Daya" },
-                                    { id: "balanced", label: "Seimbang" },
-                                    { id: "performance", label: "Performa" }
-                                ]
-
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    height: 44
-                                    radius: 22
-                                    property bool active: shellRoot.powerProfile === modelData.id
-                                    border.width: 1.2
-                                    border.color: active ? "#85FFFFFF" : "#38FFFFFF"
-                                    gradient: Gradient {
-                                        GradientStop { position: 0.0; color: active ? "#D92B8EFF" : "#26FFFFFF" }
-                                        GradientStop { position: 1.0; color: active ? "#AD0866E6" : "#12FFFFFF" }
-                                    }
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: modelData.label
-                                        color: "#FFFFFF"
-                                        font.pixelSize: 12
-                                        font.bold: active
-                                    }
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: shellRoot.setPowerProfile(modelData.id)
-                                    }
-                                }
-                            }
-                        }
-
-                        // 4 Tombol Bulat Kaca Daya (Lock, Sleep, Restart, Shutdown)
-                        Text { text: "Kontrol Sesi & Daya"; color: "#D1D1D6"; font.pixelSize: 11; font.bold: true }
-
-                        RowLayout {
+                        // ====================================================
+                        // KATEGORI 7: BAHASA & PROFIL PENGGUNA
+                        // ====================================================
+                        ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 14
+                            visible: shellRoot.settingsTab === "language_profile"
 
-                            Repeater {
-                                model: [
-                                    { label: "Lock Screen", glyph: "🔒", cmd: "swaylock -f -c 000000 || loginctl lock-session" },
-                                    { label: "Sleep", glyph: "☾", cmd: "systemctl suspend" },
-                                    { label: "Restart", glyph: "↻", cmd: "systemctl reboot" },
-                                    { label: "Shut Down", glyph: "⏻", cmd: "systemctl poweroff" }
-                                ]
+                            Text {
+                                text: LocaleStrings.navLanguageProfile
+                                color: ThemeTokens.textPrimary
+                                font.pixelSize: 18
+                                font.bold: true
+                            }
 
-                                ColumnLayout {
+                            // Pilihan Bahasa Antarmuka (ID / EN)
+                            SettingsGroup {
+                                Text {
+                                    text: LocaleStrings.secLanguage
+                                    color: ThemeTokens.textPrimary
+                                    font.pixelSize: 13
+                                    font.weight: Font.DemiBold
+                                }
+
+                                RowLayout {
                                     Layout.fillWidth: true
-                                    spacing: 6
+                                    spacing: 12
+
+                                    Repeater {
+                                        model: [
+                                            { id: "id", title: "Bahasa Indonesia", sub: "Antarmuka & menu dalam Bahasa Indonesia", code: "ID" },
+                                            { id: "en", title: "English", sub: "Interface & menus in English", code: "EN" }
+                                        ]
+
+                                        Rectangle {
+                                            Layout.fillWidth: true
+                                            height: 62
+                                            radius: 12
+                                            property bool selected: ShellState.language === modelData.id
+                                            color: selected ? ThemeTokens.accentSoft : ThemeTokens.inputBg
+                                            border.width: selected ? 1.8 : 1
+                                            border.color: selected ? ThemeTokens.accent : ThemeTokens.borderSubtle
+
+                                            RowLayout {
+                                                anchors.fill: parent
+                                                anchors.margins: 12
+                                                spacing: 10
+
+                                                Rectangle {
+                                                    width: 32; height: 32; radius: 8
+                                                    color: selected ? ThemeTokens.accent : ThemeTokens.cardHoverBg
+                                                    Text {
+                                                        anchors.centerIn: parent
+                                                        text: modelData.code
+                                                        color: selected ? "#FFFFFF" : ThemeTokens.textPrimary
+                                                        font.pixelSize: 12
+                                                        font.bold: true
+                                                    }
+                                                }
+
+                                                ColumnLayout {
+                                                    Layout.fillWidth: true
+                                                    spacing: 1
+                                                    Text {
+                                                        text: modelData.title
+                                                        color: ThemeTokens.textPrimary
+                                                        font.pixelSize: 13
+                                                        font.weight: Font.DemiBold
+                                                    }
+                                                    Text {
+                                                        text: modelData.sub
+                                                        color: ThemeTokens.textSecondary
+                                                        font.pixelSize: 10
+                                                        elide: Text.ElideRight
+                                                        Layout.fillWidth: true
+                                                    }
+                                                }
+                                            }
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: {
+                                                    ShellState.setLanguage(modelData.id);
+                                                    ShellState.saveProfile(ShellState.profileName, ShellState.profileAvatar);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Kustomisasi Profil (Nama & Foto Avatar)
+                            SettingsGroup {
+                                Text {
+                                    text: LocaleStrings.secProfile
+                                    color: ThemeTokens.textPrimary
+                                    font.pixelSize: 13
+                                    font.weight: Font.DemiBold
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 14
 
                                     Rectangle {
-                                        Layout.alignment: Qt.AlignHCenter
-                                        width: 62
-                                        height: 62
-                                        radius: 31
-                                        border.width: 1.2
-                                        border.color: pwrOrbM.containsMouse ? "#80FFFFFF" : "#48FFFFFF"
-                                        scale: pwrOrbM.pressed ? 0.92 : (pwrOrbM.containsMouse ? 1.05 : 1.0)
-                                        gradient: Gradient {
-                                            GradientStop { position: 0.0; color: pwrOrbM.containsMouse ? "#45FFFFFF" : "#2CFFFFFF" }
-                                            GradientStop { position: 1.0; color: "#14FFFFFF" }
+                                        width: 64; height: 64; radius: 32
+                                        color: ThemeTokens.accent
+                                        border.width: 2
+                                        border.color: ThemeTokens.borderStrong
+                                        clip: true
+
+                                        Image {
+                                            id: previewAvatarImg
+                                            anchors.fill: parent
+                                            source: ShellState.profileAvatar !== "" ? (ShellState.profileAvatar.startsWith("/") ? ("file://" + ShellState.profileAvatar) : ShellState.profileAvatar) : ""
+                                            fillMode: Image.PreserveAspectCrop
+                                            smooth: true
+                                            visible: status === Image.Ready
                                         }
-                                        Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
 
                                         Text {
                                             anchors.centerIn: parent
-                                            text: modelData.glyph
+                                            text: ShellState.profileInitials
                                             color: "#FFFFFF"
                                             font.pixelSize: 20
-                                        }
-
-                                        MouseArea {
-                                            id: pwrOrbM
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: {
-                                                shellRoot.closePopups();
-                                                shellRoot.runCmd(modelData.cmd);
-                                            }
+                                            font.bold: true
+                                            visible: previewAvatarImg.status !== Image.Ready
                                         }
                                     }
 
-                                    Text {
-                                        Layout.alignment: Qt.AlignHCenter
-                                        text: modelData.label
-                                        color: "#E5E5EA"
-                                        font.pixelSize: 11
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 8
+
+                                        Text {
+                                            text: LocaleStrings.t("Nama Tampilan", "Display Name")
+                                            color: ThemeTokens.textSecondary
+                                            font.pixelSize: 11
+                                        }
+
+                                        Rectangle {
+                                            Layout.fillWidth: true
+                                            height: 34
+                                            radius: 8
+                                            color: ThemeTokens.inputBg
+                                            border.width: 1
+                                            border.color: profileNameInput.activeFocus ? ThemeTokens.accent : ThemeTokens.borderSubtle
+
+                                            TextInput {
+                                                id: profileNameInput
+                                                anchors.fill: parent
+                                                anchors.leftMargin: 10
+                                                anchors.rightMargin: 10
+                                                verticalAlignment: TextInput.AlignVCenter
+                                                text: ShellState.profileName
+                                                color: ThemeTokens.textPrimary
+                                                font.pixelSize: 13
+                                                clip: true
+                                                onAccepted: ShellState.saveProfile(text, profileAvatarInput.text)
+                                            }
+                                        }
+
+                                        Text {
+                                            text: LocaleStrings.t("Lokasi File / URL Foto Profil", "Avatar File Path / URL")
+                                            color: ThemeTokens.textSecondary
+                                            font.pixelSize: 11
+                                        }
+
+                                        RowLayout {
+                                            Layout.fillWidth: true
+                                            spacing: 8
+
+                                            Rectangle {
+                                                Layout.fillWidth: true
+                                                height: 34
+                                                radius: 8
+                                                color: ThemeTokens.inputBg
+                                                border.width: 1
+                                                border.color: profileAvatarInput.activeFocus ? ThemeTokens.accent : ThemeTokens.borderSubtle
+
+                                                TextInput {
+                                                    id: profileAvatarInput
+                                                    anchors.fill: parent
+                                                    anchors.leftMargin: 10
+                                                    anchors.rightMargin: 10
+                                                    verticalAlignment: TextInput.AlignVCenter
+                                                    text: ShellState.profileAvatar
+                                                    color: ThemeTokens.textPrimary
+                                                    font.pixelSize: 12
+                                                    clip: true
+                                                    onAccepted: ShellState.saveProfile(profileNameInput.text, text)
+
+                                                    Text {
+                                                        anchors.fill: parent
+                                                        verticalAlignment: Text.AlignVCenter
+                                                        text: "/home/user/Pictures/avatar.png"
+                                                        color: ThemeTokens.textMuted
+                                                        font.pixelSize: 11
+                                                        visible: profileAvatarInput.text === ""
+                                                    }
+                                                }
+                                            }
+
+                                            Rectangle {
+                                                height: 34
+                                                width: saveProfTxt.implicitWidth + 24
+                                                radius: 8
+                                                color: ThemeTokens.accent
+
+                                                Text {
+                                                    id: saveProfTxt
+                                                    anchors.centerIn: parent
+                                                    text: LocaleStrings.t("Simpan", "Save")
+                                                    color: "#FFFFFF"
+                                                    font.pixelSize: 12
+                                                    font.weight: Font.DemiBold
+                                                }
+
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: ShellState.saveProfile(profileNameInput.text, profileAvatarInput.text)
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
-
-                        Item { Layout.fillHeight: true }
                     }
                 }
             }
         }
-
+    }
 }

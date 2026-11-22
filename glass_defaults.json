@@ -1,0 +1,10 @@
+{
+  "macOpacity": 0.41,
+  "macFrost": 0.09,
+  "aeroBaseOpacity": 0.42,
+  "aeroSheenBright": 0.12,
+  "aeroSheenWidth": 0.58,
+  "liquidOpacity": 0.18,
+  "liquidRefraction": 0.79,
+  "liquidFringing": 0.41
+}

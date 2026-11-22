@@ -24,16 +24,23 @@ Item {
             anchors.rightMargin: 10
             width: 318
             height: wifiPopupCol.implicitHeight + 24
-            radius: 22
-            color: "transparent"
+            topLeftRadius: 22
+            topRightRadius: 22
+            bottomLeftRadius: 22
+            bottomRightRadius: 22
+            color: ShellState.isSolid ? ThemeTokens.windowBg : "transparent"
             Canvas {
-                anchors.fill: parent
+                                x: 0
+                y: 0
+                width: parent.width
+                height: parent.height
                 z: -1
+                visible: !ShellState.isSolid
                 property real dO: shellRoot.aeroOpacity
                 property real dR: shellRoot.aeroReflection
                 property real dF: shellRoot.glassFade
                 property string dW: shellRoot.activeGlassWall
-                property string dSt: shellRoot.glassStyle
+                property string dSt: ShellState.surfaceMode + "_" + ShellState.liquidVariant + "_" + ShellState.colorScheme
                 property real dTh: shellRoot.activeGlassDetail
                 onDOChanged: requestPaint()
                 onDRChanged: requestPaint()
@@ -41,15 +48,17 @@ Item {
                 onDWChanged: requestPaint()
                 onDStChanged: requestPaint()
                 onDThChanged: requestPaint()
+                onWidthChanged: requestPaint()
+                onHeightChanged: requestPaint()
                 onPaint: {
                     let sw = Screen.width || 1366;
-                    let sh = Screen.height || 768;
-                    let pos = parent.mapToItem(null, 0, 0);
-                    shellRoot.drawGlobalAeroGlass(getContext("2d"), width, height, parent.radius, pos.x, pos.y, sw, sh, false, false);
+                        let sh = Screen.height || 768;
+                        let pos = parent.mapToItem(null, 0, 0);
+                        shellRoot.drawGlobalAeroGlass(getContext("2d"), width, height, 22, pos.x, pos.y, sw, sh, false, false);
                 }
             }
             border.width: 1
-            border.color: "#38FFFFFF"
+            border.color: ThemeTokens.borderStrong
             visible: !shellRoot.preWarmDone || (shellRoot.activePopup === "wifi" || opacity > 0.01)
 
             MouseArea { anchors.fill: parent; z: 0 }
@@ -108,14 +117,14 @@ Item {
                     Rectangle {
                         width: 26; height: 26; radius: 13
                         color: backWifiM.containsMouse ? "#2EFFFFFF" : "#1AFFFFFF"
-                        Text { anchors.centerIn: parent; text: "‹"; color: "#F5F5F7"; font.pixelSize: 15; font.bold: true }
+                        Text { anchors.centerIn: parent; text: "‹"; color: ThemeTokens.textPrimary; font.pixelSize: 15; font.bold: true }
                         MouseArea {
                             id: backWifiM; anchors.fill: parent; z: 5; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                             onPressed: shellRoot.switchPopup("cc")
                         }
                     }
 
-                    Text { text: "Wi-Fi Sekitar"; color: "#F5F5F7"; font.pixelSize: 13; font.bold: true }
+                    Text { text: "Wi-Fi Sekitar"; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.bold: true }
                     Item { Layout.fillWidth: true }
 
                     Rectangle {
@@ -138,7 +147,7 @@ Item {
                             x: shellRoot.wifiEnabled ? 20 : 2
                             y: 2
                             width: 20; height: 20; radius: 10
-                            color: "#FFFFFF"
+                            color: ThemeTokens.textPrimary
                             Behavior on x { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
                         }
 
@@ -155,7 +164,7 @@ Item {
                     width: 290
                     height: 68
                     radius: 14
-                    color: "#26FFFFFF"
+                    color: ThemeTokens.inputBg
                     border.width: 1
                     border.color: "#44A1C6FF"
                     visible: shellRoot.wifiPasswordTarget !== ""
@@ -167,7 +176,7 @@ Item {
 
                         Text {
                             text: "Sandi untuk " + shellRoot.wifiPasswordTarget
-                            color: "#F5F5F7"
+                            color: ThemeTokens.textPrimary
                             font.pixelSize: 11
                             font.bold: true
                             elide: Text.ElideRight
@@ -184,13 +193,13 @@ Item {
                                 height: 28
                                 echoMode: TextInput.Password
                                 placeholderText: "Masukkan sandi Wi-Fi..."
-                                color: "#FFFFFF"
+                                color: ThemeTokens.textPrimary
                                 font.pixelSize: 11
                                 background: Rectangle {
                                     radius: 8
                                     color: "#44000000"
                                     border.width: 1
-                                    border.color: "#33FFFFFF"
+                                    border.color: ThemeTokens.borderStrong
                                 }
                                 onAccepted: shellRoot.connectWifi(shellRoot.wifiPasswordTarget, text)
                             }
@@ -200,7 +209,7 @@ Item {
                                 height: 28
                                 radius: 8
                                 color: "#0A84FF"
-                                Text { anchors.centerIn: parent; text: "Hubungkan"; color: "#FFFFFF"; font.pixelSize: 10; font.bold: true }
+                                Text { anchors.centerIn: parent; text: "Hubungkan"; color: ThemeTokens.textPrimary; font.pixelSize: 10; font.bold: true }
                                 MouseArea {
                                     anchors.fill: parent
                                     z: 5
@@ -223,7 +232,7 @@ Item {
                         width: 290
                         horizontalAlignment: Text.AlignHCenter
                         text: shellRoot.wifiScanning ? "Memindai jaringan Wi-Fi..." : "Tidak ada jaringan ditemukan"
-                        color: "#8E8E93"
+                        color: ThemeTokens.textMuted
                         font.pixelSize: 11
                         visible: shellRoot.wifiNetworks.length === 0
                     }
@@ -260,7 +269,7 @@ Item {
                                     Text {
                                         anchors.centerIn: parent
                                         text: modelData.connected ? "✓" : "ᯤ"
-                                        color: "#FFFFFF"
+                                        color: ThemeTokens.textPrimary
                                         font.pixelSize: 11
                                         font.bold: true
                                     }
@@ -270,7 +279,7 @@ Item {
                                     anchors.verticalCenter: parent.verticalCenter
                                     width: 175
                                     text: modelData.ssid
-                                    color: "#F5F5F7"
+                                    color: ThemeTokens.textPrimary
                                     font.pixelSize: 12
                                     font.weight: modelData.connected ? Font.Bold : Font.Normal
                                     elide: Text.ElideRight
@@ -279,7 +288,7 @@ Item {
                                 Text {
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: (modelData.secured ? "🔒 " : "") + modelData.signal + "%"
-                                    color: "#AEAEB2"
+                                    color: ThemeTokens.textSecondary
                                     font.pixelSize: 10
                                 }
                             }
@@ -293,11 +302,14 @@ Item {
                                 onClicked: {
                                     if (modelData.connected) return;
                                     if (modelData.secured) {
+                                        shellRoot.wifiStatusMsg = "";
                                         shellRoot.wifiPasswordTarget = modelData.ssid;
                                         wifiPassField.text = "";
                                         wifiPassField.forceActiveFocus();
+                                    } else {
+                                        shellRoot.wifiPasswordTarget = "";
+                                        shellRoot.connectWifi(modelData.ssid, "");
                                     }
-                                    shellRoot.connectWifi(modelData.ssid, "");
                                 }
                             }
                         }
@@ -308,13 +320,14 @@ Item {
                     width: 290
                     horizontalAlignment: Text.AlignHCenter
                     text: "Wi-Fi dimatikan. Aktifkan sakelar di atas untuk memindai."
-                    color: "#8E8E93"
+                    color: ThemeTokens.textMuted
                     font.pixelSize: 11
                     wrapMode: Text.WordWrap
                     visible: !shellRoot.wifiEnabled
                 }
             }
         }
+
         Rectangle {
             id: btCard
             z: 10
@@ -324,16 +337,23 @@ Item {
             anchors.rightMargin: 10
             width: 318
             height: btPopupCol.implicitHeight + 24
-            radius: 22
-            color: "transparent"
+            topLeftRadius: 22
+            topRightRadius: 22
+            bottomLeftRadius: 22
+            bottomRightRadius: 22
+            color: ShellState.isSolid ? ThemeTokens.windowBg : "transparent"
             Canvas {
-                anchors.fill: parent
+                                x: 0
+                y: 0
+                width: parent.width
+                height: parent.height
                 z: -1
+                visible: !ShellState.isSolid
                 property real dO: shellRoot.aeroOpacity
                 property real dR: shellRoot.aeroReflection
                 property real dF: shellRoot.glassFade
                 property string dW: shellRoot.activeGlassWall
-                property string dSt: shellRoot.glassStyle
+                property string dSt: ShellState.surfaceMode + "_" + ShellState.liquidVariant + "_" + ShellState.colorScheme
                 property real dTh: shellRoot.activeGlassDetail
                 onDOChanged: requestPaint()
                 onDRChanged: requestPaint()
@@ -341,15 +361,17 @@ Item {
                 onDWChanged: requestPaint()
                 onDStChanged: requestPaint()
                 onDThChanged: requestPaint()
+                onWidthChanged: requestPaint()
+                onHeightChanged: requestPaint()
                 onPaint: {
                     let sw = Screen.width || 1366;
-                    let sh = Screen.height || 768;
-                    let pos = parent.mapToItem(null, 0, 0);
-                    shellRoot.drawGlobalAeroGlass(getContext("2d"), width, height, parent.radius, pos.x, pos.y, sw, sh, false, false);
+                        let sh = Screen.height || 768;
+                        let pos = parent.mapToItem(null, 0, 0);
+                        shellRoot.drawGlobalAeroGlass(getContext("2d"), width, height, 22, pos.x, pos.y, sw, sh, false, false);
                 }
             }
             border.width: 1
-            border.color: "#38FFFFFF"
+            border.color: ThemeTokens.borderStrong
             visible: !shellRoot.preWarmDone || (shellRoot.activePopup === "bt" || opacity > 0.01)
 
             MouseArea { anchors.fill: parent; z: 0 }
@@ -408,14 +430,14 @@ Item {
                     Rectangle {
                         width: 26; height: 26; radius: 13
                         color: backBtM.containsMouse ? "#2EFFFFFF" : "#1AFFFFFF"
-                        Text { anchors.centerIn: parent; text: "‹"; color: "#F5F5F7"; font.pixelSize: 15; font.bold: true }
+                        Text { anchors.centerIn: parent; text: "‹"; color: ThemeTokens.textPrimary; font.pixelSize: 15; font.bold: true }
                         MouseArea {
                             id: backBtM; anchors.fill: parent; z: 5; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                             onPressed: shellRoot.switchPopup("cc")
                         }
                     }
 
-                    Text { text: "Bluetooth Tersedia"; color: "#F5F5F7"; font.pixelSize: 13; font.bold: true }
+                    Text { text: "Bluetooth Tersedia"; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.bold: true }
                     Item { Layout.fillWidth: true }
 
                     Rectangle {
@@ -438,7 +460,7 @@ Item {
                             x: shellRoot.btEnabled ? 20 : 2
                             y: 2
                             width: 20; height: 20; radius: 10
-                            color: "#FFFFFF"
+                            color: ThemeTokens.textPrimary
                             Behavior on x { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
                         }
 
@@ -460,7 +482,7 @@ Item {
                         width: 290
                         horizontalAlignment: Text.AlignHCenter
                         text: shellRoot.btScanning ? "Memindai perangkat Bluetooth..." : "Tidak ada perangkat ditemukan"
-                        color: "#8E8E93"
+                        color: ThemeTokens.textMuted
                         font.pixelSize: 11
                         visible: shellRoot.btDevices.length === 0
                     }
@@ -497,7 +519,7 @@ Item {
                                     Text {
                                         anchors.centerIn: parent
                                         text: modelData.connected ? "✓" : "ᛒ"
-                                        color: "#FFFFFF"
+                                        color: ThemeTokens.textPrimary
                                         font.pixelSize: 11
                                         font.bold: true
                                     }
@@ -507,7 +529,7 @@ Item {
                                     anchors.verticalCenter: parent.verticalCenter
                                     width: 162
                                     text: modelData.name
-                                    color: "#F5F5F7"
+                                    color: ThemeTokens.textPrimary
                                     font.pixelSize: 12
                                     font.weight: modelData.connected ? Font.Bold : Font.Normal
                                     elide: Text.ElideRight
@@ -538,7 +560,7 @@ Item {
                     width: 290
                     horizontalAlignment: Text.AlignHCenter
                     text: "Bluetooth dimatikan. Aktifkan sakelar di atas untuk memindai perangkat."
-                    color: "#8E8E93"
+                    color: ThemeTokens.textMuted
                     font.pixelSize: 11
                     wrapMode: Text.WordWrap
                     visible: !shellRoot.btEnabled

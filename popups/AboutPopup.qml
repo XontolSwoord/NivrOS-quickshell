@@ -58,9 +58,9 @@ Item {
             width: 760
             height: 468
             radius: 28
-            color: "#9E12131B"
+            color: ThemeTokens.windowBg
             border.width: 1
-            border.color: "#44FFFFFF"
+            border.color: ThemeTokens.borderStrong
             clip: true
             visible: !shellRoot.preWarmDone || (shellRoot.activePopup === "about" || opacity > 0.01)
 
@@ -70,11 +70,12 @@ Item {
             Canvas {
                 anchors.fill: parent
                 z: 0
+                visible: !ShellState.isSolid
                 property real dO: shellRoot.aeroOpacity
                 property real dR: shellRoot.aeroReflection
                 property real dF: shellRoot.glassFade
                 property string dW: shellRoot.activeGlassWall
-                property string dSt: shellRoot.glassStyle
+                property string dSt: ShellState.surfaceMode + "_" + ShellState.liquidVariant + "_" + ShellState.colorScheme
                 property real dTh: shellRoot.activeGlassDetail
                 onDOChanged: requestPaint()
                 onDRChanged: requestPaint()
@@ -98,7 +99,7 @@ Item {
                 anchors.leftMargin: 22
                 anchors.rightMargin: 22
                 height: 1
-                color: "#38FFFFFF"
+                color: ThemeTokens.cardHoverBg
             }
 
 
@@ -188,7 +189,7 @@ Item {
 
                     Text {
                         text: "About System"
-                        color: "#F5F5F7"
+                        color: ThemeTokens.textPrimary
                         font.pixelSize: 15
                         font.bold: true
                     }
@@ -197,14 +198,14 @@ Item {
                         height: 21
                         width: badgeRomTxt.implicitWidth + 14
                         radius: 10.5
-                        color: "#2EFFFFFF"
+                        color: ThemeTokens.cardHoverBg
                         border.width: 1
-                        border.color: "#44FFFFFF"
+                        border.color: ThemeTokens.borderStrong
                         Text {
                             id: badgeRomTxt
                             anchors.centerIn: parent
-                            text: "Kairo 26.04"
-                            color: "#FFFFFF"
+                            text: ShellState.osFullName
+                            color: ThemeTokens.textPrimary
                             font.pixelSize: 10
                             font.bold: true
                         }
@@ -238,14 +239,14 @@ Item {
                         radius: 13
                         color: copyAllM.containsMouse ? "#38FFFFFF" : "#22FFFFFF"
                         border.width: 1
-                        border.color: "#36FFFFFF"
+                        border.color: ThemeTokens.borderStrong
                         Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
 
                         Text {
                             id: copyAllTxt
                             anchors.centerIn: parent
                             text: "Copy All Specs"
-                            color: "#F5F5F7"
+                            color: ThemeTokens.textPrimary
                             font.pixelSize: 11
                             font.weight: Font.Medium
                         }
@@ -298,7 +299,7 @@ Item {
                             radius: 22
                             color: "#22222C"
                             border.width: 1
-                            border.color: "#44FFFFFF"
+                            border.color: ThemeTokens.borderStrong
                             clip: true
                             scale: bannerM.pressed ? 0.97 : 1.0
                             Behavior on scale { SpringAnimation { mass: 1.05; spring: 5.2; damping: 0.44; epsilon: 0.001 } }
@@ -332,12 +333,12 @@ Item {
                                 radius: 14
                                 color: bannerM.containsMouse ? "#66FFFFFF" : "#34000000"
                                 border.width: 1
-                                border.color: "#44FFFFFF"
+                                border.color: ThemeTokens.borderStrong
 
                                 Text {
                                     anchors.centerIn: parent
                                     text: "↻"
-                                    color: "#FFFFFF"
+                                    color: ThemeTokens.textPrimary
                                     font.pixelSize: 13
                                     font.bold: true
                                 }
@@ -353,7 +354,7 @@ Item {
                                 Text {
                                     anchors.centerIn: parent
                                     anchors.verticalCenterOffset: 2
-                                    text: "KAIRO DESKTOP"
+                                    text: ShellState.osFullName.toUpperCase()
                                     color: "#A6000000"
                                     font.pixelSize: 24
                                     font.weight: Font.Black
@@ -362,8 +363,8 @@ Item {
 
                                 Text {
                                     anchors.centerIn: parent
-                                    text: "KAIRO DESKTOP"
-                                    color: "#FFFFFF"
+                                    text: ShellState.osFullName.toUpperCase()
+                                    color: ThemeTokens.textPrimary
                                     font.pixelSize: 24
                                     font.weight: Font.Black
                                     font.letterSpacing: 1
@@ -385,7 +386,7 @@ Item {
                                 Text {
                                     anchors.centerIn: parent
                                     text: "FLUID TILING • GLASS EXPERIENCE"
-                                    color: "#F5F5F7"
+                                    color: ThemeTokens.textPrimary
                                     font.pixelSize: 9
                                     font.bold: true
                                     elide: Text.ElideRight
@@ -403,89 +404,67 @@ Item {
                             }
                         }
 
-                        // Kartu Developer / Maintainer ala Custom ROM
+                        // Kartu Developer NivrOS
                         Rectangle {
                             Layout.fillWidth: true
-                            height: 54
-                            radius: 16
-                            color: devCardM.containsMouse ? "#661C1E2B" : "#5214151E"
+                            height: 46
+                            radius: 14
+                            color: devM.containsMouse ? ThemeTokens.cardHoverBg : ThemeTokens.cardBg
                             border.width: 1
-                            border.color: "#36FFFFFF"
-                            Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
+                            border.color: ThemeTokens.borderSubtle
+                            Behavior on color { ColorAnimation { duration: 140 } }
 
                             RowLayout {
                                 anchors.fill: parent
-                                anchors.leftMargin: 10
+                                anchors.leftMargin: 12
                                 anchors.rightMargin: 12
                                 spacing: 10
 
-                                // Avatar Bulat dengan Inisial
                                 Rectangle {
-                                    width: 34
-                                    height: 34
-                                    radius: 17
-                                    gradient: Gradient {
-                                        GradientStop { position: 0.0; color: "#0A84FF" }
-                                        GradientStop { position: 1.0; color: "#BF5AF2" }
-                                    }
-
+                                    width: 26; height: 26; radius: 13
+                                    color: ThemeTokens.accent
                                     Text {
                                         anchors.centerIn: parent
-                                        text: "AR"
+                                        text: "XS"
                                         color: "#FFFFFF"
-                                        font.pixelSize: 12
+                                        font.pixelSize: 10
                                         font.bold: true
                                     }
                                 }
 
-                                // Nama Developer & Role
                                 ColumnLayout {
                                     Layout.fillWidth: true
                                     spacing: 1
-
                                     Text {
-                                        text: "Arip"
-                                        color: "#FFFFFF"
-                                        font.pixelSize: 12
-                                        font.bold: true
+                                        text: ShellState.osFullName + " • " + ShellState.developerName
+                                        color: ThemeTokens.textPrimary
+                                        font.pixelSize: 11
+                                        font.weight: Font.DemiBold
                                         elide: Text.ElideRight
                                         Layout.fillWidth: true
                                     }
-
                                     Text {
-                                        text: "Developer • Up " + shellRoot.sysSpecs.uptimeStr
-                                        color: "#C7C7CC"
+                                        text: ShellState.developerGithub
+                                        color: ThemeTokens.accent
                                         font.pixelSize: 10
                                         elide: Text.ElideRight
                                         Layout.fillWidth: true
                                     }
                                 }
 
-                                Rectangle {
-                                    height: 20
-                                    width: devBadgeTxt.implicitWidth + 12
-                                    radius: 10
-                                    color: "#26A1C6FF"
-                                    border.width: 1
-                                    border.color: "#44A1C6FF"
-
-                                    Text {
-                                        id: devBadgeTxt
-                                        anchors.centerIn: parent
-                                        text: "DEV"
-                                        color: "#A1C6FF"
-                                        font.pixelSize: 9
-                                        font.bold: true
-                                    }
+                                Text {
+                                    text: "↗"
+                                    color: ThemeTokens.textSecondary
+                                    font.pixelSize: 12
                                 }
                             }
 
                             MouseArea {
-                                id: devCardM
+                                id: devM
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: shellRoot.pickRandomWallpaper()
+                                onClicked: shellRoot.runCmd("xdg-open '" + ShellState.developerUrl + "' >/dev/null 2>&1 &")
                             }
                         }
                     }
@@ -513,7 +492,7 @@ Item {
                             radius: 22
                             color: "#5214151E"
                             border.width: 1
-                            border.color: "#36FFFFFF"
+                            border.color: ThemeTokens.borderStrong
 
                             ColumnLayout {
                                 anchors.fill: parent
@@ -542,10 +521,10 @@ Item {
                                         }
                                         ColumnLayout {
                                             Layout.fillWidth: true; spacing: 1
-                                            Text { text: shellRoot.sysSpecs.hostModel; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
-                                            Text { text: "Host: " + shellRoot.sysSpecs.userHost; color: "#C7C7CC"; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
+                                            Text { text: shellRoot.sysSpecs.hostModel; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
+                                            Text { text: "Host: " + shellRoot.sysSpecs.userHost; color: ThemeTokens.textSecondary; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
                                         }
-                                        Text { text: "›"; color: "#AEAEB2"; font.pixelSize: 16; font.bold: true }
+                                        Text { text: "›"; color: ThemeTokens.textSecondary; font.pixelSize: 16; font.bold: true }
                                     }
 
                                     MouseArea {
@@ -582,10 +561,10 @@ Item {
                                         }
                                         ColumnLayout {
                                             Layout.fillWidth: true; spacing: 1
-                                            Text { text: shellRoot.sysSpecs.osName; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
-                                            Text { text: "Kernel " + shellRoot.sysSpecs.kernel; color: "#C7C7CC"; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
+                                            Text { text: shellRoot.sysSpecs.osName; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
+                                            Text { text: "Kernel " + shellRoot.sysSpecs.kernel; color: ThemeTokens.textSecondary; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
                                         }
-                                        Text { text: "›"; color: "#AEAEB2"; font.pixelSize: 16; font.bold: true }
+                                        Text { text: "›"; color: ThemeTokens.textSecondary; font.pixelSize: 16; font.bold: true }
                                     }
 
                                     MouseArea {
@@ -622,10 +601,10 @@ Item {
                                         }
                                         ColumnLayout {
                                             Layout.fillWidth: true; spacing: 1
-                                            Text { text: shellRoot.sysSpecs.wmVer + " • " + shellRoot.sysSpecs.shellVer; color: "#FFFFFF"; font.pixelSize: 13; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
-                                            Text { text: "Wayland Custom Desktop Shell"; color: "#C7C7CC"; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
+                                            Text { text: shellRoot.sysSpecs.wmVer + " • " + shellRoot.sysSpecs.shellVer; color: ThemeTokens.textPrimary; font.pixelSize: 13; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
+                                            Text { text: "Wayland Custom Desktop Shell"; color: ThemeTokens.textSecondary; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
                                         }
-                                        Text { text: "›"; color: "#AEAEB2"; font.pixelSize: 16; font.bold: true }
+                                        Text { text: "›"; color: ThemeTokens.textSecondary; font.pixelSize: 16; font.bold: true }
                                     }
 
                                     MouseArea {
@@ -662,10 +641,10 @@ Item {
                                         }
                                         ColumnLayout {
                                             Layout.fillWidth: true; spacing: 1
-                                            Text { text: shellRoot.sysSpecs.cpuModel; color: "#FFFFFF"; font.pixelSize: 12; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
-                                            Text { text: shellRoot.sysSpecs.gpuModel + " (" + shellRoot.sysSpecs.displayInfo + ")"; color: "#C7C7CC"; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
+                                            Text { text: shellRoot.sysSpecs.cpuModel; color: ThemeTokens.textPrimary; font.pixelSize: 12; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
+                                            Text { text: shellRoot.sysSpecs.gpuModel + " (" + shellRoot.sysSpecs.displayInfo + ")"; color: ThemeTokens.textSecondary; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
                                         }
-                                        Text { text: "›"; color: "#AEAEB2"; font.pixelSize: 16; font.bold: true }
+                                        Text { text: "›"; color: ThemeTokens.textSecondary; font.pixelSize: 16; font.bold: true }
                                     }
 
                                     MouseArea {
@@ -704,15 +683,15 @@ Item {
                                             Layout.fillWidth: true; spacing: 4
                                             RowLayout {
                                                 Layout.fillWidth: true
-                                                Text { text: "RAM " + shellRoot.sysSpecs.ramUsed + " / " + shellRoot.sysSpecs.ramTotal; color: "#FFFFFF"; font.pixelSize: 12; font.bold: true }
+                                                Text { text: "RAM " + shellRoot.sysSpecs.ramUsed + " / " + shellRoot.sysSpecs.ramTotal; color: ThemeTokens.textPrimary; font.pixelSize: 12; font.bold: true }
                                                 Item { Layout.fillWidth: true }
-                                                Text { text: "Disk " + shellRoot.sysSpecs.diskUsed + " / " + shellRoot.sysSpecs.diskTotal; color: "#C7C7CC"; font.pixelSize: 11 }
+                                                Text { text: "Disk " + shellRoot.sysSpecs.diskUsed + " / " + shellRoot.sysSpecs.diskTotal; color: ThemeTokens.textSecondary; font.pixelSize: 11 }
                                             }
                                             Rectangle {
                                                 Layout.fillWidth: true
                                                 height: 5
                                                 radius: 2.5
-                                                color: "#33FFFFFF"
+                                                color: ThemeTokens.cardHoverBg
                                                 Rectangle {
                                                     width: Math.min(parent.width, parent.width * (shellRoot.sysSpecs.ramPct / 100))
                                                     height: 5
@@ -722,7 +701,7 @@ Item {
                                                 }
                                             }
                                         }
-                                        Text { text: "›"; color: "#AEAEB2"; font.pixelSize: 16; font.bold: true }
+                                        Text { text: "›"; color: ThemeTokens.textSecondary; font.pixelSize: 16; font.bold: true }
                                     }
 
                                     MouseArea {

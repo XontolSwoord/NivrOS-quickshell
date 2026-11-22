@@ -5,3 +5,13 @@ WeatherWidget 1.0 WeatherWidget.qml
 BatteryWidget 1.0 BatteryWidget.qml
 SysmonWidget 1.0 SysmonWidget.qml
 NotesWidget 1.0 NotesWidget.qml
+CalendarWidget 1.0 CalendarWidget.qml
+AnalogClockWidget 1.0 AnalogClockWidget.qml
+StorageWidget 1.0 StorageWidget.qml
+NetworkWidget 1.0 NetworkWidget.qml
+PomodoroWidget 1.0 PomodoroWidget.qml
+QuoteWidget 1.0 QuoteWidget.qml
+WorldClockWidget 1.0 WorldClockWidget.qml
+RemindersWidget 1.0 RemindersWidget.qml
+PhotoWidget 1.0 PhotoWidget.qml
+ShortcutsWidget 1.0 ShortcutsWidget.qml
