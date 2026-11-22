@@ -1,32 +1,34 @@
 # NivrOS-quickshell
 
-Desktop shell bergaya macOS + Liquid Glass berbasis **Quickshell** untuk **Niri** Wayland compositor.
+A macOS-inspired desktop shell with a Liquid Glass look, built on **Quickshell** for the **Niri** Wayland compositor.
+
+![NivrOS desktop](docs/desktop.png)
 
 ## Highlights
 
-- **Top Bar & Dynamic Island**: notifikasi interaktif, indikator media/OSD/recording/timer, mode adaptif/compact/expanded.
-- **Control Center, Popups & Settings**: tema (Solid / Liquid Glass, Dark / Light), notifikasi, audio/jaringan, info sistem.
-- **Dock & App Launcher**: launcher, dock responsif, lock screen.
-- **Wallpaper Transitions**: transisi wallpaper crossfade.
-- **Portable & Auto-Save**: path dinamis (`$HOME`) dan preferensi tersimpan lokal di `profile.json`.
+- **Top Bar & Dynamic Island**: interactive notifications, media/OSD/recording/timer indicators, adaptive/compact/expanded modes.
+- **Control Center, Popups & Settings**: themes (Solid / Liquid Glass, Dark / Light), notifications, audio/network, system info.
+- **Dock & App Launcher**: launcher, responsive dock, lock screen.
+- **Wallpaper Transitions**: crossfade wallpaper transitions.
+- **Portable & Auto-Save**: dynamic paths (`$HOME`), user preferences stored locally in `profile.json`.
 
 ## Project Structure
 
-    assets/               # aset visual & logo NivrOS
+    assets/               # visual assets & NivrOS logo
     bar/                  # TopBar & Dynamic Island
-    core/                 # state singleton (ShellState), tema, utilitas
-    dock/                 # dock & komponen terkait
-    pam/                  # konfigurasi PAM untuk lock screen
+    core/                 # state singleton (ShellState), theme, utilities
+    dock/                 # dock and related components
+    pam/                  # PAM config for the lock screen
     popups/               # Control Center, Settings, Lock Screen, About
-    scripts/              # skrip helper telemetri, Niri, otomatisasi
-    wallpaperTransitions/ # efek transisi wallpaper
-    widgets/              # widget desktop
-    shell.qml             # entry point Quickshell
+    scripts/              # helper scripts: telemetry, Niri, automation
+    wallpaperTransitions/ # wallpaper transition effects
+    widgets/              # desktop widgets
+    shell.qml             # Quickshell entry point
     WallpaperCrossfader.qml
-    sync_niri_glass.py    # sinkronisasi efek glass ke config Niri
-    glass_defaults.json   # default tema glass
-    widgets.json          # konfigurasi widget
-    install.sh            # installer dependensi & deployment
+    sync_niri_glass.py    # syncs glass effects into the Niri config
+    glass_defaults.json   # default glass theme
+    widgets.json          # widget configuration
+    install.sh            # dependency installer & deployment
 
 ## Quick Start
 
@@ -35,10 +37,16 @@ Desktop shell bergaya macOS + Liquid Glass berbasis **Quickshell** untuk **Niri*
     chmod +x install.sh
     ./install.sh
 
-Biar jalan otomatis saat login, tambahkan ke `~/.config/niri/config.kdl`:
+To start the shell automatically on login, add this to `~/.config/niri/config.kdl`:
 
     spawn-at-startup "qs"
 
+## Credits
+
+- **Creator & Maintainer:** XontolSwoord
+- **Built with:** [Quickshell](https://quickshell.org) and [Niri](https://github.com/YaLTeR/niri)
+- **Inspiration:** [iNiR](https://github.com/snowarch/iNiR) (visual reference and repo structure)
+
 ## License
 
-Released under the MIT License.
+Released under the [MIT License](LICENSE).
