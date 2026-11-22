@@ -30,16 +30,39 @@ A macOS-inspired desktop shell with a Liquid Glass look, built on **Quickshell**
     widgets.json          # widget configuration
     install.sh            # dependency installer & deployment
 
-## Quick Start
+## Requirements
+
+- **Niri** Wayland compositor and **Quickshell** (`qs`)
+- Runtime tools: `playerctl`, `pactl` (PulseAudio/PipeWire), `wpctl` (WirePlumber), `brightnessctl`, `nmcli` (NetworkManager), `bluetoothctl` (BlueZ), `wl-clipboard`, `grim`, `slurp`, `wf-recorder`, `ffmpeg`, `jq`, `libnotify`, `power-profiles-daemon`
+- Optional: `alacritty` (terminal theme sync), `qt6ct` and the **Mkos-Big-Sur** icon theme (app icons)
+
+## Installation
+
+Automatic (Arch, Fedora, Debian/Ubuntu):
 
     git clone https://github.com/XontolSwoord/NivrOS-quickshell.git ~/.config/quickshell
     cd ~/.config/quickshell
     chmod +x install.sh
     ./install.sh
 
-To start the shell automatically on login, add this to `~/.config/niri/config.kdl`:
+The installer installs dependencies, backs up any existing config, and never overwrites your Niri or Alacritty config. Use `./install.sh --no-start` to skip launching the shell.
+
+Manual: install the requirements above, copy this repo to `~/.config/quickshell`, then run `qs`.
+
+## Niri configuration
+
+NivrOS reads and edits `~/.config/niri/config.kdl`. Add this to start it on login:
 
     spawn-at-startup "qs"
+
+And these inside the `binds { }` block:
+
+    Mod+Slash { spawn "qs" "ipc" "call" "shell" "toggleKeybinds"; }
+    Super+Alt+L { spawn "qs" "ipc" "call" "lockscreen" "lock"; }
+
+A full example is in `config/niri/config.kdl.example`.
+
+Default folders: `~/Pictures/Wallpapers`, `~/Pictures/Screenshots`, `~/Videos`.
 
 ## Credits
 
