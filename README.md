@@ -1,6 +1,6 @@
 # NivrOS-quickshell
 
-A macOS-inspired desktop shell with a Liquid Glass look, built on **Quickshell** for the **Niri** Wayland compositor.
+A desktop shell with a Liquid Glass look, built on **Quickshell** for the **Niri** Wayland compositor.
 
 ![NivrOS desktop](docs/screenshots/main.webp)
 
